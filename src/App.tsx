@@ -137,21 +137,19 @@ function App() {
   };
 
   const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (showOnlyForecast) return;
+    
     const newDate = new Date(event.target.value);
     const today = new Date();
+    const minDate = new Date('2019-12-29');
     
-    if (!isNaN(newDate.getTime()) && newDate <= today) {
+    if (!isNaN(newDate.getTime()) && 
+        newDate <= today && 
+        newDate >= minDate) {
       setCurrentDate(newDate);
       setShowForecast(false);
     }
   };
-  
-  const minAvailableDate = useMemo(() => {
-    if (!processedWindData.length) return new Date(0);
-    return processedWindData.reduce((min, data) => 
-      data.time.getTime() < min.getTime() ? data.time : min
-    , processedWindData[0].time);
-  }, [processedWindData]);
 
   const handleTimeRangeChange = (newRange: number) => {
     const newDate = new Date();
@@ -195,50 +193,26 @@ function App() {
           <button 
             onClick={handlePrevious}
             className="px-4 py-2 bg-white rounded-md border shadow-sm hover:bg-gray-50"
+            disabled={showOnlyForecast}
           >
             <span className="sr-only">Föregående</span>
             ←
           </button>
 
-          <button 
-            onClick={handleTodayClick}
-            className="px-4 py-2 bg-white rounded-md border shadow-sm hover:bg-gray-50"
-          >
-            Idag
-          </button>
-
-          <button 
-            onClick={handleForecastClick}
-            className={`px-4 py-2 rounded-md border shadow-sm hover:bg-gray-50 
-              ${showOnlyForecast ? 'bg-blue-100' : 'bg-white'}`}
-          >
-            Prognos
-          </button>
-
           <input
-            type="date"
-            value={format(currentDate, 'yyyy-MM-dd')}
-            onChange={handleDateChange}
-            max={format(new Date(), 'yyyy-MM-dd')}
-            min={format(minAvailableDate, 'yyyy-MM-dd')}
-            className="rounded-md border-gray-300 shadow-sm p-2"
+          type="date"
+          value={format(currentDate, 'yyyy-MM-dd')}
+          onChange={handleDateChange}
+          max={format(new Date(), 'yyyy-MM-dd')}
+          min="2019-01-01"
+          className="rounded-md border-gray-300 shadow-sm p-2"
+          disabled={showOnlyForecast}
           />
-
-          <select
-            value={timeRange}
-            onChange={(e) => handleTimeRangeChange(Number(e.target.value))}
-            className="rounded-md border-gray-300 shadow-sm p-2"
-          >
-            <option value={1}>24 timmar</option>
-            <option value={2}>2 dagar</option>
-            <option value={3}>3 dagar</option>
-            <option value={7}>7 dagar</option>
-          </select>
 
           <button 
             onClick={handleNext}
             className="px-4 py-2 bg-white rounded-md border shadow-sm hover:bg-gray-50"
-            disabled={loading || isToday(currentDate)}
+            disabled={loading || isToday(currentDate) || showOnlyForecast}
           >
             <span className="sr-only">Nästa</span>
             →
@@ -273,6 +247,34 @@ function App() {
                   timeRange={timeRange} 
                 />
               </ErrorBoundary>
+              
+              <div className="mt-4 flex items-center gap-4 justify-center">
+                <button 
+                  onClick={handleTodayClick}
+                  className="px-4 py-2 bg-white rounded-md border shadow-sm hover:bg-gray-50"
+                >
+                  Idag
+                </button>
+
+                <button 
+                  onClick={handleForecastClick}
+                  className={`px-4 py-2 rounded-md border shadow-sm hover:bg-gray-50 
+                    ${showOnlyForecast ? 'bg-blue-100' : 'bg-white'}`}
+                >
+                  Prognos
+                </button>
+
+                <select
+                  value={timeRange}
+                  onChange={(e) => handleTimeRangeChange(Number(e.target.value))}
+                  className="rounded-md border-gray-300 shadow-sm p-2"
+                >
+                  <option value={1}>24 timmar</option>
+                  <option value={2}>2 dagar</option>
+                  <option value={3}>3 dagar</option>
+                  <option value={7}>7 dagar</option>
+                </select>
+              </div>
             </div>
             <div className="bg-white shadow rounded-lg p-4">
               <h2 className="text-xl font-semibold mb-4">Observerade värden</h2>
