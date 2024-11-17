@@ -11,6 +11,7 @@ function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [timeRange, setTimeRange] = useState(1);
   const [showForecast, setShowForecast] = useState(true);
+  const [showOnlyForecast, setShowOnlyForecast] = useState(false);
 
   const endDate = useMemo(() => {
     return endOfDay(currentDate);
@@ -166,6 +167,13 @@ function App() {
   const handleTodayClick = () => {
     setCurrentDate(new Date());
     setShowForecast(true);
+    setShowOnlyForecast(false);
+  };
+
+  const handleForecastClick = () => {
+    setCurrentDate(new Date());
+    setShowForecast(true);
+    setShowOnlyForecast(true);
   };
 
   const getDirectionArrow = (direction: number): string => {
@@ -197,6 +205,14 @@ function App() {
             className="px-4 py-2 bg-white rounded-md border shadow-sm hover:bg-gray-50"
           >
             Idag
+          </button>
+
+          <button 
+            onClick={handleForecastClick}
+            className={`px-4 py-2 rounded-md border shadow-sm hover:bg-gray-50 
+              ${showOnlyForecast ? 'bg-blue-100' : 'bg-white'}`}
+          >
+            Prognos
           </button>
 
           <input
@@ -251,9 +267,9 @@ function App() {
             <div className="mb-6">
               <ErrorBoundary>
                 <WindChart 
-                  windData={processedWindData} 
+                  windData={showOnlyForecast ? [] : processedWindData} 
                   forecastData={showForecast ? processedForecastData : []}
-                  title="Vindstyrka - observerad och prognos"
+                  title={showOnlyForecast ? "Vindprognos" : "Vindstyrka - observerad och prognos"}
                   timeRange={timeRange} 
                 />
               </ErrorBoundary>
