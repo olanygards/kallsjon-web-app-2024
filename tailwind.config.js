@@ -7,8 +7,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        'kallsjon-blue': '#1e3a8a',
+        'kallsjon-blue': '#0036a7',
         'kallsjon-gray': '#f3f4f6',
+        'kallsjon-green': '#008000',
       }
     },
   },
