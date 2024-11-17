@@ -225,7 +225,7 @@ export function WindChart({
       const windDirText = `${windDir.toFixed(0)}°`;
 
       // Correct the arrow rotation
-      const arrowRotation = windDir - 90; // Adjust rotation so 0° points upwards
+      const arrowRotation = windDir + 180; // Adjust rotation so 0° points upwards
 
       // Create arrow using inline SVG
       const arrowSvg = `
