@@ -329,11 +329,11 @@ function App() {
     <div className="min-h-screen bg-kallsjon-green">
       <header className="bg-kallsjon-blue shadow mb-6">
         <div className="max-w-7xl mx-auto py-4 px-4">
-          <h1 className="text-3xl font-bold text-white">Surf i Kallsjön</h1>
+          <h1 className="text-3xl font-bold text-white text-center">Surf i Kallsjön</h1>
         </div>
       </header>
       <main className="max-w-7xl mx-auto px-4">
-        <div className="mb-4 flex items-center gap-4">
+        <div className="mb-4 flex items-center gap-4 justify-center">
           <button
             onClick={handlePrevious}
             className="px-4 py-2 bg-white rounded-md border shadow-sm hover:bg-gray-50"

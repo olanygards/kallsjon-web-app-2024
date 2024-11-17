@@ -350,7 +350,7 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
       },
       plugins: {
         legend: {
-          position: 'top',
+          display: false
         },
         tooltip: {
           enabled: false, // Disable the default tooltip
