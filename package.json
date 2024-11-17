@@ -12,6 +12,7 @@
   "dependencies": {
     "@heroicons/react": "^2.1.5",
     "chart.js": "^4.4.6",
+    "chartjs-adapter-date-fns": "^3.0.0",
     "chartjs-plugin-annotation": "^3.1.0",
     "date-fns": "^4.1.0",
     "firebase": "^11.0.1",
