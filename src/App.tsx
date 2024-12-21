@@ -274,21 +274,10 @@ function App() {
   };
 
   const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (showOnlyForecast) return;
-
     const newDate = new Date(event.target.value);
-    const today = new Date();
-    const minDate = new Date('2019-12-29');
-
-    if (
-      !isNaN(newDate.getTime()) &&
-      newDate <= today &&
-      newDate >= minDate
-    ) {
-      setCurrentDate(newDate);
-      setShowForecast(false);
-      setTodayTimeWindow(null); // Reset the today time window
-    }
+    setCurrentDate(newDate);
+    setShowOnlyForecast(false);
+    setTodayTimeWindow(null); // Reset the today time window when changing dates
   };
 
   const handleTimeRangeChange = (newRange: number) => {
@@ -343,15 +332,14 @@ function App() {
             ←
           </button>
 
-          <input
-            type="date"
-            value={format(currentDate, 'yyyy-MM-dd')}
-            onChange={handleDateChange}
-            max={format(new Date(), 'yyyy-MM-dd')}
-            min="2019-01-01"
-            className="rounded-md border-gray-300 shadow-sm p-2"
-            disabled={showOnlyForecast}
-          />
+          <div className="mb-4">
+            <input
+              type="date"
+              value={currentDate.toISOString().split('T')[0]}
+              onChange={handleDateChange}
+              className="rounded-md border-gray-300 shadow-sm p-2"
+            />
+          </div>
 
           <button
             onClick={handleNext}
