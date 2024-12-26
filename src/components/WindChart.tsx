@@ -409,7 +409,7 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
               ...(options?.scales?.x ?? {}),
               ticks: {
                 ...(options?.scales?.x?.ticks ?? {}),
-                color: 'dark:text-gray-300',
+                color: '#E5E7EB',
               },
               grid: {
                 ...(options?.scales?.x?.grid ?? {}),
@@ -420,11 +420,20 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
               ...(options?.scales?.y ?? {}),
               ticks: {
                 ...(options?.scales?.y?.ticks ?? {}),
-                color: 'dark:text-gray-300',
+                color: '#E5E7EB',
               },
               grid: {
                 ...(options?.scales?.y?.grid ?? {}),
                 color: 'rgba(255, 255, 255, 0.1)',
+              },
+            },
+          },
+          plugins: {
+            ...(options?.plugins ?? {}),
+            legend: {
+              ...(options?.plugins?.legend ?? {}),
+              labels: {
+                color: '#E5E7EB',
               },
             },
           },

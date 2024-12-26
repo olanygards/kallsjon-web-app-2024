@@ -416,8 +416,8 @@ function App() {
             {/* Listing for Observed and Forecast Data */}
             {showOnlyForecast ? (
               // **Forecast Data Listing**
-              <div className="bg-white shadow rounded-lg p-4">
-                <h2 className="text-xl font-semibold mb-4">Prognosvärden</h2>
+              <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+                <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Prognosvärden</h2>
                 {Object.entries(groupedForecastData).map(([date, dayData]) => (
                   <div key={date} className="mb-6">
                     <h3 className="text-lg font-medium mb-2">{date}</h3>
@@ -438,8 +438,8 @@ function App() {
                               key={data.time.getTime()}
                               className="flex items-center justify-between"
                             >
-                              <span className="dark:text-white">{formattedTime}</span>
-                              <span className="dark:text-white">
+                              <span className="text-gray-900 dark:text-gray-200">{formattedTime}</span>
+                              <span className="text-gray-900 dark:text-gray-200">
                                 {data.windSpeed.toFixed(1)} ({data.windGust.toFixed(1)}) m/s
                                 <span className="ml-2">
                                   {data.windDirection.toFixed(0)}° {getDirectionArrow(data.windDirection)}
@@ -459,8 +459,8 @@ function App() {
             ) : todayTimeWindow ? (
               <>
                 {/* Observed Data Listing */}
-                <div className="bg-white shadow rounded-lg p-4">
-                  <h2 className="text-xl font-semibold mb-4">Observerade värden</h2>
+                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+                  <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Observerade värden</h2>
                   {Object.entries(groupedData).map(([date, dayData]) => (
                     <div key={date} className="mb-6">
                       <h3 className="text-lg font-medium mb-2">{date}</h3>
@@ -481,8 +481,8 @@ function App() {
                                 key={data.time.getTime()}
                                 className="flex items-center justify-between"
                               >
-                                <span className="dark:text-white">{formattedTime}</span>
-                                <span className="dark:text-white">
+                                <span className="text-gray-900 dark:text-gray-200">{formattedTime}</span>
+                                <span className="text-gray-900 dark:text-gray-200">
                                   {data.windSpeed.toFixed(1)} ({data.windGust.toFixed(1)}) m/s
                                   <span className="ml-2">
                                     {data.windDirection.toFixed(0)}° {getDirectionArrow(data.windDirection)}
@@ -500,8 +500,8 @@ function App() {
                   ))}
                 </div>
                 {/* Forecast Data Listing */}
-                <div className="bg-white shadow rounded-lg p-4 mt-4">
-                  <h2 className="text-xl font-semibold mb-4">Prognosvärden</h2>
+                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mt-4">
+                  <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Prognosvärden</h2>
                   {Object.entries(groupedForecastData).map(([date, dayData]) => (
                     <div key={date} className="mb-6">
                       <h3 className="text-lg font-medium mb-2">{date}</h3>
@@ -522,8 +522,8 @@ function App() {
                                 key={data.time.getTime()}
                                 className="flex items-center justify-between"
                               >
-                                <span className="dark:text-white">{formattedTime}</span>
-                                <span className="dark:text-white">
+                                <span className="text-gray-900 dark:text-gray-200">{formattedTime}</span>
+                                <span className="text-gray-900 dark:text-gray-200">
                                   {data.windSpeed.toFixed(1)} ({data.windGust.toFixed(1)}) m/s
                                   <span className="ml-2">
                                     {data.windDirection.toFixed(0)}° {getDirectionArrow(data.windDirection)}
@@ -543,8 +543,8 @@ function App() {
               </>
             ) : (
               // **Observed Data Listing**
-              <div className="bg-white shadow rounded-lg p-4">
-                <h2 className="text-xl font-semibold mb-4">Observerade värden</h2>
+              <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+                <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Observerade värden</h2>
                 {Object.entries(groupedData).map(([date, dayData]) => (
                   <div key={date} className="mb-6">
                     <h3 className="text-lg font-medium mb-2">{date}</h3>
@@ -564,8 +564,8 @@ function App() {
                             <div
                               key={data.time.getTime()}
                               className="flex items-center justify-between">
-                              <span className="dark:text-white">{formattedTime}</span>
-                              <span className="dark:text-white">
+                              <span className="text-gray-900 dark:text-gray-200">{formattedTime}</span>
+                              <span className="text-gray-900 dark:text-gray-200">
                                 {data.windSpeed.toFixed(1)} ({data.windGust.toFixed(1)}) m/s
                                 <span className="ml-2">
                                   {data.windDirection.toFixed(0)}° {getDirectionArrow(data.windDirection)}
