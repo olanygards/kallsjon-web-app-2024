@@ -398,10 +398,37 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
   }
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow">
-      <h2 className="text-lg font-semibold mb-4">{title}</h2>
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+      <h2 className="text-lg font-semibold mb-4 dark:text-white">{title}</h2>
       <div className="relative h-[400px]">
-        <Line ref={chartRef} data={chartData} options={options} />
+        <Line ref={chartRef} data={chartData} options={{
+          ...options,
+          scales: {
+            ...(options?.scales ?? {}),
+            x: {
+              ...(options?.scales?.x ?? {}),
+              ticks: {
+                ...(options?.scales?.x?.ticks ?? {}),
+                color: 'dark:text-gray-300',
+              },
+              grid: {
+                ...(options?.scales?.x?.grid ?? {}),
+                color: 'rgba(255, 255, 255, 0.1)',
+              },
+            },
+            y: {
+              ...(options?.scales?.y ?? {}),
+              ticks: {
+                ...(options?.scales?.y?.ticks ?? {}),
+                color: 'dark:text-gray-300',
+              },
+              grid: {
+                ...(options?.scales?.y?.grid ?? {}),
+                color: 'rgba(255, 255, 255, 0.1)',
+              },
+            },
+          },
+        }} />
       </div>
     </div>
   );

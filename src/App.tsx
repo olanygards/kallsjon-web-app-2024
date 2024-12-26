@@ -315,7 +315,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-kallsjon-green">
+    <div className="min-h-screen bg-pink-100 dark:bg-gray-900">
       <header className="bg-kallsjon-blue shadow mb-6">
         <div className="max-w-7xl mx-auto py-4 px-4">
           <h1 className="text-3xl font-bold text-white text-center">Surf i Kallsjön</h1>
@@ -325,7 +325,7 @@ function App() {
         <div className="mb-4 flex items-center gap-4 justify-center">
           <button
             onClick={handlePrevious}
-            className="px-4 py-2 bg-white rounded-md border shadow-sm hover:bg-gray-50"
+            className="px-4 py-2 bg-white dark:bg-gray-800 dark:text-white rounded-md border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
             disabled={showOnlyForecast}
           >
             <span className="sr-only">Föregående</span>
@@ -337,13 +337,13 @@ function App() {
               type="date"
               value={currentDate.toISOString().split('T')[0]}
               onChange={handleDateChange}
-              className="rounded-md border-gray-300 shadow-sm p-2"
+              className="rounded-md border-gray-300 shadow-sm p-2 dark:bg-gray-800 dark:text-white dark:border-gray-600"
             />
           </div>
 
           <button
             onClick={handleNext}
-            className="px-4 py-2 bg-white rounded-md border shadow-sm hover:bg-gray-50"
+            className="px-4 py-2 bg-white dark:bg-gray-800 dark:text-white rounded-md border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
             disabled={loading || isToday(currentDate) || showOnlyForecast}
           >
             <span className="sr-only">Nästa</span>
@@ -438,8 +438,8 @@ function App() {
                               key={data.time.getTime()}
                               className="flex items-center justify-between"
                             >
-                              <span>{formattedTime}</span>
-                              <span>
+                              <span className="dark:text-white">{formattedTime}</span>
+                              <span className="dark:text-white">
                                 {data.windSpeed.toFixed(1)} ({data.windGust.toFixed(1)}) m/s
                                 <span className="ml-2">
                                   {data.windDirection.toFixed(0)}° {getDirectionArrow(data.windDirection)}
@@ -481,8 +481,8 @@ function App() {
                                 key={data.time.getTime()}
                                 className="flex items-center justify-between"
                               >
-                                <span>{formattedTime}</span>
-                                <span>
+                                <span className="dark:text-white">{formattedTime}</span>
+                                <span className="dark:text-white">
                                   {data.windSpeed.toFixed(1)} ({data.windGust.toFixed(1)}) m/s
                                   <span className="ml-2">
                                     {data.windDirection.toFixed(0)}° {getDirectionArrow(data.windDirection)}
@@ -522,8 +522,8 @@ function App() {
                                 key={data.time.getTime()}
                                 className="flex items-center justify-between"
                               >
-                                <span>{formattedTime}</span>
-                                <span>
+                                <span className="dark:text-white">{formattedTime}</span>
+                                <span className="dark:text-white">
                                   {data.windSpeed.toFixed(1)} ({data.windGust.toFixed(1)}) m/s
                                   <span className="ml-2">
                                     {data.windDirection.toFixed(0)}° {getDirectionArrow(data.windDirection)}
@@ -564,8 +564,8 @@ function App() {
                             <div
                               key={data.time.getTime()}
                               className="flex items-center justify-between">
-                              <span>{formattedTime}</span>
-                              <span>
+                              <span className="dark:text-white">{formattedTime}</span>
+                              <span className="dark:text-white">
                                 {data.windSpeed.toFixed(1)} ({data.windGust.toFixed(1)}) m/s
                                 <span className="ml-2">
                                   {data.windDirection.toFixed(0)}° {getDirectionArrow(data.windDirection)}
@@ -589,7 +589,7 @@ function App() {
         {!loading && !todayTimeWindow && (
           <button
             onClick={loadMore}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
           >
             Ladda mer data
           </button>

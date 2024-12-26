@@ -1,9 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
-    "./src/**/*.{jsx,tsx}",  // Bara JavaScript/TypeScript React-filer
+    "./src/**/*.{jsx,tsx}",
     "./index.html"
   ],
+  darkMode: 'media',
   theme: {
     extend: {
       colors: {
