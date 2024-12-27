@@ -353,18 +353,34 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
           display: false
         },
         tooltip: {
-          enabled: false, // Disable the default tooltip
+          enabled: false,
           external: customTooltip,
         },
         annotation: {
-          annotations:
-            forecastStartTime && windData.length > 0
+          annotations: {
+            goodWind: {
+              type: 'line',
+              yMin: 10,
+              yMax: 10,
+              borderColor: 'rgba(34, 197, 94, 0.6)', // green-500 with opacity
+              borderWidth: 2,
+              borderDash: [5, 5],
+            },
+            strongWind: {
+              type: 'line',
+              yMin: 15,
+              yMax: 15,
+              borderColor: 'rgba(239, 68, 68, 0.6)', // red-500 with opacity
+              borderWidth: 2,
+              borderDash: [5, 5],
+            },
+            ...(forecastStartTime && windData.length > 0
               ? {
                   forecastLine: {
                     type: 'line',
                     xMin: forecastStartTime.getTime(),
                     xMax: forecastStartTime.getTime(),
-                    borderColor: 'rgba(0, 0, 0, 0.5)',
+                    borderColor: 'rgba(156, 163, 175, 0.6)', // gray-400 with opacity
                     borderWidth: 2,
                     borderDash: [2, 2],
                     label: {
@@ -376,7 +392,8 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
                     },
                   },
                 }
-              : {},
+              : {}),
+          },
         },
       },
     }),
