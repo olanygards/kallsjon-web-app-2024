@@ -348,13 +348,18 @@ function App() {
             ←
           </button>
 
-          <div className="mb-4">
+          <div className="relative inline-block">
             <input
               type="date"
               value={currentDate.toISOString().split('T')[0]}
               onChange={handleDateChange}
-              className="rounded-md border-gray-300 shadow-sm p-2 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+              className="px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 appearance-none text-base pr-8"
             />
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <path d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm0 2h8v12H6V4zm2 3a1 1 0 100 2h4a1 1 0 100-2H8z" />
+              </svg>
+            </div>
           </div>
 
           <button
@@ -419,16 +424,23 @@ function App() {
                   Prognos
                 </button>
 
-                <select
-                  value={timeRange}
-                  onChange={e => handleTimeRangeChange(Number(e.target.value))}
-                  className="rounded-md border-gray-300 shadow-sm p-2"
-                >
-                  <option value={1}>24 timmar</option>
-                  <option value={2}>2 dagar</option>
-                  <option value={3}>3 dagar</option>
-                  <option value={7}>7 dagar</option>
-                </select>
+                <div className="relative inline-block">
+                  <select
+                    value={timeRange}
+                    onChange={e => handleTimeRangeChange(Number(e.target.value))}
+                    className="px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 appearance-none pr-8 text-base"
+                  >
+                    <option value={1}>24 timmar</option>
+                    <option value={2}>2 dagar</option>
+                    <option value={3}>3 dagar</option>
+                    <option value={7}>7 dagar</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
             {/* Listing for Observed and Forecast Data */}

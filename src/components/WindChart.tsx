@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useCallback } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -101,6 +101,17 @@ export function WindChart({
     return new Date(Math.min(...times));
   }, [forecastData]);
 
+  // Add a ref for the timer
+  const tooltipTimerRef = useRef<number | null>(null);
+  
+  // Create a function to hide tooltip
+  const hideTooltip = useCallback(() => {
+    const tooltipEl = document.getElementById('chartjs-tooltip');
+    if (tooltipEl) {
+      tooltipEl.style.opacity = '0';
+    }
+  }, []);
+
   const chartData = useMemo(
     () => ({
       datasets: [
@@ -167,12 +178,19 @@ export function WindChart({
 
   const chartRef = useRef(null);
 
-  // Custom Tooltip
-  const customTooltip = (args: { 
+  // Modify the customTooltip function
+  const customTooltip = useCallback((args: { 
     chart: Chart; 
     tooltip: TooltipModel<'line'>
   }) => {
     const { chart, tooltip } = args;
+    
+    // Clear any existing timer
+    if (tooltipTimerRef.current !== null) {
+      window.clearTimeout(tooltipTimerRef.current);
+      tooltipTimerRef.current = null;
+    }
+
     // Tooltip Element
     let tooltipEl = document.getElementById('chartjs-tooltip');
 
@@ -263,7 +281,10 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
       position.left + window.pageXOffset + tooltip.caretX - tooltipEl.offsetWidth / 2 + 'px';
     tooltipEl.style.top =
       position.top + window.pageYOffset + tooltip.caretY - tooltipEl.offsetHeight - 10 + 'px';
-  };
+
+    // Set timer to hide tooltip after 3 seconds
+    tooltipTimerRef.current = window.setTimeout(hideTooltip, 3000);
+  }, [hideTooltip]);
 
   const options: ChartOptions<'line'> = useMemo(
     () => ({
@@ -400,9 +421,12 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
     [customTooltip, allData, timeRange, forecastStartTime, windData]
   );
 
+  // Clean up timer on unmount
   useEffect(() => {
-    // Cleanup the tooltip element when the component unmounts
     return () => {
+      if (tooltipTimerRef.current !== null) {
+        window.clearTimeout(tooltipTimerRef.current);
+      }
       const tooltipEl = document.getElementById('chartjs-tooltip');
       if (tooltipEl) {
         document.body.removeChild(tooltipEl);
@@ -426,22 +450,35 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
               ...(options?.scales?.x ?? {}),
               ticks: {
                 ...(options?.scales?.x?.ticks ?? {}),
-                color: '#E5E7EB',
+                color: document.documentElement.classList.contains('dark') ? '#E5E7EB' : '#374151', // Light mode: gray-700
               },
               grid: {
                 ...(options?.scales?.x?.grid ?? {}),
-                color: 'rgba(255, 255, 255, 0.1)',
+                color: document.documentElement.classList.contains('dark') 
+                  ? 'rgba(255, 255, 255, 0.1)' 
+                  : 'rgba(0, 0, 0, 0.1)',
+                display: true, // Ensure grid is always displayed
               },
             },
             y: {
               ...(options?.scales?.y ?? {}),
               ticks: {
                 ...(options?.scales?.y?.ticks ?? {}),
-                color: '#E5E7EB',
+                color: document.documentElement.classList.contains('dark') ? '#E5E7EB' : '#374151', // Light mode: gray-700
               },
               grid: {
                 ...(options?.scales?.y?.grid ?? {}),
-                color: 'rgba(255, 255, 255, 0.1)',
+                color: (ctx) => {
+                  if (ctx.tick.value === 10 || ctx.tick.value === 15) {
+                    return document.documentElement.classList.contains('dark')
+                      ? 'rgba(255, 0, 0, 0.2)'
+                      : 'rgba(255, 0, 0, 0.3)';
+                  }
+                  return document.documentElement.classList.contains('dark')
+                    ? 'rgba(255, 255, 255, 0.1)'
+                    : 'rgba(0, 0, 0, 0.1)';
+                },
+                display: true, // Ensure grid is always displayed
               },
             },
           },
@@ -450,7 +487,7 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
             legend: {
               ...(options?.plugins?.legend ?? {}),
               labels: {
-                color: '#E5E7EB',
+                color: document.documentElement.classList.contains('dark') ? '#E5E7EB' : '#374151', // Light mode: gray-700
               },
             },
           },
