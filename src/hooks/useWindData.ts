@@ -43,20 +43,14 @@ export function useWindData({ startDate, endDate }: UseWindDataProps) {
         
         if (!isMounted) return;
 
-        const windData = querySnapshot.docs
-          .map(doc => ({
-            id: doc.id,
-            windSpeed: doc.data().force,
-            windDirection: doc.data().direction,
-            windGust: doc.data().forceMax,
-            time: doc.data().time?.toDate() || new Date(doc.data().time),
-          } as WindData))
-          .filter(data => 
-            data.time && 
-            !isNaN(data.time.getTime()) && 
-            typeof data.windSpeed === 'number' && 
-            typeof data.windDirection === 'number'
-          );
+        const windData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          windSpeed: doc.data().force,
+          windDirection: doc.data().direction,
+          windGust: doc.data().forceMax,
+          time: doc.data().time?.toDate() || new Date(doc.data().time),
+          isForecast: false
+        } as WindData));
 
         setData(windData);
         cache.set(cacheKey, { data: windData, timestamp: Date.now() });

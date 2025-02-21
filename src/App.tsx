@@ -16,7 +16,6 @@ import {
 } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { useState, useMemo } from 'react';
-import { WindRating } from './components/WindRating';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { WindDataGroup } from './components/WindDataGroup';
 

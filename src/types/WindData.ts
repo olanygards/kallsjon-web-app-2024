@@ -4,5 +4,5 @@ export interface WindData {
     windSpeed: number;
     windDirection: number;
     windGust: number;
-    isForecast?: boolean;
+    isForecast: boolean;
 }
