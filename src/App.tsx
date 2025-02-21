@@ -28,6 +28,12 @@ interface WindData {
   isForecast: boolean;
 }
 
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center p-8">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-kallsjon-blue"></div>
+  </div>
+);
+
 function App() {
   // **Initialize the state to start with the "Idag" view**
   const now = new Date();
@@ -341,6 +347,7 @@ function App() {
         <div className="mb-4 flex items-center gap-4 justify-center">
           <button
             onClick={handlePrevious}
+            aria-label="Föregående dag"
             className="px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600"
             disabled={showOnlyForecast}
           >
@@ -351,6 +358,7 @@ function App() {
           <div className="relative inline-block">
             <input
               type="date"
+              aria-label="Välj datum"
               value={currentDate.toISOString().split('T')[0]}
               onChange={handleDateChange}
               className="px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 appearance-none text-base pr-8"
@@ -371,11 +379,7 @@ function App() {
             →
           </button>
         </div>
-        {loading && (
-          <div className="text-center py-4">
-            <p className="text-gray-600">Laddar data...</p>
-          </div>
-        )}
+        {loading && <LoadingSpinner />}
 
         {!loading && error && (
           <div className="bg-red-50 text-red-600 p-4 rounded-lg">

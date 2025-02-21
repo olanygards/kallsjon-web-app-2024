@@ -8,10 +8,20 @@ interface UseWindDataProps {
   endDate: Date;
 }
 
+const CACHE_TIME = 5 * 60 * 1000; // 5 minuter
+const cache = new Map<string, {data: WindData[], timestamp: number}>();
+
 export function useWindData({ startDate, endDate }: UseWindDataProps) {
   const [data, setData] = useState<WindData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  const cacheKey = `${startDate.getTime()}-${endDate.getTime()}`;
+  const cachedData = cache.get(cacheKey);
+
+  if (cachedData && Date.now() - cachedData.timestamp < CACHE_TIME) {
+    return { data: cachedData.data, loading: false, error: null, isEmpty: false };
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -49,6 +59,7 @@ export function useWindData({ startDate, endDate }: UseWindDataProps) {
           );
 
         setData(windData);
+        cache.set(cacheKey, { data: windData, timestamp: Date.now() });
       } catch (err) {
         if (isMounted) {
           setError(err as Error);

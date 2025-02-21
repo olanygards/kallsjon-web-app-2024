@@ -308,9 +308,9 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
             },
           },
           ticks: {
-            maxRotation: 60,
+            maxRotation: window.innerWidth < 768 ? 45 : 60,
             minRotation: 60,
-            autoSkip: true,
+            autoSkip: window.innerWidth < 768,
             source: 'auto',
             callback: function (value, index, ticks) {
               const date = new Date(value as number);
@@ -339,6 +339,7 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
 
               return '';
             },
+            maxTicksLimit: window.innerWidth < 768 ? 6 : undefined,
           },
           grid: {
             display: true,
@@ -418,7 +419,7 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
         },
       },
     }),
-    [customTooltip, allData, timeRange, forecastStartTime, windData]
+    [customTooltip, allData, timeRange, forecastStartTime, windData, window.innerWidth]
   );
 
   // Clean up timer on unmount
