@@ -18,6 +18,7 @@ import { sv } from 'date-fns/locale';
 import { useState, useMemo } from 'react';
 import { WindRating } from './components/WindRating';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { WindDataGroup } from './components/WindDataGroup';
 
 // Add this interface at the top of the file, after the imports
 interface WindData {
@@ -333,6 +334,18 @@ function App() {
     }
   };
 
+  // Add this helper function inside App component
+  const groupWindDataByHour = (data: WindData[]) => {
+    return data.reduce((groups, item) => {
+      const hourKey = format(item.time, 'yyyy-MM-dd HH');
+      if (!groups[hourKey]) {
+        groups[hourKey] = [];
+      }
+      groups[hourKey].push(item);
+      return groups;
+    }, {} as Record<string, WindData[]>);
+  };
+
   return (
     <div className="min-h-screen bg-kallsjon-green dark:bg-gray-900">
       <PullToRefresh onRefresh={handleRefresh}>
@@ -448,173 +461,36 @@ function App() {
               </div>
             </div>
             {/* Listing for Observed and Forecast Data */}
-            {showOnlyForecast ? (
-              // **Forecast Data Listing**
+            {!loading && !showOnlyForecast && (
               <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-                <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Prognosvärden</h2>
-                {Object.entries(groupedForecastData).map(([date, dayData]) => (
-                  <div key={date} className="mb-6">
-                    <h3 className="text-lg font-medium mb-2">{date}</h3>
-                    <div className="space-y-2">
-                      {dayData
-                        .filter(data => data.time && !isNaN(data.time.getTime()))
-                        .sort((a, b) => a.time.getTime() - b.time.getTime())
-                        .map(data => {
-                          let formattedTime = 'Okänt';
-                          try {
-                            formattedTime = format(data.time, 'HH:mm');
-                          } catch {
-                            console.error('Invalid date:', data.time);
-                          }
-
-                          return (
-                            <div
-                              key={data.time.getTime()}
-                              className="flex items-center justify-between"
-                            >
-                              <span className="text-gray-900 dark:text-gray-200">{formattedTime}</span>
-                              <span className="text-gray-900 dark:text-gray-200">
-                                {data.windSpeed.toFixed(1)} ({data.windGust.toFixed(1)}) m/s
-                                <span className="ml-2">
-                                  {data.windDirection.toFixed(0)}° {getDirectionArrow(data.windDirection)}
-                                </span>
-                              </span>
-                              <WindRating
-                                avgWind={data.windSpeed}
-                                gustWind={data.windGust}
-                              />
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-                ))}
+                <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                  Observerade värden
+                </h2>
+                {Object.entries(groupWindDataByHour(processedWindData))
+                  .sort(([a], [b]) => b.localeCompare(a))
+                  .map(([hourKey, hourData]) => (
+                    <WindDataGroup
+                      key={hourKey}
+                      hourData={hourData}
+                    />
+                  ))}
               </div>
-            ) : todayTimeWindow ? (
-              <>
-                {/* Observed Data Listing */}
-                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-                  <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Observerade värden</h2>
-                  {Object.entries(groupedData).map(([date, dayData]) => (
-                    <div key={date} className="mb-6">
-                      <h3 className="text-lg font-medium mb-2">{date}</h3>
-                      <div className="space-y-2">
-                        {dayData
-                          .filter(data => data.time && !isNaN(data.time.getTime()))
-                          .sort((a, b) => b.time.getTime() - a.time.getTime())
-                          .map(data => {
-                            let formattedTime = 'Okänt';
-                            try {
-                              formattedTime = format(data.time, 'HH:mm');
-                            } catch {
-                              console.error('Invalid date:', data.time);
-                            }
+            )}
 
-                            return (
-                              <div
-                                key={data.time.getTime()}
-                                className="flex items-center justify-between"
-                              >
-                                <span className="text-gray-900 dark:text-gray-200">{formattedTime}</span>
-                                <span className="text-gray-900 dark:text-gray-200">
-                                  {data.windSpeed.toFixed(1)} ({data.windGust.toFixed(1)}) m/s
-                                  <span className="ml-2">
-                                    {data.windDirection.toFixed(0)}° {getDirectionArrow(data.windDirection)}
-                                  </span>
-                                </span>
-                                <WindRating
-                                  avgWind={data.windSpeed}
-                                  gustWind={data.windGust}
-                                />
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </div>
+            {!loading && (showForecast || showOnlyForecast) && (
+              <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mt-4">
+                <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                  Prognosvärden
+                </h2>
+                {Object.entries(groupWindDataByHour(processedForecastData))
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([hourKey, hourData]) => (
+                    <WindDataGroup
+                      key={hourKey}
+                      hourData={hourData}
+                      isForecast={true}
+                    />
                   ))}
-                </div>
-                {/* Forecast Data Listing */}
-                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mt-4">
-                  <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Prognosvärden</h2>
-                  {Object.entries(groupedForecastData).map(([date, dayData]) => (
-                    <div key={date} className="mb-6">
-                      <h3 className="text-lg font-medium mb-2">{date}</h3>
-                      <div className="space-y-2">
-                        {dayData
-                          .filter(data => data.time && !isNaN(data.time.getTime()))
-                          .sort((a, b) => a.time.getTime() - b.time.getTime())
-                          .map(data => {
-                            let formattedTime = 'Okänt';
-                            try {
-                              formattedTime = format(data.time, 'HH:mm');
-                            } catch {
-                              console.error('Invalid date:', data.time);
-                            }
-
-                            return (
-                              <div
-                                key={data.time.getTime()}
-                                className="flex items-center justify-between"
-                              >
-                                <span className="text-gray-900 dark:text-gray-200">{formattedTime}</span>
-                                <span className="text-gray-900 dark:text-gray-200">
-                                  {data.windSpeed.toFixed(1)} ({data.windGust.toFixed(1)}) m/s
-                                  <span className="ml-2">
-                                    {data.windDirection.toFixed(0)}° {getDirectionArrow(data.windDirection)}
-                                  </span>
-                                </span>
-                                <WindRating
-                                  avgWind={data.windSpeed}
-                                  gustWind={data.windGust}
-                                />
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              // **Observed Data Listing**
-              <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-                <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Observerade värden</h2>
-                {Object.entries(groupedData).map(([date, dayData]) => (
-                  <div key={date} className="mb-6">
-                    <h3 className="text-lg font-medium mb-2">{date}</h3>
-                    <div className="space-y-2">
-                      {dayData
-                        .filter(data => data.time && !isNaN(data.time.getTime()))
-                        .sort((a, b) => b.time.getTime() - a.time.getTime())
-                        .map(data => {
-                          let formattedTime = 'Okänt';
-                          try {
-                            formattedTime = format(data.time, 'HH:mm');
-                          } catch {
-                            console.error('Invalid date:', data.time);
-                          }
-
-                          return (
-                            <div
-                              key={data.time.getTime()}
-                              className="flex items-center justify-between">
-                              <span className="text-gray-900 dark:text-gray-200">{formattedTime}</span>
-                              <span className="text-gray-900 dark:text-gray-200">
-                                {data.windSpeed.toFixed(1)} ({data.windGust.toFixed(1)}) m/s
-                                <span className="ml-2">
-                                  {data.windDirection.toFixed(0)}° {getDirectionArrow(data.windDirection)}
-                                </span>
-                              </span>
-                              <WindRating
-                                avgWind={data.windSpeed}
-                                gustWind={data.windGust}
-                              />
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
           </>
