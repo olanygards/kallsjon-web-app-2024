@@ -2,6 +2,7 @@ import { useWindData } from './hooks/useWindData';
 import { useForecast } from './hooks/useForecast';
 import { WindChart } from './components/WindChart';
 import { PullToRefresh } from './components/PullToRefresh';
+import { WindDataGroup } from './components/WindDataGroup';
 import {
   format,
   addDays,
@@ -17,7 +18,6 @@ import {
 import { sv } from 'date-fns/locale';
 import { useState, useMemo } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { WindDataGroup } from './components/WindDataGroup';
 
 // Add this interface at the top of the file, after the imports
 interface WindData {
@@ -333,16 +333,31 @@ function App() {
     }
   };
 
-  // Add this helper function inside App component
+  // Update the grouping function
   const groupWindDataByHour = (data: WindData[]) => {
+    if (!data || data.length === 0) return {};
+
     return data.reduce((groups, item) => {
-      const hourKey = format(item.time, 'yyyy-MM-dd HH');
+      // Format as 'YYYY-MM-DD HH:00' to group per hour
+      const hourKey = format(item.time, 'yyyy-MM-dd HH:00');
+
       if (!groups[hourKey]) {
-        groups[hourKey] = [];
+        groups[hourKey] = {
+          best: item,
+          records: []
+        };
       }
-      groups[hourKey].push(item);
+
+      // Add to records
+      groups[hourKey].records.push(item);
+
+      // Update best if current wind speed is higher
+      if (item.windSpeed > groups[hourKey].best.windSpeed) {
+        groups[hourKey].best = item;
+      }
+
       return groups;
-    }, {} as Record<string, WindData[]>);
+    }, {} as Record<string, { best: WindData; records: WindData[] }>);
   };
 
   return (
@@ -467,11 +482,17 @@ function App() {
                 </h2>
                 {Object.entries(groupWindDataByHour(processedWindData))
                   .sort(([a], [b]) => b.localeCompare(a))
-                  .map(([hourKey, hourData]) => (
-                    <WindDataGroup
-                      key={hourKey}
-                      hourData={hourData}
-                    />
+                  .map(([hourKey, { best, records }]) => (
+                    <div key={hourKey} className="mb-6">
+                      <h3 className="text-lg font-medium mb-2">
+                        {format(new Date(hourKey), 'EEE d MMM', { locale: sv })}
+                      </h3>
+                      <WindDataGroup
+                        bestWind={best}
+                        hourData={records.sort((a, b) => b.time.getTime() - a.time.getTime())}
+                        isForecast={false}
+                      />
+                    </div>
                   ))}
               </div>
             )}
@@ -483,10 +504,11 @@ function App() {
                 </h2>
                 {Object.entries(groupWindDataByHour(processedForecastData))
                   .sort(([a], [b]) => a.localeCompare(b))
-                  .map(([hourKey, hourData]) => (
+                  .map(([hourKey, { best, records }]) => (
                     <WindDataGroup
                       key={hourKey}
-                      hourData={hourData}
+                      bestWind={best}
+                      hourData={records}
                       isForecast={true}
                     />
                   ))}
