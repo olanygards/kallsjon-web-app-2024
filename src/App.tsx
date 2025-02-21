@@ -224,36 +224,6 @@ function App() {
     return aggregatedData;
   }, [processedWindData, todayTimeWindow]);
 
-  // **Grouped Forecast Data for Listing**
-  const groupedForecastData = useMemo(() => {
-    return processedForecastData.reduce((acc, data) => {
-      if (data.time && !isNaN(data.time.getTime())) {
-        const date = format(data.time, 'EEE d MMM', { locale: sv });
-        if (!acc[date]) acc[date] = [];
-        acc[date].push(data);
-      }
-      return acc;
-    }, {} as Record<string, WindData[]>);
-  }, [processedForecastData]);
-
-  const groupedData = useMemo(() => {
-    let data = processedWindData.map(d => ({
-      ...d,
-      isForecast: false
-    }));
-    if (todayTimeWindow) {
-      data = data.filter(d => d.time >= todayTimeWindow.start && d.time <= todayTimeWindow.end);
-    }
-    return data.reduce((acc, data) => {
-      if (data.time && !isNaN(data.time.getTime())) {
-        const date = format(data.time, 'EEE d MMM', { locale: sv });
-        if (!acc[date]) acc[date] = [];
-        acc[date].push(data);
-      }
-      return acc;
-    }, {} as Record<string, WindData[]>);
-  }, [processedWindData, todayTimeWindow]);
-
   const loadMore = () => {
     setCurrentDate(prev => subDays(prev, timeRange));
     setTodayTimeWindow(null); // Reset the today time window
@@ -316,11 +286,6 @@ function App() {
     setTodayTimeWindow(null); // Reset the today time window
   };
 
-  const getDirectionArrow = (direction: number): string => {
-    const directions = ['↓', '↙', '←', '↖', '↑', '↗', '→', '↘'];
-    return directions[Math.round(((direction % 360) / 45)) % 8];
-  };
-
   const handleRefresh = async () => {
     // Reset to current time
     const now = new Date();
@@ -333,7 +298,7 @@ function App() {
     }
   };
 
-  // Update the grouping function
+  // Group wind data by hour
   const groupWindDataByHour = (data: WindData[]) => {
     if (!data || data.length === 0) return {};
 
