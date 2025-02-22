@@ -30,18 +30,24 @@ export const WindDataGroup = ({ bestWind, hourData, isForecast = false, hideDrop
   return (
     <div className="mb-2">
       {/* Hour header - always visible */}
-      <button
+      <div
         onClick={() => !hideDropdown && setIsExpanded(!isExpanded)}
-        onKeyDown={(e) => {
-          if (!hideDropdown && (e.key === 'Enter' || e.key === ' ')) setIsExpanded(!isExpanded);
-        }}
-        aria-expanded={isExpanded}
-        className={`w-full text-left p-4 rounded-lg transition-colors mb-2 ${
-          isForecast ? 'bg-gray-100 dark:bg-gray-700' : 'bg-gray-100 dark:bg-gray-700'
-        }`}
+        className={`p-2 rounded-lg cursor-pointer focus:outline-none ${
+          isExpanded ? 'mb-0' : 'mb-2'
+        } ${
+          bestWind.windSpeed >= 18
+            ? 'bg-red-200 dark:bg-red-900'
+            : bestWind.windSpeed >= 15
+            ? 'bg-orange-200 dark:bg-orange-900'
+            : bestWind.windSpeed >= 12
+            ? 'bg-yellow-200 dark:bg-yellow-900'
+            : bestWind.windSpeed >= 10
+            ? 'bg-green-200 dark:bg-green-900'
+            : 'bg-white dark:bg-gray-800'
+        } hover:brightness-100`}
       >
         <div className="flex items-center">
-          <div className="w-[80px] text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="w-[70px] text-lg font-bold text-gray-900 dark:text-white">
             {hourLabel}
           </div>
           <div className="flex-[2] flex items-center justify-end gap-4">
@@ -55,7 +61,7 @@ export const WindDataGroup = ({ bestWind, hourData, isForecast = false, hideDrop
                 <WindRating avgWind={bestWind.windSpeed} gustWind={bestWind.windGust} />
               </div>
             </div>
-            <div className="flex items-center gap-1 w-[60px]">
+            <div className="flex items-center gap-1 w-[55px]">
               <span className="text-lg">{bestWind.windDirection}°</span>
               <span className="text-xl transform rotate-[270deg] inline-block">
                 {getDirectionArrow(bestWind.windDirection)}
@@ -71,21 +77,20 @@ export const WindDataGroup = ({ bestWind, hourData, isForecast = false, hideDrop
             )}
           </div>
         </div>
-      </button>
+      </div>
 
       {/* Expanded details with animation */}
       {!hideDropdown && (
         <div
           className={`transition-all duration-300 ease-in-out ${
-            isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0'
-          }`}
-          style={{ overflow: 'hidden' }}
+            isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
+          } overflow-hidden`}
         >
-          <div className="pl-6 mt-2 space-y-2">
+          <div className="pl-6 mt-2 space-y-2 pb-4">
             {sortedHourData.map((data) => (
               <div
                 key={data.time.getTime()}
-                className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded"
+                className="flex items-center justify-between p-1 bg-white dark:bg-gray-800 rounded"
               >
                 <div className="w-[80px] text-lg text-gray-900 dark:text-white">
                   {format(data.time, 'HH:mm')}
@@ -101,7 +106,7 @@ export const WindDataGroup = ({ bestWind, hourData, isForecast = false, hideDrop
                       <WindRating avgWind={data.windSpeed} gustWind={data.windGust} />
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 w-[60px]">
+                  <div className="flex items-center gap-1 w-[55px]">
                     <span className="text-lg">{data.windDirection}°</span>
                     <span className="text-xl transform rotate-[270deg] inline-block">
                       {getDirectionArrow(data.windDirection)}

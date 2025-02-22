@@ -3,6 +3,7 @@ import { useForecast } from './hooks/useForecast';
 import { WindChart } from './components/WindChart';
 import { PullToRefresh } from './components/PullToRefresh';
 import { WindDataGroup } from './components/WindDataGroup';
+import { getSunrise, getSunset } from 'sunrise-sunset-js';
 import {
   format,
   addDays,
@@ -27,6 +28,28 @@ interface WindData {
   windGust: number;
   isForecast: boolean;
 }
+
+const KALLSJON_COORDINATES = {
+  latitude: 63.3,
+  longitude: 13.8
+};
+
+const getMoonInfo = (date: Date) => {
+  // Simple moon phase calculation
+  const synmonth = 29.53058867; // Synodic month (new moon to new moon)
+  const reference = new Date("2000-01-06").getTime(); // Known new moon date
+  const phase = ((date.getTime() - reference) % (synmonth * 86400000)) / (synmonth * 86400000);
+  const percentage = Math.round(phase * 100);
+  
+  if (phase < 0.125) return { emoji: '🌑', percentage };
+  if (phase < 0.25) return { emoji: '🌒', percentage };
+  if (phase < 0.375) return { emoji: '🌓', percentage };
+  if (phase < 0.625) return { emoji: '🌔', percentage };
+  if (phase < 0.75) return { emoji: '🌕', percentage };
+  if (phase < 0.875) return { emoji: '🌖', percentage };
+  if (phase < 1) return { emoji: '🌗', percentage };
+  return { emoji: '🌘', percentage };
+};
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center p-8">
@@ -336,6 +359,83 @@ function App() {
     }, {} as Record<string, { best: WindData; records: WindData[] }>);
   }, [processedForecastData]);
 
+  // Function to find the next date with strong wind
+  const findNextWindyDate = (direction: 'forward' | 'backward') => {
+    console.log('Current date:', currentDate);
+    
+    // Get all dates with their best wind speeds
+    const dateWindSpeeds = new Map<string, { time: Date; windSpeed: number; isForecast: boolean }>();
+
+    // Process historical data
+    Object.entries(groupedByDate).forEach(([dateKey, hourGroups]) => {
+      // Find the highest wind speed for this date
+      let maxWindSpeed = 0;
+      let bestTime = hourGroups[0].best.time;
+      
+      hourGroups.forEach(group => {
+        if (group.best.windSpeed > maxWindSpeed) {
+          maxWindSpeed = group.best.windSpeed;
+          bestTime = group.best.time;
+        }
+      });
+      
+      dateWindSpeeds.set(dateKey, {
+        time: bestTime,
+        windSpeed: maxWindSpeed,
+        isForecast: false
+      });
+    });
+
+    // Process forecast data
+    Object.entries(groupedForecastData).forEach(([hourKey, group]) => {
+      const dateKey = hourKey.substring(0, 10);
+      const existing = dateWindSpeeds.get(dateKey);
+      
+      if (!existing || group.best.windSpeed > existing.windSpeed) {
+        dateWindSpeeds.set(dateKey, {
+          time: group.best.time,
+          windSpeed: group.best.windSpeed,
+          isForecast: true
+        });
+      }
+    });
+
+    console.log('Processed dates with wind speeds:', Array.from(dateWindSpeeds.entries()));
+
+    // Convert to array and sort
+    const sortedDates = Array.from(dateWindSpeeds.entries())
+      .map(([dateKey, data]) => ({
+        date: new Date(dateKey),
+        ...data
+      }))
+      .sort((a, b) => 
+        direction === 'forward' 
+          ? a.date.getTime() - b.date.getTime()
+          : b.date.getTime() - a.date.getTime()
+      );
+
+    console.log('Sorted dates:', sortedDates);
+
+    // Find next date with good wind
+    const currentDateStart = startOfDay(currentDate).getTime();
+    const targetDate = sortedDates.find(data => {
+      const dataDateStart = startOfDay(data.date).getTime();
+      return data.windSpeed >= 10 && (
+        direction === 'forward'
+          ? dataDateStart > currentDateStart
+          : dataDateStart < currentDateStart
+      );
+    });
+
+    console.log('Found target date:', targetDate);
+
+    if (targetDate) {
+      setCurrentDate(targetDate.date);
+      setShowForecast(targetDate.isForecast);
+      setTodayTimeWindow(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-kallsjon-green dark:bg-gray-900">
       <PullToRefresh onRefresh={handleRefresh}>
@@ -348,6 +448,16 @@ function App() {
       
       <main className="max-w-7xl mx-auto px-4">
         <div className="mb-4 flex items-center gap-4 justify-center">
+          <button
+            onClick={() => findNextWindyDate('backward')}
+            aria-label="Föregående blåsiga dag"
+            className="px-4 py-2 bg-blue-500 text-white dark:bg-blue-700 rounded-md border shadow-sm hover:bg-blue-600 dark:hover:bg-blue-800"
+            disabled={loading}
+          >
+            <span className="sr-only">Föregående blåsiga</span>
+            ⟪
+          </button>
+
           <button
             onClick={handlePrevious}
             aria-label="Föregående dag"
@@ -380,6 +490,16 @@ function App() {
           >
             <span className="sr-only">Nästa</span>
             →
+          </button>
+
+          <button
+            onClick={() => findNextWindyDate('forward')}
+            aria-label="Nästa blåsiga dag"
+            className="px-4 py-2 bg-blue-500 text-white dark:bg-blue-700 rounded-md border shadow-sm hover:bg-blue-600 dark:hover:bg-blue-800"
+            disabled={loading}
+          >
+            <span className="sr-only">Nästa blåsiga</span>
+            ⟫
           </button>
         </div>
         {loading && <LoadingSpinner />}
@@ -462,15 +582,24 @@ function App() {
                     <div key={dateKey} className="mb-6">
                       <h3 className="text-lg font-medium mb-2 text-gray-900 dark:text-white">
                         {format(new Date(dateKey), 'EEE d MMM', { locale: sv })}
+                        <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
+                          ☀ {format(getSunrise(KALLSJON_COORDINATES.latitude, KALLSJON_COORDINATES.longitude, new Date(dateKey)), 'HH:mm')}
+                          {' '} {' '} 
+                          ☽ {format(getSunset(KALLSJON_COORDINATES.latitude, KALLSJON_COORDINATES.longitude, new Date(dateKey)), 'HH:mm')}
+                          {' '} {' '}
+                          {getMoonInfo(new Date(dateKey)).emoji} {getMoonInfo(new Date(dateKey)).percentage}%
+                        </span>
                       </h3>
-                      {hourGroups.map(({ best, records }) => (
-                        <WindDataGroup
-                          key={best.time.getTime()}
-                          bestWind={best}
-                          hourData={records.sort((a, b) => b.time.getTime() - a.time.getTime())}
-                          isForecast={false}
-                        />
-                      ))}
+                      {hourGroups
+                        .sort((a, b) => b.best.time.getTime() - a.best.time.getTime())
+                        .map(({ best, records }) => (
+                          <WindDataGroup
+                            key={best.time.getTime()}
+                            bestWind={best}
+                            hourData={records.sort((a, b) => b.time.getTime() - a.time.getTime())}
+                            isForecast={false}
+                          />
+                        ))}
                     </div>
                   ))}
               </div>
