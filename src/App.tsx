@@ -16,7 +16,7 @@ import {
   roundToNearestMinutes,
 } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Add this interface at the top of the file, after the imports
@@ -156,8 +156,10 @@ function App() {
     // Filter based on todayTimeWindow
     let filteredData = processedWindData;
     if (todayTimeWindow) {
+      const startTime = todayTimeWindow.start.getTime();
+      const endTime = todayTimeWindow.end.getTime();
       filteredData = processedWindData.filter(
-        data => data.time >= todayTimeWindow.start && data.time <= todayTimeWindow.end
+        data => data.time.getTime() >= startTime && data.time.getTime() <= endTime
       );
     }
 
@@ -222,12 +224,7 @@ function App() {
     }
 
     return aggregatedData;
-  }, [processedWindData, todayTimeWindow]);
-
-  const loadMore = () => {
-    setCurrentDate(prev => subDays(prev, timeRange));
-    setTodayTimeWindow(null); // Reset the today time window
-  };
+  }, [processedWindData, todayTimeWindow?.start?.getTime(), todayTimeWindow?.end?.getTime()]);
 
   const handlePrevious = () => {
     if (loading) return;
@@ -252,22 +249,17 @@ function App() {
 
   const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = new Date(event.target.value);
-    setCurrentDate(newDate);
-    setShowOnlyForecast(false);
-    setTodayTimeWindow(null); // Reset the today time window when changing dates
+    if (!isNaN(newDate.getTime())) {
+      setCurrentDate(newDate);
+      setShowOnlyForecast(false);
+      setTodayTimeWindow(null);
+    }
   };
 
-  const handleTimeRangeChange = (newRange: number) => {
-    const newDate = new Date();
-
-    // Ensure we always start from today's date when changing the interval
-    setCurrentDate(newDate);
-    // Wait to update timeRange until after currentDate has been updated
-    setTimeout(() => {
-      setTimeRange(newRange);
-      setTodayTimeWindow(null); // Reset the today time window
-    }, 0);
-  };
+  const handleTimeRangeChange = useCallback((newRange: number) => {
+    setTimeRange(newRange);
+    setTodayTimeWindow(null); 
+  }, []);
 
   const handleTodayClick = () => {
     const now = new Date();
@@ -299,31 +291,50 @@ function App() {
   };
 
   // Group wind data by hour
-  const groupWindDataByHour = (data: WindData[]) => {
-    if (!data || data.length === 0) return {};
-
-    return data.reduce((groups, item) => {
-      // Format as 'YYYY-MM-DD HH:00' to group per hour
+  const groupedWindData = useMemo(() => {
+    if (!processedWindData.length) return {};
+    
+    return processedWindData.reduce((groups, item) => {
       const hourKey = format(item.time, 'yyyy-MM-dd HH:00');
+      if (!groups[hourKey]) groups[hourKey] = { best: item, records: [] };
 
-      if (!groups[hourKey]) {
-        groups[hourKey] = {
-          best: item,
-          records: []
-        };
-      }
-
-      // Add to records
       groups[hourKey].records.push(item);
-
-      // Update best if current wind speed is higher
       if (item.windSpeed > groups[hourKey].best.windSpeed) {
         groups[hourKey].best = item;
       }
 
       return groups;
     }, {} as Record<string, { best: WindData; records: WindData[] }>);
-  };
+  }, [processedWindData]);
+
+  const groupedByDate = useMemo(() => {
+    const result: Record<string, { best: WindData; records: WindData[] }[]> = {};
+    Object.entries(groupedWindData).forEach(([hourKey, group]) => {
+      // Extract the date portion from the hourKey (first 10 characters for yyyy-MM-dd)
+      const dateKey = hourKey.substring(0, 10);
+      if (!result[dateKey]) {
+        result[dateKey] = [];
+      }
+      result[dateKey].push(group);
+    });
+    return result;
+  }, [groupedWindData]);
+
+  const groupedForecastData = useMemo(() => {
+    if (!processedForecastData.length) return {};
+    
+    return processedForecastData.reduce((groups, item) => {
+      const hourKey = format(item.time, 'yyyy-MM-dd HH:00');
+      if (!groups[hourKey]) groups[hourKey] = { best: item, records: [] };
+
+      groups[hourKey].records.push(item);
+      if (item.windSpeed > groups[hourKey].best.windSpeed) {
+        groups[hourKey].best = item;
+      }
+
+      return groups;
+    }, {} as Record<string, { best: WindData; records: WindData[] }>);
+  }, [processedForecastData]);
 
   return (
     <div className="min-h-screen bg-kallsjon-green dark:bg-gray-900">
@@ -445,18 +456,21 @@ function App() {
                 <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
                   Observerade värden
                 </h2>
-                {Object.entries(groupWindDataByHour(processedWindData))
+                {Object.entries(groupedByDate)
                   .sort(([a], [b]) => b.localeCompare(a))
-                  .map(([hourKey, { best, records }]) => (
-                    <div key={hourKey} className="mb-6">
-                      <h3 className="text-lg font-medium mb-2">
-                        {format(new Date(hourKey), 'EEE d MMM', { locale: sv })}
+                  .map(([dateKey, hourGroups]) => (
+                    <div key={dateKey} className="mb-6">
+                      <h3 className="text-lg font-medium mb-2 text-gray-900 dark:text-white">
+                        {format(new Date(dateKey), 'EEE d MMM', { locale: sv })}
                       </h3>
-                      <WindDataGroup
-                        bestWind={best}
-                        hourData={records.sort((a, b) => b.time.getTime() - a.time.getTime())}
-                        isForecast={false}
-                      />
+                      {hourGroups.map(({ best, records }) => (
+                        <WindDataGroup
+                          key={best.time.getTime()}
+                          bestWind={best}
+                          hourData={records.sort((a, b) => b.time.getTime() - a.time.getTime())}
+                          isForecast={false}
+                        />
+                      ))}
                     </div>
                   ))}
               </div>
@@ -467,7 +481,7 @@ function App() {
                 <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
                   Prognosvärden
                 </h2>
-                {Object.entries(groupWindDataByHour(processedForecastData))
+                {Object.entries(groupedForecastData)
                   .sort(([a], [b]) => a.localeCompare(b))
                   .map(([hourKey, { best, records }]) => (
                     <WindDataGroup
@@ -480,15 +494,6 @@ function App() {
               </div>
             )}
           </>
-        )}
-
-        {!loading && !todayTimeWindow && (
-          <button
-            onClick={loadMore}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
-          >
-            Ladda mer data
-          </button>
         )}
       </main>
     </div>
