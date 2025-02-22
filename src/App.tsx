@@ -4,6 +4,7 @@ import { WindChart } from './components/WindChart';
 import { PullToRefresh } from './components/PullToRefresh';
 import { WindDataGroup } from './components/WindDataGroup';
 import { getSunrise, getSunset } from 'sunrise-sunset-js';
+import { CONFIG } from './config/constants';
 import {
   format,
   addDays,
@@ -17,7 +18,7 @@ import {
   roundToNearestMinutes,
 } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Add this interface at the top of the file, after the imports
@@ -70,6 +71,24 @@ function App() {
   const [showForecast, setShowForecast] = useState(true);
   const [showOnlyForecast, setShowOnlyForecast] = useState(false);
   const [todayTimeWindow, setTodayTimeWindow] = useState<{ start: Date; end: Date } | null>(initialTodayTimeWindow);
+  const [searchingWindyDays, setSearchingWindyDays] = useState<{ direction: 'forward' | 'backward' } | null>(null);
+  const searchAttemptsRef = useRef(0);
+
+  // Calculate the date range for fetching wind data
+  const windDataRange = useMemo(() => {
+    const start = subDays(startOfDay(currentDate), 7); // Fetch last 7 days
+    const end = addDays(endOfDay(currentDate), 3);  // Plus 3 days for forecast
+    return { start, end };
+  }, [currentDate]);
+
+  const { data: windData, loading: windLoading, error: windError, isEmpty } = useWindData({
+    startDate: windDataRange.start,
+    endDate: windDataRange.end,
+  });
+  const { data: forecastData, loading: forecastLoading, error: forecastError } = useForecast();
+
+  const loading = windLoading || forecastLoading;
+  const error = windError || forecastError;
 
   const endDate = useMemo(() => {
     return endOfDay(currentDate);
@@ -78,15 +97,6 @@ function App() {
   const startDate = useMemo(() => {
     return startOfDay(subDays(currentDate, timeRange - 1));
   }, [currentDate, timeRange]);
-
-  const { data: windData, loading: windLoading, error: windError, isEmpty } = useWindData({
-    startDate,
-    endDate,
-  });
-  const { data: forecastData, loading: forecastLoading, error: forecastError } = useForecast();
-
-  const loading = windLoading || forecastLoading;
-  const error = windError || forecastError;
 
   // **Processed Forecast Data for Chart and Listing**
   const processedForecastData = useMemo(() => {
@@ -359,81 +369,85 @@ function App() {
     }, {} as Record<string, { best: WindData; records: WindData[] }>);
   }, [processedForecastData]);
 
-  // Function to find the next date with strong wind
-  const findNextWindyDate = (direction: 'forward' | 'backward') => {
-    console.log('Current date:', currentDate);
-    
-    // Get all dates with their best wind speeds
-    const dateWindSpeeds = new Map<string, { time: Date; windSpeed: number; isForecast: boolean }>();
+  // Add this useEffect after the other hooks
+  useEffect(() => {
+    if (!searchingWindyDays || loading) return;
 
-    // Process historical data
-    Object.entries(groupedByDate).forEach(([dateKey, hourGroups]) => {
-      // Find the highest wind speed for this date
-      let maxWindSpeed = 0;
-      let bestTime = hourGroups[0].best.time;
-      
-      hourGroups.forEach(group => {
-        if (group.best.windSpeed > maxWindSpeed) {
-          maxWindSpeed = group.best.windSpeed;
-          bestTime = group.best.time;
+    // Check if we have windy days in the current chunk
+    const hasWindyDay = Object.entries(groupedByDate).some(([_, hourGroups]) =>
+      hourGroups.some(group => group.best.windSpeed >= CONFIG.WIND_THRESHOLDS.GOOD)
+    ) || Object.entries(groupedForecastData).some(([_, group]) =>
+      group.best.windSpeed >= CONFIG.WIND_THRESHOLDS.GOOD
+    );
+
+    if (hasWindyDay) {
+      // Found a windy day, update the view
+      const allDates = [
+        ...Object.entries(groupedByDate).flatMap(([_, hourGroups]) =>
+          hourGroups.map(g => ({ time: g.best.time, windSpeed: g.best.windSpeed, isForecast: false }))
+        ),
+        ...Object.entries(groupedForecastData).map(([_, group]) =>
+          ({ time: group.best.time, windSpeed: group.best.windSpeed, isForecast: true })
+        )
+      ].filter(d => d.windSpeed >= CONFIG.WIND_THRESHOLDS.GOOD)
+       .sort((a, b) => searchingWindyDays.direction === 'forward' 
+         ? a.time.getTime() - b.time.getTime()
+         : b.time.getTime() - a.time.getTime());
+
+      if (allDates.length > 0) {
+        const targetDate = allDates[0];
+        setCurrentDate(targetDate.time);
+        if (todayTimeWindow) {
+          setTodayTimeWindow({
+            start: subHours(targetDate.time, 6),
+            end: addHours(targetDate.time, 16),
+          });
         }
-      });
-      
-      dateWindSpeeds.set(dateKey, {
-        time: bestTime,
-        windSpeed: maxWindSpeed,
-        isForecast: false
-      });
-    });
-
-    // Process forecast data
-    Object.entries(groupedForecastData).forEach(([hourKey, group]) => {
-      const dateKey = hourKey.substring(0, 10);
-      const existing = dateWindSpeeds.get(dateKey);
-      
-      if (!existing || group.best.windSpeed > existing.windSpeed) {
-        dateWindSpeeds.set(dateKey, {
-          time: group.best.time,
-          windSpeed: group.best.windSpeed,
-          isForecast: true
-        });
+        setSearchingWindyDays(null);
+        searchAttemptsRef.current = 0;
+        return;
       }
-    });
-
-    console.log('Processed dates with wind speeds:', Array.from(dateWindSpeeds.entries()));
-
-    // Convert to array and sort
-    const sortedDates = Array.from(dateWindSpeeds.entries())
-      .map(([dateKey, data]) => ({
-        date: new Date(dateKey),
-        ...data
-      }))
-      .sort((a, b) => 
-        direction === 'forward' 
-          ? a.date.getTime() - b.date.getTime()
-          : b.date.getTime() - a.date.getTime()
-      );
-
-    console.log('Sorted dates:', sortedDates);
-
-    // Find next date with good wind
-    const currentDateStart = startOfDay(currentDate).getTime();
-    const targetDate = sortedDates.find(data => {
-      const dataDateStart = startOfDay(data.date).getTime();
-      return data.windSpeed >= 10 && (
-        direction === 'forward'
-          ? dataDateStart > currentDateStart
-          : dataDateStart < currentDateStart
-      );
-    });
-
-    console.log('Found target date:', targetDate);
-
-    if (targetDate) {
-      setCurrentDate(targetDate.date);
-      setShowForecast(targetDate.isForecast);
-      setTodayTimeWindow(null);
     }
+
+    // No windy days found in current chunk, try next chunk
+    searchAttemptsRef.current += 1;
+    if (searchAttemptsRef.current >= 10) { // Limit search to 10 chunks
+      console.log('Reached maximum search attempts');
+      setSearchingWindyDays(null);
+      searchAttemptsRef.current = 0;
+      return;
+    }
+
+    // Calculate next chunk
+    const nextDate = searchingWindyDays.direction === 'forward'
+      ? addDays(currentDate, 3)
+      : subDays(currentDate, 7);
+
+    // Stop if we've gone too far
+    const now = new Date();
+    if (searchingWindyDays.direction === 'forward' && nextDate > addDays(now, 10)) {
+      console.log('Reached maximum future date');
+      setSearchingWindyDays(null);
+      searchAttemptsRef.current = 0;
+      return;
+    }
+    if (searchingWindyDays.direction === 'backward' && nextDate < subDays(now, 30)) {
+      console.log('Reached maximum past date');
+      setSearchingWindyDays(null);
+      searchAttemptsRef.current = 0;
+      return;
+    }
+
+    // Continue search with next chunk
+    setCurrentDate(nextDate);
+  }, [loading, groupedByDate, groupedForecastData, searchingWindyDays, currentDate]);
+
+  // Modify the findNextWindyDate function
+  const findNextWindyDate = (direction: 'forward' | 'backward') => {
+    if (loading || searchingWindyDays) return;
+    
+    searchAttemptsRef.current = 0;
+    setSearchingWindyDays({ direction });
   };
 
   return (

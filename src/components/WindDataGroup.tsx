@@ -43,7 +43,7 @@ export const WindDataGroup = ({ bestWind, hourData, isForecast = false, hideDrop
             ? 'bg-yellow-200 dark:bg-yellow-900'
             : bestWind.windSpeed >= 10
             ? 'bg-green-200 dark:bg-green-900'
-            : 'bg-white dark:bg-gray-800'
+            : 'bg-gray-100 dark:bg-gray-700'
         } hover:brightness-100`}
       >
         <div className="flex items-center">
