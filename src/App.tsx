@@ -76,8 +76,8 @@ function App() {
 
   // Calculate the date range for fetching wind data
   const windDataRange = useMemo(() => {
-    const start = subDays(startOfDay(currentDate), 7); // Fetch last 7 days
-    const end = addDays(endOfDay(currentDate), 3);  // Plus 3 days for forecast
+    const start = startOfDay(currentDate);
+    const end = endOfDay(currentDate);
     return { start, end };
   }, [currentDate]);
 
@@ -90,19 +90,13 @@ function App() {
   const loading = windLoading || forecastLoading;
   const error = windError || forecastError;
 
-  const endDate = useMemo(() => {
-    return endOfDay(currentDate);
-  }, [currentDate]);
-
-  const startDate = useMemo(() => {
-    return startOfDay(subDays(currentDate, timeRange - 1));
-  }, [currentDate, timeRange]);
-
   // **Processed Forecast Data for Chart and Listing**
   const processedForecastData = useMemo(() => {
     if (!forecastData) return [];
 
     const seenTimes = new Set<number>();
+    const dayStart = startOfDay(currentDate);
+    const dayEnd = endOfDay(currentDate);
 
     try {
       let data = forecastData
@@ -111,6 +105,10 @@ function App() {
           if (!f || typeof f !== 'object') return false;
           if (!f.validTime || typeof f.validTime !== 'string') return false;
           if (!Array.isArray(f.parameters)) return false;
+
+          // Check time range
+          const time = new Date(f.validTime);
+          if (time < dayStart || time > dayEnd) return false;
 
           // Check for wind data
           const hasWindSpeed = f.parameters.some(
@@ -381,32 +379,14 @@ function App() {
     );
 
     if (hasWindyDay) {
-      // Found a windy day, update the view
-      const allDates = [
-        ...Object.entries(groupedByDate).flatMap(([_, hourGroups]) =>
-          hourGroups.map(g => ({ time: g.best.time, windSpeed: g.best.windSpeed, isForecast: false }))
-        ),
-        ...Object.entries(groupedForecastData).map(([_, group]) =>
-          ({ time: group.best.time, windSpeed: group.best.windSpeed, isForecast: true })
-        )
-      ].filter(d => d.windSpeed >= CONFIG.WIND_THRESHOLDS.GOOD)
-       .sort((a, b) => searchingWindyDays.direction === 'forward' 
-         ? a.time.getTime() - b.time.getTime()
-         : b.time.getTime() - a.time.getTime());
-
-      if (allDates.length > 0) {
-        const targetDate = allDates[0];
-        setCurrentDate(targetDate.time);
-        if (todayTimeWindow) {
-          setTodayTimeWindow({
-            start: subHours(targetDate.time, 6),
-            end: addHours(targetDate.time, 16),
-          });
-        }
-        setSearchingWindyDays(null);
-        searchAttemptsRef.current = 0;
-        return;
-      }
+      // Found a windy day, we're already on it, just update the view
+      setTimeRange(1); // Set to 24 hours view
+      setShowForecast(true);
+      setShowOnlyForecast(false);
+      setTodayTimeWindow(null); // Reset today window to show full 24h
+      setSearchingWindyDays(null);
+      searchAttemptsRef.current = 0;
+      return;
     }
 
     // No windy days found in current chunk, try next chunk
@@ -420,8 +400,8 @@ function App() {
 
     // Calculate next chunk
     const nextDate = searchingWindyDays.direction === 'forward'
-      ? addDays(currentDate, 3)
-      : subDays(currentDate, 7);
+      ? addDays(currentDate, 1) // Try one day at a time
+      : subDays(currentDate, 1);
 
     // Stop if we've gone too far
     const now = new Date();
@@ -461,11 +441,11 @@ function App() {
       </PullToRefresh>
       
       <main className="max-w-7xl mx-auto px-4">
-        <div className="mb-4 flex items-center gap-4 justify-center">
+        <div className="mb-4 flex items-center gap-2 justify-center">
           <button
             onClick={() => findNextWindyDate('backward')}
             aria-label="Föregående blåsiga dag"
-            className="px-4 py-2 bg-blue-500 text-white dark:bg-blue-700 rounded-md border shadow-sm hover:bg-blue-600 dark:hover:bg-blue-800"
+            className="px-3 py-2 bg-gray-300 text-black dark:bg-gray-700 rounded-md border shadow-sm hover:bg-blue-600 dark:hover:bg-blue-800"
             disabled={loading}
           >
             <span className="sr-only">Föregående blåsiga</span>
@@ -475,7 +455,7 @@ function App() {
           <button
             onClick={handlePrevious}
             aria-label="Föregående dag"
-            className="px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600"
+            className="px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600"
             disabled={showOnlyForecast}
           >
             <span className="sr-only">Föregående</span>
@@ -499,7 +479,7 @@ function App() {
 
           <button
             onClick={handleNext}
-            className="px-4 py-2 bg-white dark:bg-gray-800 dark:text-white rounded-md border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+            className="px-3 py-2 bg-white dark:bg-gray-800 dark:text-white rounded-md border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
             disabled={loading || isToday(currentDate) || showOnlyForecast}
           >
             <span className="sr-only">Nästa</span>
@@ -509,7 +489,7 @@ function App() {
           <button
             onClick={() => findNextWindyDate('forward')}
             aria-label="Nästa blåsiga dag"
-            className="px-4 py-2 bg-blue-500 text-white dark:bg-blue-700 rounded-md border shadow-sm hover:bg-blue-600 dark:hover:bg-blue-800"
+            className="px-3 py-2 bg-gray-300 text-black dark:bg-blue-700 rounded-md border shadow-sm hover:bg-blue-600 dark:hover:bg-blue-800"
             disabled={loading}
           >
             <span className="sr-only">Nästa blåsiga</span>
