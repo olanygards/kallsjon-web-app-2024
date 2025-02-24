@@ -22,14 +22,6 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { WindData } from '../types/WindData';
 
-interface SmhiForecastData {
-  validTime: string;
-  parameters: Array<{
-    name: string;
-    values: number[];
-  }>;
-}
-
 const KALLSJON_COORDINATES = {
   latitude: 63.3,
   longitude: 13.8
@@ -71,9 +63,7 @@ function Home() {
   const [showOnlyForecast, setShowOnlyForecast] = useState(false);
   const [todayTimeWindow, setTodayTimeWindow] = useState<{ start: Date; end: Date } | null>(initialTodayTimeWindow);
   const [searchingWindyDays, setSearchingWindyDays] = useState<{ direction: 'forward' | 'backward' } | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const searchAttemptsRef = useRef(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Calculate the date range for fetching wind data
   const windDataRange = useMemo(() => {
@@ -290,7 +280,6 @@ function Home() {
   };
 
   const handleRefresh = async () => {
-    setIsRefreshing(true);
     // Reset to current time
     const now = new Date();
     setCurrentDate(now);
@@ -300,7 +289,6 @@ function Home() {
         end: addHours(now, 16),
       });
     }
-    setTimeout(() => setIsRefreshing(false), 1000);
   };
 
   // Group wind data by hour

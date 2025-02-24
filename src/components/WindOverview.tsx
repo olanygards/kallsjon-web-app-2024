@@ -73,7 +73,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
     fetchWindyDays();
   }, []);
 
-  const handleClick = useCallback((event: any, elements: any[]) => {
+  const handleClick = useCallback((_event: any, elements: any[]) => {
     if (elements.length > 0) {
       const dataIndex = elements[0].index;
       const selectedDay = windyDays[dataIndex];
@@ -162,8 +162,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
           mode: 'x' as const,
         },
         limits: {
-          x: { min: 'original', max: 'original' },
-          y: { min: 0, max: 30 },
+          y: { min: 0, max: 30 }
         },
       },
       tooltip: {
