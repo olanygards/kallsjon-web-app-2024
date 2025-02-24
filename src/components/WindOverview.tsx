@@ -40,6 +40,80 @@ interface BinnedWindData {
   windBin: '2-5' | '5-7' | '7-10' | '10+';
 }
 
+interface StatCardProps {
+  title: string;
+  value?: string | number;
+  subtitle?: string;
+  children?: React.ReactNode;
+}
+
+function StatCard({ title, value, subtitle, children }: StatCardProps) {
+  return (
+    <div className="bg-blue-50 rounded-lg border border-blue-100 p-4 flex flex-col justify-between">
+      <h3 className="text-lg font-semibold text-blue-900">{title}</h3>
+      {value !== undefined && <p className="text-2xl font-bold mt-2 text-blue-800">{value}</p>}
+      {subtitle && <p className="text-blue-600 text-sm">{subtitle}</p>}
+      {children && <div className="text-blue-800">{children}</div>}
+    </div>
+  );
+}
+
+interface WindStatsProps {
+  bestDay: { date: Date; maxWindSpeed: number } | null;
+  totalDays: number;
+  topDays: { date: Date; maxWindSpeed: number }[];
+  bestYear?: number;
+  bestYearDays?: number;
+}
+
+function WindStats({ bestDay, totalDays, topDays, bestYear, bestYearDays }: WindStatsProps) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+      {/* First row - Best Day & Total Days */}
+      <StatCard
+        title="Bästa dagen"
+        value={bestDay ? format(bestDay.date, 'd MMM yyyy', { locale: sv }) : '-'}
+        subtitle={bestDay ? `Vindstyrka: ${bestDay.maxWindSpeed} m/s` : 'Ingen data tillgänglig'}
+      />
+      <StatCard
+        title="Totalt antal blåsiga dagar"
+        value={totalDays}
+        subtitle="Dagar med vindstyrka över 10 m/s"
+      />
+
+      {/* Second row - Top 5 Best Days (Full width) */}
+      <div className="col-span-1 md:col-span-2">
+        <StatCard title="Topp 5 blåsigaste dagar">
+          <ul className="mt-2 space-y-2">
+            {topDays.map((day, index) => (
+              <li key={index} className="flex justify-between text-sm">
+                <span>{format(day.date, 'd MMM yyyy', { locale: sv })}</span>
+                <span className="font-semibold">{day.maxWindSpeed} m/s</span>
+              </li>
+            ))}
+          </ul>
+        </StatCard>
+      </div>
+
+      {/* Third row - Best Year & Total Days in that Year */}
+      {bestYear && bestYearDays && (
+        <>
+          <StatCard 
+            title="Bästa året" 
+            value={bestYear} 
+            subtitle="Året med mest vind" 
+          />
+          <StatCard
+            title="Blåsiga dagar det året"
+            value={bestYearDays}
+            subtitle={`Antal dagar över 10 m/s under ${bestYear}`}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
 export function WindOverview({ onDateSelect }: WindOverviewProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -47,6 +121,9 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [cachedData, setCachedData] = useState<Map<number | null, BinnedWindData[]>>(new Map());
   const chartRef = useRef<any>(null);
+
+  // Add new state for year stats
+  const [yearStats, setYearStats] = useState<{ year: number; count: number }[]>([]);
 
   async function fetchWindyDays(year: number | null) {
     const cached = cachedData.get(year);
@@ -141,6 +218,38 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
   useEffect(() => {
     fetchWindyDays(selectedYear);
   }, [selectedYear]);
+
+  // Calculate stats when windyDays changes
+  useEffect(() => {
+    if (!selectedYear) {
+      // Calculate stats for all years
+      const yearCounts = windyDays.reduce((acc, day) => {
+        const year = day.date.getFullYear();
+        acc[year] = (acc[year] || 0) + 1;
+        return acc;
+      }, {} as Record<number, number>);
+
+      const stats = Object.entries(yearCounts).map(([year, count]) => ({
+        year: parseInt(year),
+        count
+      }));
+
+      setYearStats(stats.sort((a, b) => b.count - a.count));
+    }
+  }, [windyDays, selectedYear]);
+
+  // Get best year stats
+  const bestYearStats = yearStats.length > 0 ? {
+    year: yearStats[0].year,
+    days: yearStats[0].count
+  } : undefined;
+
+  // Sort days by wind speed for stats
+  const sortedByWind = [...windyDays].sort((a, b) => b.maxWindSpeed - a.maxWindSpeed);
+  const bestDay = sortedByWind.length > 0 ? {
+    date: sortedByWind[0].date,
+    maxWindSpeed: sortedByWind[0].maxWindSpeed
+  } : null;
 
   const handleYearSelect = (year: number | null) => {
     setWindyDays([]); // Clear old data first
@@ -305,8 +414,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
     },
     plugins: {
       legend: {
-        display: true,
-        position: 'top' as const,
+        display: false,
       },
       annotation: { annotations },
       zoom: {
@@ -397,15 +505,29 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
         </div>
       ) : (
         <div className="p-4">
-          <div className="h-[500px] relative">
+          <div className="mb-4">
             <button
               onClick={() => chartRef.current?.resetZoom()}
-              className="absolute top-2 right-2 px-3 py-1 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600"
+              className="px-3 py-1 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600 float-right"
             >
               Återställ zoom
             </button>
+          </div>
+          <div className="h-[500px] relative clear-both">
             <Line ref={chartRef} data={chartData} options={options} />
           </div>
+
+          {/* Add stats section */}
+          <WindStats
+            bestDay={bestDay}
+            totalDays={windyDays.length}
+            topDays={sortedByWind.slice(0, 5).map(day => ({
+              date: day.date,
+              maxWindSpeed: day.maxWindSpeed
+            }))}
+            bestYear={!selectedYear && bestYearStats ? bestYearStats.year : undefined}
+            bestYearDays={!selectedYear && bestYearStats ? bestYearStats.days : undefined}
+          />
         </div>
       )}
     </div>
