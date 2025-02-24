@@ -1,10 +1,33 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Line } from 'react-chartjs-2';
-import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import annotationPlugin from 'chartjs-plugin-annotation';
+import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { format, startOfYear, endOfYear } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import 'chartjs-plugin-zoom';
+
+// Register Chart.js plugins
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  annotationPlugin
+);
 
 interface WindOverviewProps {
   onDateSelect: (date: Date) => void;
@@ -26,7 +49,6 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
   const chartRef = useRef<any>(null);
 
   async function fetchWindyDays(year: number | null) {
-    // Check cache first - modified to check for empty arrays
     const cached = cachedData.get(year);
     if (cached && cached.length > 0) {
       console.log(`Using cached data for ${year ? year : "all years"}`);
@@ -37,7 +59,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
 
     try {
       setLoading(true);
-      console.log(`Fetching windy days for ${year ? `year ${year}` : "all years"}...`);
+      console.log(`Fetching windiest days for ${year ? `year ${year}` : "all years"}...`);
       
       const windRef = collection(db, 'wind');
       let q;
@@ -46,56 +68,63 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
         // Fetch all windy days for a specific year
         const yearStart = startOfYear(new Date(year, 0, 1));
         const yearEnd = endOfYear(new Date(year, 11, 31));
-      
+
         q = query(
           windRef,
           where('time', '>=', Timestamp.fromDate(yearStart)),
           where('time', '<=', Timestamp.fromDate(yearEnd)),
-          where('force', '>=', 10),
-          orderBy('time', 'asc') // Keep chronological for year view
+          where('force', '>=', 10),  // Show all days with wind over 10 m/s
+          orderBy('time', 'asc')     // Sort chronologically
         );
       } else {
-        // Fetch the top 100 windiest days across all years
+        // Fetch all windy days across all years
         q = query(
           windRef,
-          where('force', '>=', 10),
-          orderBy('force', 'desc'),  // Order by highest wind speed
-          orderBy('time', 'asc'),    // Secondary sort by time
-          limit(100)                 // Get the top 100
+          where('force', '>=', 10),  // Get all days over 10 m/s
+          orderBy('force', 'desc'),  // Sort by wind speed first
+          orderBy('time', 'asc')     // Then by time
         );
       }
 
       const querySnapshot = await getDocs(q);
       console.log('Query snapshot size:', querySnapshot.size);
 
-      const days: BinnedWindData[] = [];
+      const dailyMax: Map<string, BinnedWindData> = new Map();
 
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        const date = data.time?.toDate();
+        const date = data.time.toDate();
+        const dateKey = format(date, 'yyyy-MM-dd');
         const maxWindSpeed = data.force;
-        const maxGust = data.forceMax;
+        const maxGust = data.forceMax || maxWindSpeed;
 
-        if (!date || typeof maxWindSpeed !== 'number' || typeof maxGust !== 'number') {
-          console.warn('Invalid data structure:', { date, maxWindSpeed, maxGust });
-          return;
+        // Keep only the highest wind speed for each day
+        if (!dailyMax.has(dateKey) || dailyMax.get(dateKey)!.maxWindSpeed < maxWindSpeed) {
+          dailyMax.set(dateKey, {
+            date,
+            maxWindSpeed,
+            maxGust,
+            windBin: maxWindSpeed >= 10 ? '10+' : maxWindSpeed >= 7 ? '7-10' : maxWindSpeed >= 5 ? '5-7' : '2-5'
+          });
         }
-
-        let windBin: BinnedWindData['windBin'];
-        if (maxWindSpeed >= 10) windBin = '10+';
-        else if (maxWindSpeed >= 7) windBin = '7-10';
-        else if (maxWindSpeed >= 5) windBin = '5-7';
-        else windBin = '2-5';
-
-        days.push({ date, maxWindSpeed, maxGust, windBin });
       });
 
-      // Always sort chronologically
-      const sortedDays = days.sort((a, b) => a.date.getTime() - b.date.getTime());
+      // Convert to array and sort
+      let sortedDays = Array.from(dailyMax.values());
+      
+      if (year) {
+        // For year view: sort chronologically
+        sortedDays = sortedDays.sort((a, b) => a.date.getTime() - b.date.getTime());
+      } else {
+        // For all years: get top 200 windiest days, then sort chronologically
+        sortedDays = sortedDays
+          .sort((a, b) => b.maxWindSpeed - a.maxWindSpeed) // First sort by wind speed
+          .slice(0, 200)                                   // Take top 200
+          .sort((a, b) => a.date.getTime() - b.date.getTime()); // Then sort by date
+      }
 
-      console.log('Processed days:', sortedDays);
+      console.log('Processed days:', sortedDays.length);
 
-      // Store in cache only if we have data
       if (sortedDays.length > 0) {
         setCachedData(prev => new Map(prev).set(year, sortedDays));
       }
@@ -185,6 +214,63 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
     ],
   };
 
+  // Generate annotations based on the actual data points
+  const annotations: Record<string, any> = {};
+
+  // Monthly separators when a year is selected
+  if (selectedYear) {
+    const monthsSeen = new Set<number>();
+    windyDays.forEach((day, index) => {
+      const month = day.date.getMonth(); // Get 0-11 for months
+      if (!monthsSeen.has(month)) {
+        monthsSeen.add(month);
+        annotations[`month${month}`] = {
+          type: 'line',
+          scaleID: 'x',
+          value: index,
+          borderColor: 'rgba(128, 128, 128, 0.2)',
+          borderWidth: 1,
+          borderDash: [5, 5],
+          label: {
+            display: true,
+            content: format(day.date, 'MMM', { locale: sv }),
+            position: 'start',
+            backgroundColor: 'rgba(128, 128, 128, 0.1)',
+            color: '#666',
+            font: { size: 10 }
+          }
+        };
+      }
+    });
+  }
+
+  // Year separators when all years are shown
+  if (!selectedYear) {
+    const yearsSeen = new Set<number>();
+    windyDays.forEach((day, index) => {
+      const year = day.date.getFullYear();
+      if (!yearsSeen.has(year)) {
+        yearsSeen.add(year);
+        annotations[`year${year}`] = {
+          type: 'line',
+          scaleID: 'x',
+          value: index,
+          borderColor: 'rgba(128, 128, 128, 0.3)',
+          borderWidth: 1,
+          borderDash: [5, 5],
+          label: {
+            display: true,
+            content: year.toString(),
+            position: 'start',
+            backgroundColor: 'rgba(128, 128, 128, 0.1)',
+            color: '#666',
+            font: { size: 12 }
+          }
+        };
+      }
+    });
+  }
+
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -201,6 +287,12 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
           maxRotation: 45,
           minRotation: 45,
         },
+        grid: {
+          display: true,
+          drawBorder: true,
+          drawOnChartArea: true,
+          drawTicks: true,
+        }
       },
       y: {
         beginAtZero: true,
@@ -216,6 +308,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
         display: true,
         position: 'top' as const,
       },
+      annotation: { annotations },
       zoom: {
         pan: {
           enabled: true,
@@ -263,8 +356,8 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
         <h2 className="text-xl font-semibold">Översikt - Blåsiga dagar</h2>
         <p className="text-gray-600 text-sm mt-1">
           {selectedYear 
-            ? `Visar alla dagar med vind över 10 m/s under ${selectedYear}.`
-            : 'Visar de 100 blåsigaste dagarna över alla år.'} Klicka på en punkt för att se detaljerad data för den dagen.
+            ? `Visar alla dagar med vind över 10 m/s under ${selectedYear}, sorterade efter datum.`
+            : 'Visar de 200 blåsigaste dagarna över alla år, sorterade efter datum.'} Klicka på en punkt för att se detaljerad data för den dagen.
         </p>
 
         <div className="flex gap-2 mt-4 flex-wrap">
@@ -278,7 +371,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
           >
             Alla år
           </button>
-          {[2019, 2020, 2021, 2022, 2023, 2024].map(year => (
+          {[2019, 2020, 2021, 2022, 2023, 2024, 2025].map(year => (
             <button
               key={year}
               onClick={() => handleYearSelect(year)}
