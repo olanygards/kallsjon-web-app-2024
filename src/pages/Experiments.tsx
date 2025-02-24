@@ -5,11 +5,11 @@ import { WindDetail } from '../components/WindDetail';
 function Experiments() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  const handleDateSelect = (date: Date) => {
+  const handleDateSelect = (date: Date): void => {
     setSelectedDate(date);
   };
 
-  const handleBack = () => {
+  const handleBack = (): void => {
     setSelectedDate(null);
   };
 
