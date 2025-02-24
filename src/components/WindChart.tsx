@@ -15,6 +15,7 @@ import {
   TooltipModel,
   ScriptableLineSegmentContext,
 } from 'chart.js';
+import zoomPlugin from 'chartjs-plugin-zoom';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
@@ -31,7 +32,8 @@ ChartJS.register(
   ChartTooltip,
   Legend,
   annotationPlugin,
-  TimeScale
+  TimeScale,
+  zoomPlugin
 );
 
 interface WindChartProps {
@@ -39,6 +41,17 @@ interface WindChartProps {
   forecastData?: WindData[];
   title: string;
   timeRange: number;
+  zoomEnabled?: boolean;
+  variant?: 'default' | 'experiment';
+}
+
+interface ChartDataPoint {
+  x: Date;
+  y: number | null;
+  isForecast: boolean;
+  windDirection: number;
+  windSpeed: number;
+  windGust: number;
 }
 
 const getGustColor = (windGust: number): string => {
@@ -70,6 +83,8 @@ export function WindChart({
   forecastData = [],
   title = 'Vindstyrka',
   timeRange = 1,
+  zoomEnabled = false,
+  variant = 'default',
 }: WindChartProps) {
   // Combine and sort the data
   const allData = useMemo(() => {
@@ -131,17 +146,21 @@ export function WindChart({
           tension: 0.1,
           pointRadius: 0,
           pointHitRadius: 10, // Increase hit radius for better tooltip activation
-          borderWidth: 2,
+          borderWidth: variant === 'experiment' ? 1.5 : 2,
           spanGaps: true, // Allow lines between points with irregular intervals
           segment: {
             borderColor: (ctx: ScriptableLineSegmentContext) => {
               if (!ctx.p0?.parsed || !ctx.p1?.parsed) return undefined;
               const value1 = ctx.p0.parsed.y;
               const value2 = ctx.p1.parsed.y;
-              return getGustColor(Math.max(value1 || 0, value2 || 0));
+              const color = getGustColor(Math.max(value1 || 0, value2 || 0));
+              if (variant === 'experiment' && ((ctx.p1 as any)?.raw?.isForecast || (ctx.p0 as any)?.raw?.isForecast)) {
+                return color + '80'; // Add 50% transparency to forecast data
+              }
+              return color;
             },
             borderDash: (ctx: ScriptableLineSegmentContext) => 
-              ((ctx.p1 as any)?.raw?.isForecast ? [5, 5] : []),
+              ((ctx.p1 as any)?.raw?.isForecast || (ctx.p0 as any)?.raw?.isForecast) ? [5, 5] : [],
           },
         },
         {
@@ -160,23 +179,27 @@ export function WindChart({
           tension: 0.1,
           pointRadius: 0,
           pointHitRadius: 10, // Increase hit radius for better tooltip activation
-          borderWidth: 2,
+          borderWidth: variant === 'experiment' ? 1.5 : 2,
           spanGaps: true,
           segment: {
             borderColor: (ctx: ScriptableLineSegmentContext) => {
               const data = ctx.p1.parsed.y !== null ? ctx.p1 : ctx.p0;
-              return getWindColor((data as any).raw.windSpeed);
+              const color = getWindColor((data as any).raw.windSpeed);
+              if (variant === 'experiment' && ((ctx.p1 as any)?.raw?.isForecast || (ctx.p0 as any)?.raw?.isForecast)) {
+                return color + '80'; // Add 50% transparency to forecast data
+              }
+              return color;
             },
             borderDash: (ctx: ScriptableLineSegmentContext) => 
-              ((ctx.p1 as any)?.raw?.isForecast ? [5, 5] : []),
+              ((ctx.p1 as any)?.raw?.isForecast || (ctx.p0 as any)?.raw?.isForecast) ? [5, 5] : [],
           },
         },
       ],
     }),
-    [allData]
+    [allData, variant]
   );
 
-  const chartRef = useRef(null);
+  const chartRef = useRef<Chart<'line', ChartDataPoint[]>>(null);
 
   // Modify the customTooltip function
   const customTooltip = useCallback((args: { 
@@ -286,12 +309,14 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
     tooltipTimerRef.current = window.setTimeout(hideTooltip, 3000);
   }, [hideTooltip]);
 
-  const options: ChartOptions<'line'> = useMemo(
-    () => ({
+  const options: ChartOptions<'line'> = useMemo(() => {
+    const isExperiment = variant === 'experiment';
+
+    return {
       responsive: true,
       maintainAspectRatio: false,
       interaction: {
-        mode: 'index', // Use 'index' mode to show all datasets at a given x-axis value
+        mode: 'index',
         intersect: false,
       },
       hover: {
@@ -306,8 +331,18 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
               hour: 'HH:mm',
               day: 'MMM d',
             },
+            unit: isExperiment ? 'day' : 'hour',
           },
-          ticks: {
+          ticks: isExperiment ? {
+            color: '#374151',
+            maxRotation: 0,
+            autoSkip: true,
+            source: 'auto',
+            callback: function (value) {
+              const date = new Date(value as number);
+              return format(date, 'd MMM', { locale: sv });
+            },
+          } : {
             maxRotation: window.innerWidth < 768 ? 45 : 60,
             minRotation: 60,
             autoSkip: window.innerWidth < 768,
@@ -317,12 +352,10 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
               const previousTick = ticks[index - 1];
               const previousDate = previousTick ? new Date(previousTick.value as number) : null;
 
-              // Show date label if the day changes
               if (!previousDate || date.getDate() !== previousDate.getDate()) {
                 return format(date, 'd MMM', { locale: sv });
               }
 
-              // Adjust label frequency based on timeRange
               if (timeRange === 1) {
                 if (date.getHours() % 1 === 0 && date.getMinutes() === 0) {
                   return format(date, 'HH:mm');
@@ -344,6 +377,7 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
           grid: {
             display: true,
             drawBorder: true,
+            color: isExperiment ? 'rgba(0, 0, 0, 0.1)' : undefined,
           },
         },
         y: {
@@ -354,7 +388,10 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
             display: true,
             text: 'Vindstyrka (m/s)',
           },
-          grid: {
+          grid: isExperiment ? {
+            color: 'rgba(0, 0, 0, 0.1)',
+            display: true,
+          } : {
             color(ctx) {
               if (ctx.tick.value === 10 || ctx.tick.value === 15) {
                 return 'rgba(255, 0, 0, 0.2)';
@@ -372,19 +409,53 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
       },
       plugins: {
         legend: {
-          display: false
+          display: isExperiment,
+          position: isExperiment ? 'top' as const : undefined,
+          labels: {
+            usePointStyle: true,
+            color: '#374151',
+          },
         },
         tooltip: {
           enabled: false,
           external: customTooltip,
         },
-        annotation: {
+        zoom: zoomEnabled ? {
+          pan: {
+            enabled: true,
+            mode: 'x',
+            modifierKey: isExperiment ? undefined : 'ctrl',
+            threshold: 10, // Add threshold for better touch control
+          },
+          zoom: {
+            wheel: {
+              enabled: true,
+              modifierKey: isExperiment ? undefined : 'ctrl',
+            },
+            pinch: {
+              enabled: true,
+            },
+            drag: {
+              enabled: true,
+              backgroundColor: 'rgba(0,0,0,0.1)',
+              borderColor: 'rgba(0,0,0,0.3)',
+              borderWidth: 1,
+              threshold: 10,
+            },
+            mode: 'x',
+          },
+          limits: {
+            x: { min: 'original', max: 'original' },
+            y: { min: 0, max: 30 },
+          },
+        } : undefined,
+        annotation: isExperiment ? undefined : {
           annotations: {
             goodWind: {
               type: 'line',
               yMin: 10,
               yMax: 10,
-              borderColor: 'rgba(34, 197, 94, 0.6)', // green-500 with opacity
+              borderColor: 'rgba(34, 197, 94, 0.6)',
               borderWidth: 2,
               borderDash: [5, 5],
             },
@@ -392,7 +463,7 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
               type: 'line',
               yMin: 15,
               yMax: 15,
-              borderColor: 'rgba(239, 68, 68, 0.6)', // red-500 with opacity
+              borderColor: 'rgba(239, 68, 68, 0.6)',
               borderWidth: 2,
               borderDash: [5, 5],
             },
@@ -402,7 +473,7 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
                     type: 'line',
                     xMin: forecastStartTime.getTime(),
                     xMax: forecastStartTime.getTime(),
-                    borderColor: 'rgba(156, 163, 175, 0.6)', // gray-400 with opacity
+                    borderColor: 'rgba(156, 163, 175, 0.6)',
                     borderWidth: 2,
                     borderDash: [2, 2],
                     label: {
@@ -418,9 +489,8 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
           },
         },
       },
-    }),
-    [customTooltip, allData, timeRange, forecastStartTime, windData, window.innerWidth]
-  );
+    };
+  }, [customTooltip, timeRange, forecastStartTime, windData.length, window.innerWidth, zoomEnabled, variant]);
 
   // Clean up timer on unmount
   useEffect(() => {
@@ -435,37 +505,52 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
     };
   }, []);
 
+  const handleResetZoom = useCallback(() => {
+    if (chartRef.current) {
+      // @ts-ignore - resetZoom exists on the chart instance when zoom plugin is registered
+      chartRef.current.resetZoom();
+    }
+  }, []);
+
   if (!allData.length) {
     return <div className="p-4 text-gray-500">Ingen data tillgänglig</div>;
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+    <div className={variant === 'experiment' ? 'bg-white rounded-lg' : 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow'}>
       <h2 className="text-lg font-semibold mb-4 dark:text-white">{title}</h2>
-      <div className="relative h-[400px]">
+      <div className="relative h-[calc(100vh-300px)] min-h-[400px]">
+        {zoomEnabled && (
+          <button
+            onClick={handleResetZoom}
+            className="absolute top-2 right-2 px-3 py-1 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600"
+          >
+            Återställ zoom
+          </button>
+        )}
         <Line ref={chartRef} data={chartData} options={{
           ...options,
-          scales: {
+          scales: variant === 'experiment' ? options.scales : {
             ...(options?.scales ?? {}),
             x: {
               ...(options?.scales?.x ?? {}),
               ticks: {
                 ...(options?.scales?.x?.ticks ?? {}),
-                color: document.documentElement.classList.contains('dark') ? '#E5E7EB' : '#374151', // Light mode: gray-700
+                color: document.documentElement.classList.contains('dark') ? '#E5E7EB' : '#374151',
               },
               grid: {
                 ...(options?.scales?.x?.grid ?? {}),
                 color: document.documentElement.classList.contains('dark') 
                   ? 'rgba(255, 255, 255, 0.1)' 
                   : 'rgba(0, 0, 0, 0.1)',
-                display: true, // Ensure grid is always displayed
+                display: true,
               },
             },
             y: {
               ...(options?.scales?.y ?? {}),
               ticks: {
                 ...(options?.scales?.y?.ticks ?? {}),
-                color: document.documentElement.classList.contains('dark') ? '#E5E7EB' : '#374151', // Light mode: gray-700
+                color: document.documentElement.classList.contains('dark') ? '#E5E7EB' : '#374151',
               },
               grid: {
                 ...(options?.scales?.y?.grid ?? {}),
@@ -479,16 +564,16 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
                     ? 'rgba(255, 255, 255, 0.1)'
                     : 'rgba(0, 0, 0, 0.1)';
                 },
-                display: true, // Ensure grid is always displayed
+                display: true,
               },
             },
           },
-          plugins: {
+          plugins: variant === 'experiment' ? options.plugins : {
             ...(options?.plugins ?? {}),
             legend: {
               ...(options?.plugins?.legend ?? {}),
               labels: {
-                color: document.documentElement.classList.contains('dark') ? '#E5E7EB' : '#374151', // Light mode: gray-700
+                color: document.documentElement.classList.contains('dark') ? '#E5E7EB' : '#374151',
               },
             },
           },

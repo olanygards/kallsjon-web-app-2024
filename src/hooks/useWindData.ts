@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, query, where, getDocs, Timestamp, orderBy } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../config/firebase';
 import { WindData } from '../types/WindData';
 
 interface UseWindDataProps {
