@@ -38,6 +38,7 @@ interface BinnedWindData {
   maxWindSpeed: number;
   maxGust: number;
   windBin: '2-5' | '5-7' | '7-10' | '10+';
+  windDirection: number;
 }
 
 interface StatCardProps {
@@ -114,6 +115,139 @@ function WindStats({ bestDay, totalDays, topDays, bestYear, bestYearDays }: Wind
   );
 }
 
+interface AdvancedWindStatsProps {
+  windyDays: BinnedWindData[];
+}
+
+function getWindDirection(degrees: number): string {
+  const directions = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSV', 'SV', 'VSV', 'V', 'VNV', 'NV', 'NNV'];
+  const index = Math.round(degrees / 22.5) % 16;
+  return directions[index];
+}
+
+function AdvancedWindStats({ windyDays }: AdvancedWindStatsProps) {
+  // Calculate highest average wind speed per year
+  const windSpeedByYear = windyDays.reduce((acc, day) => {
+    const year = day.date.getFullYear();
+    if (!acc[year]) {
+      acc[year] = { totalWind: 0, count: 0 };
+    }
+    acc[year].totalWind += day.maxWindSpeed;
+    acc[year].count += 1;
+    return acc;
+  }, {} as Record<number, { totalWind: number; count: number }>);
+
+  // Find year with highest average wind speed
+  const bestWindYear = Object.entries(windSpeedByYear)
+    .map(([year, data]) => ({
+      year: parseInt(year),
+      avgWindSpeed: data.totalWind / data.count,
+    }))
+    .sort((a, b) => b.avgWindSpeed - a.avgWindSpeed)[0];
+
+  // Find day with highest gust
+  const highestGustDay = [...windyDays]
+    .sort((a, b) => b.maxGust - a.maxGust)[0];
+
+  // Calculate longest streak of windy days
+  const streaks = windyDays
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .reduce((acc, day, i, arr) => {
+      if (i === 0) {
+        acc.current = { start: day.date, length: 1 };
+        acc.longest = { start: day.date, length: 1 };
+        return acc;
+      }
+
+      const prevDay = arr[i - 1];
+      const dayDiff = Math.round((day.date.getTime() - prevDay.date.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (dayDiff === 1) {
+        acc.current.length++;
+        if (acc.current.length > acc.longest.length) {
+          acc.longest = { ...acc.current };
+        }
+      } else {
+        acc.current = { start: day.date, length: 1 };
+      }
+
+      return acc;
+    }, { current: { start: new Date(), length: 0 }, longest: { start: new Date(), length: 0 } });
+
+  // Calculate most common wind direction
+  const windDirections = windyDays.reduce((acc, day) => {
+    if (day.windDirection === 0) return acc; // Skip days with no direction data
+    const direction = getWindDirection(day.windDirection);
+    acc[direction] = (acc[direction] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const mostCommonDirection = Object.entries(windDirections)
+    .sort((a, b) => b[1] - a[1])[0] || ['N/A', 0];
+
+  // Calculate best wind season (3-month period)
+  const seasonalData = windyDays.reduce((acc, day) => {
+    const year = day.date.getFullYear();
+    const month = day.date.getMonth();
+    for (let i = 0; i < 3; i++) {
+      const seasonKey = `${year}-${((month - i + 12) % 12).toString().padStart(2, '0')}`;
+      if (!acc[seasonKey]) {
+        acc[seasonKey] = { totalWind: 0, count: 0, startMonth: (month - i + 12) % 12 };
+      }
+      acc[seasonKey].totalWind += day.maxWindSpeed;
+      acc[seasonKey].count += 1;
+    }
+    return acc;
+  }, {} as Record<string, { totalWind: number; count: number; startMonth: number }>);
+
+  const bestSeason = Object.entries(seasonalData)
+    .map(([key, data]) => ({
+      key,
+      avgWind: data.totalWind / data.count,
+      startMonth: data.startMonth
+    }))
+    .sort((a, b) => b.avgWind - a.avgWind)[0];
+
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'];
+  const seasonMonths = [
+    monthNames[bestSeason.startMonth],
+    monthNames[(bestSeason.startMonth + 1) % 12],
+    monthNames[(bestSeason.startMonth + 2) % 12]
+  ].join('-');
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+      <StatCard
+        title="Högst genomsnittlig vind"
+        value={`${bestWindYear.year}`}
+        subtitle={`Genomsnitt: ${bestWindYear.avgWindSpeed.toFixed(1)} m/s`}
+      />
+      <StatCard
+        title="Högsta byvind"
+        value={`${highestGustDay.maxGust.toFixed(1)} m/s`}
+        subtitle={`${format(highestGustDay.date, 'd MMM yyyy', { locale: sv })}`}
+      />
+      <StatCard
+        title="Längsta period med vind"
+        value={`${streaks.longest.length} dagar`}
+        subtitle={`Från ${format(streaks.longest.start, 'd MMM yyyy', { locale: sv })}`}
+      />
+      <StatCard
+        title="Vanligaste vindriktning"
+        value={mostCommonDirection[0]}
+        subtitle={mostCommonDirection[1] === 0 
+          ? 'Ingen riktningsdata tillgänglig'
+          : `${((mostCommonDirection[1] / Object.values(windDirections).reduce((a, b) => a + b, 0)) * 100).toFixed(0)}% av dagarna`}
+      />
+      <StatCard
+        title="Bästa vindsäsong"
+        value={seasonMonths}
+        subtitle={`Genomsnitt: ${bestSeason.avgWind.toFixed(1)} m/s`}
+      />
+    </div>
+  );
+}
+
 export function WindOverview({ onDateSelect }: WindOverviewProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -124,6 +258,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
 
   // Add new state for year stats
   const [yearStats, setYearStats] = useState<{ year: number; count: number }[]>([]);
+  const [allWindyDays, setAllWindyDays] = useState<BinnedWindData[]>([]);
 
   async function fetchWindyDays(year: number | null) {
     const cached = cachedData.get(year);
@@ -158,6 +293,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
         q = query(
           windRef,
           where('force', '>=', 10),  // Get all days over 10 m/s
+          where('time', '>=', Timestamp.fromDate(new Date(2020, 0, 1))), // Start from 2020
           orderBy('force', 'desc'),  // Sort by wind speed first
           orderBy('time', 'asc')     // Then by time
         );
@@ -181,7 +317,8 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
             date,
             maxWindSpeed,
             maxGust,
-            windBin: maxWindSpeed >= 10 ? '10+' : maxWindSpeed >= 7 ? '7-10' : maxWindSpeed >= 5 ? '5-7' : '2-5'
+            windBin: maxWindSpeed >= 10 ? '10+' : maxWindSpeed >= 7 ? '7-10' : maxWindSpeed >= 5 ? '5-7' : '2-5',
+            windDirection: data.direction || 0 // Default to 0 if undefined
           });
         }
       });
@@ -193,11 +330,12 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
         // For year view: sort chronologically
         sortedDays = sortedDays.sort((a, b) => a.date.getTime() - b.date.getTime());
       } else {
-        // For all years: get top 200 windiest days, then sort chronologically
+        // Store all windy days for stats calculation
+        setAllWindyDays(sortedDays);
+        
+        // For display: get top 200 windiest days, then sort chronologically
         sortedDays = sortedDays
-          .sort((a, b) => b.maxWindSpeed - a.maxWindSpeed) // First sort by wind speed
-          .slice(0, 200)                                   // Take top 200
-          .sort((a, b) => a.date.getTime() - b.date.getTime()); // Then sort by date
+          .sort((a, b) => a.date.getTime() - b.date.getTime()); // Sort by date only, no limit
       }
 
       console.log('Processed days:', sortedDays.length);
@@ -219,11 +357,11 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
     fetchWindyDays(selectedYear);
   }, [selectedYear]);
 
-  // Calculate stats when windyDays changes
+  // Calculate stats when allWindyDays changes (not windyDays)
   useEffect(() => {
-    if (!selectedYear) {
-      // Calculate stats for all years
-      const yearCounts = windyDays.reduce((acc, day) => {
+    if (!selectedYear && allWindyDays.length > 0) {
+      // Calculate stats for all years using allWindyDays
+      const yearCounts = allWindyDays.reduce((acc, day) => {
         const year = day.date.getFullYear();
         acc[year] = (acc[year] || 0) + 1;
         return acc;
@@ -236,7 +374,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
 
       setYearStats(stats.sort((a, b) => b.count - a.count));
     }
-  }, [windyDays, selectedYear]);
+  }, [allWindyDays, selectedYear]);
 
   // Get best year stats
   const bestYearStats = yearStats.length > 0 ? {
@@ -465,7 +603,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
         <p className="text-gray-600 text-sm mt-1">
           {selectedYear 
             ? `Visar alla dagar med vind över 10 m/s under ${selectedYear}, sorterade efter datum.`
-            : 'Visar de 200 blåsigaste dagarna över alla år, sorterade efter datum.'} Klicka på en punkt för att se detaljerad data för den dagen.
+            : 'Visar alla dagar med vind över 10 m/s över alla år, sorterade efter datum.'} Klicka på en punkt för att se detaljerad data för den dagen.
         </p>
 
         <div className="flex gap-2 mt-4 flex-wrap">
@@ -479,7 +617,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
           >
             Alla år
           </button>
-          {[2019, 2020, 2021, 2022, 2023, 2024, 2025].map(year => (
+          {[2020, 2021, 2022, 2023, 2024, 2025].map(year => (
             <button
               key={year}
               onClick={() => handleYearSelect(year)}
@@ -528,6 +666,10 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
             bestYear={!selectedYear && bestYearStats ? bestYearStats.year : undefined}
             bestYearDays={!selectedYear && bestYearStats ? bestYearStats.days : undefined}
           />
+          
+          {/* Add Advanced Stats */}
+          <h3 className="text-xl font-semibold mt-8 mb-4">Fler intressanta statistik</h3>
+          <AdvancedWindStats windyDays={windyDays} />
         </div>
       )}
     </div>
