@@ -13,9 +13,10 @@ import {
 import annotationPlugin from 'chartjs-plugin-annotation';
 import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { format, startOfYear, endOfYear } from 'date-fns';
+import { format, startOfYear, endOfYear, startOfDay } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import 'chartjs-plugin-zoom';
+import { WindDetailModal } from './WindDetailModal';
 
 // Register Chart.js plugins
 ChartJS.register(
@@ -33,12 +34,20 @@ interface WindOverviewProps {
   onDateSelect: (date: Date) => void;
 }
 
+interface HourlyData {
+  time: Date;
+  windSpeed: number;
+  windGust: number;
+  windDirection: number;
+}
+
 interface BinnedWindData {
   date: Date;
   maxWindSpeed: number;
   maxGust: number;
   windBin: '2-5' | '5-7' | '7-10' | '10+';
   windDirection: number;
+  hourlyData: HourlyData[];
 }
 
 interface StatCardProps {
@@ -46,11 +55,15 @@ interface StatCardProps {
   value?: string | number;
   subtitle?: string;
   children?: React.ReactNode;
+  onClick?: () => void;
 }
 
-function StatCard({ title, value, subtitle, children }: StatCardProps) {
+function StatCard({ title, value, subtitle, children, onClick }: StatCardProps) {
   return (
-    <div className="bg-blue-50 rounded-lg border border-blue-100 p-4 flex flex-col justify-between">
+    <div 
+      className={`bg-blue-50 rounded-lg border border-blue-100 p-4 flex flex-col justify-between ${onClick ? 'cursor-pointer hover:bg-blue-100 transition-colors' : ''}`}
+      onClick={onClick}
+    >
       <h3 className="text-lg font-semibold text-blue-900">{title}</h3>
       {value !== undefined && <p className="text-2xl font-bold mt-2 text-blue-800">{value}</p>}
       {subtitle && <p className="text-blue-600 text-sm">{subtitle}</p>}
@@ -65,9 +78,10 @@ interface WindStatsProps {
   topDays: { date: Date; maxWindSpeed: number }[];
   bestYear?: number;
   bestYearDays?: number;
+  onDaySelect?: (date: Date) => void;
 }
 
-function WindStats({ bestDay, totalDays, topDays, bestYear, bestYearDays }: WindStatsProps) {
+function WindStats({ bestDay, totalDays, topDays, bestYear, bestYearDays, onDaySelect }: WindStatsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
       {/* First row - Best Day & Total Days */}
@@ -75,6 +89,7 @@ function WindStats({ bestDay, totalDays, topDays, bestYear, bestYearDays }: Wind
         title="Bästa dagen"
         value={bestDay ? format(bestDay.date, 'd MMM yyyy', { locale: sv }) : '-'}
         subtitle={bestDay ? `Vindstyrka: ${bestDay.maxWindSpeed} m/s` : 'Ingen data tillgänglig'}
+        onClick={bestDay ? () => onDaySelect?.(bestDay.date) : undefined}
       />
       <StatCard
         title="Totalt antal blåsiga dagar"
@@ -87,7 +102,11 @@ function WindStats({ bestDay, totalDays, topDays, bestYear, bestYearDays }: Wind
         <StatCard title="Topp 5 blåsigaste dagar">
           <ul className="mt-2 space-y-2">
             {topDays.map((day, index) => (
-              <li key={index} className="flex justify-between text-sm">
+              <li 
+                key={index} 
+                className="flex justify-between text-sm cursor-pointer hover:bg-blue-50 p-2 rounded transition-colors"
+                onClick={() => onDaySelect?.(day.date)}
+              >
                 <span>{format(day.date, 'd MMM yyyy', { locale: sv })}</span>
                 <span className="font-semibold">{day.maxWindSpeed} m/s</span>
               </li>
@@ -126,6 +145,8 @@ function getWindDirection(degrees: number): string {
 }
 
 function AdvancedWindStats({ windyDays }: AdvancedWindStatsProps) {
+  const [selectedDay, setSelectedDay] = useState<BinnedWindData | null>(null);
+
   // Calculate highest average wind speed per year
   const windSpeedByYear = windyDays.reduce((acc, day) => {
     const year = day.date.getFullYear();
@@ -216,35 +237,60 @@ function AdvancedWindStats({ windyDays }: AdvancedWindStatsProps) {
   ].join('-');
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-      <StatCard
-        title="Högst genomsnittlig vind"
-        value={`${bestWindYear.year}`}
-        subtitle={`Genomsnitt: ${bestWindYear.avgWindSpeed.toFixed(1)} m/s`}
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+        <StatCard
+          title="Högst genomsnittlig vind"
+          value={`${bestWindYear.year}`}
+          subtitle={`Genomsnitt: ${bestWindYear.avgWindSpeed.toFixed(1)} m/s`}
+        />
+        <div onClick={() => setSelectedDay(highestGustDay)} className="cursor-pointer">
+          <StatCard
+            title="Högsta byvind"
+            value={`${highestGustDay.maxGust.toFixed(1)} m/s`}
+            subtitle={`${format(highestGustDay.date, 'd MMM yyyy', { locale: sv })}`}
+          />
+        </div>
+        <div onClick={() => setSelectedDay(windyDays.find(day => 
+          day.date.getTime() === streaks.longest.start.getTime()
+        ) || null)} className="cursor-pointer">
+          <StatCard
+            title="Längsta period med vind"
+            value={`${streaks.longest.length} dagar`}
+            subtitle={`Från ${format(streaks.longest.start, 'd MMM yyyy', { locale: sv })}`}
+          />
+        </div>
+        <StatCard
+          title="Vanligaste vindriktning"
+          value={mostCommonDirection[0]}
+          subtitle={mostCommonDirection[1] === 0 
+            ? 'Ingen riktningsdata tillgänglig'
+            : `${((mostCommonDirection[1] / Object.values(windDirections).reduce((a, b) => a + b, 0)) * 100).toFixed(0)}% av dagarna`}
+        />
+        <StatCard
+          title="Bästa vindsäsong"
+          value={seasonMonths}
+          subtitle={`Genomsnitt: ${bestSeason.avgWind.toFixed(1)} m/s`}
+        />
+      </div>
+
+      <WindDetailModal
+        isOpen={selectedDay !== null}
+        onClose={() => setSelectedDay(null)}
+        date={selectedDay?.date || null}
+        windData={selectedDay ? {
+          maxWindSpeed: selectedDay.maxWindSpeed,
+          maxGust: selectedDay.maxGust,
+          windDirection: selectedDay.windDirection,
+          hourlyData: selectedDay.hourlyData.map(data => ({
+            time: format(data.time, 'HH:mm'),
+            speed: data.windSpeed,
+            gust: data.windGust,
+            direction: data.windDirection
+          })) || []
+        } : undefined}
       />
-      <StatCard
-        title="Högsta byvind"
-        value={`${highestGustDay.maxGust.toFixed(1)} m/s`}
-        subtitle={`${format(highestGustDay.date, 'd MMM yyyy', { locale: sv })}`}
-      />
-      <StatCard
-        title="Längsta period med vind"
-        value={`${streaks.longest.length} dagar`}
-        subtitle={`Från ${format(streaks.longest.start, 'd MMM yyyy', { locale: sv })}`}
-      />
-      <StatCard
-        title="Vanligaste vindriktning"
-        value={mostCommonDirection[0]}
-        subtitle={mostCommonDirection[1] === 0 
-          ? 'Ingen riktningsdata tillgänglig'
-          : `${((mostCommonDirection[1] / Object.values(windDirections).reduce((a, b) => a + b, 0)) * 100).toFixed(0)}% av dagarna`}
-      />
-      <StatCard
-        title="Bästa vindsäsong"
-        value={seasonMonths}
-        subtitle={`Genomsnitt: ${bestSeason.avgWind.toFixed(1)} m/s`}
-      />
-    </div>
+    </>
   );
 }
 
@@ -255,6 +301,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [cachedData, setCachedData] = useState<Map<number | null, BinnedWindData[]>>(new Map());
   const chartRef = useRef<any>(null);
+  const [selectedDay, setSelectedDay] = useState<BinnedWindData | null>(null);
 
   // Add new state for year stats
   const [yearStats, setYearStats] = useState<{ year: number; count: number }[]>([]);
@@ -312,15 +359,38 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
         const maxGust = data.forceMax || maxWindSpeed;
 
         // Keep only the highest wind speed for each day
-        if (!dailyMax.has(dateKey) || dailyMax.get(dateKey)!.maxWindSpeed < maxWindSpeed) {
+        if (!dailyMax.has(dateKey)) {
           dailyMax.set(dateKey, {
-            date,
+            date: startOfDay(date), // Use start of day for the day's date
             maxWindSpeed,
             maxGust,
             windBin: maxWindSpeed >= 10 ? '10+' : maxWindSpeed >= 7 ? '7-10' : maxWindSpeed >= 5 ? '5-7' : '2-5',
-            windDirection: data.direction || 0 // Default to 0 if undefined
+            windDirection: data.direction || 0,
+            hourlyData: [] // Initialize empty array
           });
         }
+
+        const currentDay = dailyMax.get(dateKey)!;
+        
+        // Update max values if this record has higher values
+        if (maxWindSpeed > currentDay.maxWindSpeed) {
+          currentDay.maxWindSpeed = maxWindSpeed;
+          currentDay.maxGust = maxGust;
+          currentDay.windBin = maxWindSpeed >= 10 ? '10+' : maxWindSpeed >= 7 ? '7-10' : maxWindSpeed >= 5 ? '5-7' : '2-5';
+        }
+
+        // Add to hourly data
+        currentDay.hourlyData.push({
+          time: date,
+          windSpeed: maxWindSpeed,
+          windGust: maxGust,
+          windDirection: data.direction || 0
+        });
+      });
+
+      // Sort hourly data for each day
+      dailyMax.forEach(day => {
+        day.hourlyData.sort((a, b) => a.time.getTime() - b.time.getTime());
       });
 
       // Convert to array and sort
@@ -426,7 +496,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
             return '#49654c96';
           },
         },
-        tension: 0.1,
+        tension: 0.2,
         pointRadius: 2,
         borderWidth: 1,
         order: 1
@@ -453,9 +523,9 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
             return '#49654c96';
           },
         },
-        tension: 0.1,
+        tension: 0.2,
         pointRadius: 3,
-        borderWidth: 2,
+        borderWidth: 1,
         order: 2
       },
     ],
@@ -665,11 +735,35 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
             }))}
             bestYear={!selectedYear && bestYearStats ? bestYearStats.year : undefined}
             bestYearDays={!selectedYear && bestYearStats ? bestYearStats.days : undefined}
+            onDaySelect={(date) => {
+              const dayToShow = windyDays.find(day => day.date.getTime() === date.getTime());
+              if (dayToShow) {
+                setSelectedDay(dayToShow);
+              }
+            }}
           />
           
           {/* Add Advanced Stats */}
-          <h3 className="text-xl font-semibold mt-8 mb-4">Fler intressanta statistik</h3>
+          <h3 className="text-xl font-semibold mt-8 mb-4">Mer statistik</h3>
           <AdvancedWindStats windyDays={windyDays} />
+
+          {/* Add WindDetailModal */}
+          <WindDetailModal
+            isOpen={selectedDay !== null}
+            onClose={() => setSelectedDay(null)}
+            date={selectedDay?.date || null}
+            windData={selectedDay ? {
+              maxWindSpeed: selectedDay.maxWindSpeed,
+              maxGust: selectedDay.maxGust,
+              windDirection: selectedDay.windDirection,
+              hourlyData: selectedDay.hourlyData.map(data => ({
+                time: format(data.time, 'HH:mm'),
+                speed: data.windSpeed,
+                gust: data.windGust,
+                direction: data.windDirection
+              }))
+            } : undefined}
+          />
         </div>
       )}
     </div>
