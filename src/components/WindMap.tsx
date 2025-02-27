@@ -158,21 +158,6 @@ export default function WindMap({ windData, date, onDateChange }: WindMapProps) 
     };
   }, [timeIndex]);
 
-  // Create gradient background for slider
-  const createSliderBackground = () => {
-    const gradientStops = windData.map((data, index) => {
-      const percentage = (index / (windData.length - 1)) * 100;
-      const color = getWindColor(data.speed);
-      return `${color} ${percentage}%`;
-    });
-    
-    return {
-      background: `linear-gradient(to right, ${gradientStops.join(', ')})`,
-      height: '8px',
-      borderRadius: '4px'
-    };
-  };
-
   return (
     <div className="p-2 space-y-3 md:p-4 md:space-y-4 w-full md:max-w-2xl mx-auto">
       <h2 className="text-lg md:text-xl font-bold text-center">Lake Wind Conditions</h2>

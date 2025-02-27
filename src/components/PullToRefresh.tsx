@@ -10,8 +10,8 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
   
-  const [{ y }, api] = useSpring(() => ({
-    y: 0,
+  const [styles, api] = useSpring(() => ({
+    transform: 'translateY(0px)',
     config: { tension: 200, friction: 20 }
   }));
 
@@ -29,7 +29,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
     const diff = currentY - startY;
     
     if (diff > 0) {
-      api.start({ y: diff / 2 });
+      api.start({ transform: `translateY(${diff / 2}px)` });
     }
   };
 
@@ -38,16 +38,19 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
     
     setIsDragging(false);
     
-    const currentY = y.get();
+    const currentTransform = styles.transform.get();
+    const match = currentTransform.match(/translateY\((.*?)px\)/);
+    const currentY = match ? parseFloat(match[1]) : 0;
+    
     if (currentY > 100) {
       try {
-        api.start({ y: 50 });
+        api.start({ transform: 'translateY(50px)' });
         await onRefresh();
       } finally {
-        api.start({ y: 0 });
+        api.start({ transform: 'translateY(0px)' });
       }
     } else {
-      api.start({ y: 0 });
+      api.start({ transform: 'translateY(0px)' });
     }
   };
 
@@ -57,10 +60,13 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <animated.div style={{ transform: y.to(y => `translateY(${y}px)`) }}>
+      <animated.div style={styles}>
         {isDragging && (
           <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-            {y.get() > 50 ? 'Släpp för att uppdatera' : 'Dra ner för att uppdatera'}
+            {styles.transform.get().match(/translateY\((.*?)px\)/) && 
+             parseFloat(styles.transform.get().match(/translateY\((.*?)px\)/)?.[1] || '0') > 50 
+              ? 'Släpp för att uppdatera' 
+              : 'Dra ner för att uppdatera'}
           </div>
         )}
         {children}

@@ -27,9 +27,6 @@ export function WindDetailModal({ isOpen, onClose, date, windData }: WindDetailM
 
   const formattedDate = format(date, 'EEEE d MMMM', { locale: sv });
 
-  // Ensure we have hourly data and it's properly formatted
-  const validHourlyData = windData.hourlyData?.length > 0 ? windData.hourlyData : [];
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">

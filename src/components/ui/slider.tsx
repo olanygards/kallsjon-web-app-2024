@@ -1,5 +1,4 @@
-import * as React from 'react';
-import * as SliderPrimitive from '@radix-ui/react-slider';
+import { useMemo } from 'react';
 
 interface SliderProps {
   min: number;
@@ -8,7 +7,7 @@ interface SliderProps {
   value: number;
   onChange: (value: number) => void;
   className?: string;
-  data?: Array<{ speed: number }>;  // Add data prop for wind speeds
+  data?: Array<{ speed: number }>;
 }
 
 const getWindColor = (speed: number): string => {
@@ -40,32 +39,26 @@ const createGradientBackground = (data: Array<{ speed: number }> | undefined) =>
   return `linear-gradient(to right, ${gradientStops.join(', ')})`;
 };
 
-export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
-  ({ min, max, step, value, onChange, className = '', data }, ref) => {
-    const backgroundStyle = React.useMemo(() => ({
-      background: createGradientBackground(data)
-    }), [data]);
+export function Slider({ min, max, step, value, onChange, className = '', data }: SliderProps) {
+  const backgroundStyle = useMemo(() => ({
+    background: createGradientBackground(data)
+  }), [data]);
 
-    return (
-      <SliderPrimitive.Root
-        ref={ref}
+  return (
+    <div className={`relative flex items-center w-full h-9 touch-none ${className}`}>
+      <div 
+        className="absolute w-full h-5 rounded-full cursor-pointer" 
+        style={backgroundStyle}
+      />
+      <input
+        type="range"
         min={min}
         max={max}
         step={step}
-        value={[value]}
-        onValueChange={([newValue]) => onChange(newValue)}
-        className={`relative flex items-center w-full h-9 touch-none ${className}`}
-      >
-        <SliderPrimitive.Track 
-          className="relative h-5 w-full grow rounded-full cursor-pointer" 
-          style={backgroundStyle}
-        >
-          <SliderPrimitive.Range className="absolute h-full rounded-full bg-transparent" />
-        </SliderPrimitive.Track>
-        <SliderPrimitive.Thumb 
-          className="block h-12 w-12 rounded-full bg-white border-2 border-gray-400 shadow-lg ring-offset-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 touch-none"
-        />
-      </SliderPrimitive.Root>
-    );
-  }
-); 
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="relative w-full h-5 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-12 [&::-webkit-slider-thumb]:h-12 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-gray-400 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-colors [&::-webkit-slider-thumb]:hover:border-gray-500"
+      />
+    </div>
+  );
+} 
