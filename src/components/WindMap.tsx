@@ -12,8 +12,6 @@ interface WindData {
 interface WindMapProps {
   windData: WindData[];
   onDateChange?: (direction: 'prev' | 'next') => void;
-  hasPrevDay?: boolean;
-  hasNextDay?: boolean;
 }
 
 function getWindColor(speed: number) {
@@ -29,7 +27,7 @@ function getWindColor(speed: number) {
   return "rgba(255, 255, 255, 1)"; // Max intensity
 }
 
-export default function WindMap({ windData, onDateChange, hasPrevDay, hasNextDay }: WindMapProps) {
+export default function WindMap({ windData, onDateChange }: WindMapProps) {
   const [timeIndex, setTimeIndex] = useState(2);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const waveCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -164,17 +162,15 @@ export default function WindMap({ windData, onDateChange, hasPrevDay, hasNextDay
       
       <div className="flex justify-between items-center px-2">
         <Button 
-          className="!text-green-600 !bg-white !border-2 !border-white !px-4 !py-2 !rounded-md !font-bold hover:!bg-gray-50 active:!bg-gray-100 disabled:!opacity-50 disabled:!cursor-not-allowed [&:hover]:!text-green-600" 
+          className="!text-green-600 !bg-white !border-2 !border-white !px-4 !py-2 !rounded-md !font-bold hover:!bg-gray-50 active:!bg-gray-100 [&:hover]:!text-green-600" 
           onClick={() => onDateChange?.('prev')}
-          disabled={!hasPrevDay}
         >
           &lt;
         </Button>
         <h3 className="font-semibold">Tid: {windData[timeIndex]?.time || '--:--'}</h3>
         <Button 
-          className="!text-green-600 !bg-white !border-2 !border-white !px-4 !py-2 !rounded-md !font-bold hover:!bg-gray-50 active:!bg-gray-100 disabled:!opacity-50 disabled:!cursor-not-allowed [&:hover]:!text-green-600" 
+          className="!text-green-600 !bg-white !border-2 !border-white !px-4 !py-2 !rounded-md !font-bold hover:!bg-gray-50 active:!bg-gray-100 [&:hover]:!text-green-600" 
           onClick={() => onDateChange?.('next')}
-          disabled={!hasNextDay}
         >
           &gt;
         </Button>

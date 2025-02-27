@@ -356,12 +356,6 @@ function AdvancedWindStats({ windyDays, fetch24HourData, onDaySelect }: Advanced
           })) || []
         } : undefined}
         onDateChange={handleDateChange}
-        hasPrevDay={selectedDay ? windyDays.findIndex(day => 
-          day.date.getTime() === selectedDay.date.getTime()
-        ) > 0 : false}
-        hasNextDay={selectedDay ? windyDays.findIndex(day => 
-          day.date.getTime() === selectedDay.date.getTime()
-        ) < windyDays.length - 1 : false}
       />
     </>
   );
@@ -972,12 +966,6 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
               }))
             } : undefined}
             onDateChange={handleDateChange}
-            hasPrevDay={selectedDay ? windyDays.findIndex(day => 
-              day.date.getTime() === selectedDay.date.getTime()
-            ) > 0 : false}
-            hasNextDay={selectedDay ? windyDays.findIndex(day => 
-              day.date.getTime() === selectedDay.date.getTime()
-            ) < windyDays.length - 1 : false}
           />
         </div>
       )}

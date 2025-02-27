@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { WindChart } from './WindChart';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay, addDays, subDays } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { WindData } from '../types/WindData';
+import { WindDetailModal } from './WindDetailModal';
 
 interface WindDetailProps {
   selectedDate: Date;
@@ -15,13 +16,20 @@ export function WindDetail({ selectedDate, onBack }: WindDetailProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [detailedData, setDetailedData] = useState<WindData[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentDate, setCurrentDate] = useState(selectedDate);
+
+  const handleDateChange = (direction: 'prev' | 'next') => {
+    const newDate = direction === 'prev' ? subDays(currentDate, 1) : addDays(currentDate, 1);
+    setCurrentDate(newDate);
+  };
 
   useEffect(() => {
     async function fetchDetailedData() {
       try {
         setLoading(true);
-        const start = startOfDay(selectedDate);
-        const end = endOfDay(selectedDate);
+        const start = startOfDay(currentDate);
+        const end = endOfDay(currentDate);
         
         console.log('Fetching detailed data for:', {
           start: start.toISOString(),
@@ -69,7 +77,7 @@ export function WindDetail({ selectedDate, onBack }: WindDetailProps) {
     }
 
     fetchDetailedData();
-  }, [selectedDate]);
+  }, [currentDate]);
 
   if (loading) {
     return (
@@ -92,7 +100,7 @@ export function WindDetail({ selectedDate, onBack }: WindDetailProps) {
       <div className="p-4 border-b flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold">
-            Detaljerad vinddata för {format(selectedDate, 'EEEE d MMMM yyyy', { locale: sv })}
+            Detaljerad vinddata för {format(currentDate, 'EEEE d MMMM yyyy', { locale: sv })}
           </h2>
           <p className="text-gray-600 text-sm mt-1">
             Visar vinddata med 5-minuters intervall
@@ -109,12 +117,38 @@ export function WindDetail({ selectedDate, onBack }: WindDetailProps) {
         <WindChart 
           windData={detailedData}
           forecastData={[]}
-          title={`Vindstyrka ${format(selectedDate, 'd MMM yyyy', { locale: sv })}`}
+          title={`Vindstyrka ${format(currentDate, 'd MMM yyyy', { locale: sv })}`}
           timeRange={1}
           zoomEnabled={true}
           variant="experiment"
         />
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+          >
+            Se dagen grafiskt
+          </button>
+        </div>
       </div>
+
+      <WindDetailModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        date={currentDate}
+        windData={{
+          maxWindSpeed: Math.max(...(detailedData.length ? detailedData.map(d => d.windSpeed) : [0])),
+          maxGust: Math.max(...(detailedData.length ? detailedData.map(d => d.windGust) : [0])),
+          windDirection: detailedData[0]?.windDirection || 0,
+          hourlyData: detailedData.map(d => ({
+            time: format(d.time, 'HH:mm'),
+            speed: d.windSpeed,
+            gust: d.windGust,
+            direction: d.windDirection
+          }))
+        }}
+        onDateChange={handleDateChange}
+      />
     </div>
   );
 } 

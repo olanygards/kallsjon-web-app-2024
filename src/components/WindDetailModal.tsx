@@ -21,14 +21,12 @@ interface WindDetailModalProps {
     hourlyData: HourlyData[];
   };
   onDateChange?: (direction: 'prev' | 'next') => void;
-  hasPrevDay?: boolean;
-  hasNextDay?: boolean;
 }
 
-export function WindDetailModal({ isOpen, onClose, date, windData, onDateChange, hasPrevDay, hasNextDay }: WindDetailModalProps) {
+export function WindDetailModal({ isOpen, onClose, date, windData, onDateChange }: WindDetailModalProps) {
   if (!isOpen || !date || !windData) return null;
 
-  const formattedDate = format(date, 'EEEE d MMMM', { locale: sv });
+  const formattedDate = format(date, 'EEEE d MMMM, yyyy', { locale: sv });
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 max-w-md mx-auto" style={{ backgroundColor: 'rgb(100 119 109 / 74%)' }}>
@@ -57,8 +55,6 @@ export function WindDetailModal({ isOpen, onClose, date, windData, onDateChange,
                     direction: data.direction
                   }))}
                   onDateChange={onDateChange}
-                  hasPrevDay={hasPrevDay}
-                  hasNextDay={hasNextDay}
                 />
               ) : (
                 <div className="text-center py-8 text-gray-400">
