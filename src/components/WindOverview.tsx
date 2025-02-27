@@ -394,7 +394,6 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
     );
 
     const querySnapshot = await getDocs(q);
-    const hourlyData: HourlyData[] = [];
     const hourMap = new Map<number, HourlyData>();
 
     // First, store all actual data points

@@ -11,8 +11,8 @@ interface SliderProps {
 }
 
 const getWindColor = (speed: number): string => {
-  if (speed <= 7) return "#747474";  //  Gray
-  if (speed <= 8) return "#9bb798";    // Light Green Gray
+  if (speed <= 7) return "#ffffff";  //  White
+  if (speed <= 8) return "#f1f1f1";    // Light Gray
   if (speed <= 9) return "#49654c96";  // Soft Greenish Gray
   if (speed <= 10) return "#388957";   // Pastel Green
   if (speed <= 11) return "#0b7c46";   // Light Green
