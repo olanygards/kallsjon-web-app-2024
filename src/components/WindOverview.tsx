@@ -78,10 +78,11 @@ interface WindStatsProps {
   topDays: { date: Date; maxWindSpeed: number }[];
   bestYear?: number;
   bestYearDays?: number;
-  onDaySelect?: (date: Date) => void;
+  fetch24HourData: (date: Date) => Promise<HourlyData[]>;
+  onDaySelect: (day: BinnedWindData) => void;
 }
 
-function WindStats({ bestDay, totalDays, topDays, bestYear, bestYearDays, onDaySelect }: WindStatsProps) {
+function WindStats({ bestDay, totalDays, topDays, bestYear, bestYearDays, fetch24HourData, onDaySelect }: WindStatsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
       {/* First row - Best Day & Total Days */}
@@ -89,7 +90,17 @@ function WindStats({ bestDay, totalDays, topDays, bestYear, bestYearDays, onDayS
         title="Bästa dagen"
         value={bestDay ? format(bestDay.date, 'd MMM yyyy', { locale: sv }) : '-'}
         subtitle={bestDay ? `Vindstyrka: ${bestDay.maxWindSpeed} m/s` : 'Ingen data tillgänglig'}
-        onClick={bestDay ? () => onDaySelect?.(bestDay.date) : undefined}
+        onClick={bestDay ? async () => {
+          const fullDayData = await fetch24HourData(bestDay.date);
+          onDaySelect({
+            date: bestDay.date,
+            maxWindSpeed: bestDay.maxWindSpeed,
+            maxGust: bestDay.maxWindSpeed, // Use maxWindSpeed as fallback
+            windBin: bestDay.maxWindSpeed >= 10 ? '10+' : bestDay.maxWindSpeed >= 7 ? '7-10' : bestDay.maxWindSpeed >= 5 ? '5-7' : '2-5',
+            windDirection: 0, // Default value
+            hourlyData: fullDayData
+          });
+        } : undefined}
       />
       <StatCard
         title="Totalt antal blåsiga dagar"
@@ -105,7 +116,17 @@ function WindStats({ bestDay, totalDays, topDays, bestYear, bestYearDays, onDayS
               <li 
                 key={index} 
                 className="flex justify-between text-sm cursor-pointer hover:bg-blue-50 p-2 rounded transition-colors"
-                onClick={() => onDaySelect?.(day.date)}
+                onClick={async () => {
+                  const fullDayData = await fetch24HourData(day.date);
+                  onDaySelect({
+                    date: day.date,
+                    maxWindSpeed: day.maxWindSpeed,
+                    maxGust: day.maxWindSpeed, // Use maxWindSpeed as fallback
+                    windBin: day.maxWindSpeed >= 10 ? '10+' : day.maxWindSpeed >= 7 ? '7-10' : day.maxWindSpeed >= 5 ? '5-7' : '2-5',
+                    windDirection: 0, // Default value
+                    hourlyData: fullDayData
+                  });
+                }}
               >
                 <span>{format(day.date, 'd MMM yyyy', { locale: sv })}</span>
                 <span className="font-semibold">{day.maxWindSpeed} m/s</span>
@@ -136,6 +157,8 @@ function WindStats({ bestDay, totalDays, topDays, bestYear, bestYearDays, onDayS
 
 interface AdvancedWindStatsProps {
   windyDays: BinnedWindData[];
+  fetch24HourData: (date: Date) => Promise<HourlyData[]>;
+  onDaySelect: (day: BinnedWindData) => void;
 }
 
 function getWindDirection(degrees: number): string {
@@ -144,7 +167,7 @@ function getWindDirection(degrees: number): string {
   return directions[index];
 }
 
-function AdvancedWindStats({ windyDays }: AdvancedWindStatsProps) {
+function AdvancedWindStats({ windyDays, fetch24HourData, onDaySelect }: AdvancedWindStatsProps) {
   const [selectedDay, setSelectedDay] = useState<BinnedWindData | null>(null);
 
   // Calculate highest average wind speed per year
@@ -236,6 +259,32 @@ function AdvancedWindStats({ windyDays }: AdvancedWindStatsProps) {
     monthNames[(bestSeason.startMonth + 2) % 12]
   ].join('-');
 
+  const handleDateChange = useCallback(async (direction: 'prev' | 'next') => {
+    if (!selectedDay) return;
+
+    // Find current index
+    const currentIndex = windyDays.findIndex(day => 
+      day.date.getTime() === selectedDay.date.getTime()
+    );
+
+    if (currentIndex === -1) return;
+
+    // Calculate new index
+    const newIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= windyDays.length) return;
+
+    // Get new day
+    const newDay = windyDays[newIndex];
+    const fullDayData = await fetch24HourData(newDay.date);
+    
+    const updatedDay = {
+      ...newDay,
+      hourlyData: fullDayData
+    };
+    
+    setSelectedDay(updatedDay);
+  }, [selectedDay, windyDays, fetch24HourData]);
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
@@ -244,16 +293,33 @@ function AdvancedWindStats({ windyDays }: AdvancedWindStatsProps) {
           value={`${bestWindYear.year}`}
           subtitle={`Genomsnitt: ${bestWindYear.avgWindSpeed.toFixed(1)} m/s`}
         />
-        <div onClick={() => setSelectedDay(highestGustDay)} className="cursor-pointer">
+        <div onClick={async () => {
+          if (highestGustDay) {
+            const fullDayData = await fetch24HourData(highestGustDay.date);
+            onDaySelect({
+              ...highestGustDay,
+              hourlyData: fullDayData
+            });
+          }
+        }} className="cursor-pointer">
           <StatCard
             title="Högsta byvind"
             value={`${highestGustDay.maxGust.toFixed(1)} m/s`}
             subtitle={`${format(highestGustDay.date, 'd MMM yyyy', { locale: sv })}`}
           />
         </div>
-        <div onClick={() => setSelectedDay(windyDays.find(day => 
-          day.date.getTime() === streaks.longest.start.getTime()
-        ) || null)} className="cursor-pointer">
+        <div onClick={async () => {
+          const startDay = windyDays.find(day => 
+            day.date.getTime() === streaks.longest.start.getTime()
+          );
+          if (startDay) {
+            const fullDayData = await fetch24HourData(startDay.date);
+            onDaySelect({
+              ...startDay,
+              hourlyData: fullDayData
+            });
+          }
+        }} className="cursor-pointer">
           <StatCard
             title="Längsta period med vind"
             value={`${streaks.longest.length} dagar`}
@@ -289,6 +355,13 @@ function AdvancedWindStats({ windyDays }: AdvancedWindStatsProps) {
             direction: data.windDirection
           })) || []
         } : undefined}
+        onDateChange={handleDateChange}
+        hasPrevDay={selectedDay ? windyDays.findIndex(day => 
+          day.date.getTime() === selectedDay.date.getTime()
+        ) > 0 : false}
+        hasNextDay={selectedDay ? windyDays.findIndex(day => 
+          day.date.getTime() === selectedDay.date.getTime()
+        ) < windyDays.length - 1 : false}
       />
     </>
   );
@@ -306,6 +379,109 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
   // Add new state for year stats
   const [yearStats, setYearStats] = useState<{ year: number; count: number }[]>([]);
   const [allWindyDays, setAllWindyDays] = useState<BinnedWindData[]>([]);
+
+  async function fetch24HourData(date: Date) {
+    const dayStart = startOfDay(date);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+
+    const windRef = collection(db, 'wind');
+    const q = query(
+      windRef,
+      where('time', '>=', Timestamp.fromDate(dayStart)),
+      where('time', '<', Timestamp.fromDate(dayEnd)),
+      orderBy('time', 'asc')
+    );
+
+    const querySnapshot = await getDocs(q);
+    const hourlyData: HourlyData[] = [];
+    const hourMap = new Map<number, HourlyData>();
+
+    // First, store all actual data points
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const time = data.time.toDate();
+      const hour = time.getHours();
+      
+      const dataPoint = {
+        time,
+        windSpeed: data.force,
+        windGust: data.forceMax || data.force,
+        windDirection: data.direction || 0
+      };
+
+      // Keep the highest wind speed for each hour
+      const existing = hourMap.get(hour);
+      if (!existing || existing.windSpeed < dataPoint.windSpeed) {
+        hourMap.set(hour, dataPoint);
+      }
+    });
+
+    // Then fill in missing hours with interpolated or null values
+    for (let hour = 0; hour < 24; hour++) {
+      if (!hourMap.has(hour)) {
+        // Find nearest previous and next measurements for interpolation
+        let prevHour = hour - 1;
+        let nextHour = hour + 1;
+        let prevData: HourlyData | undefined;
+        let nextData: HourlyData | undefined;
+
+        while (prevHour >= 0 && !prevData) {
+          prevData = hourMap.get(prevHour);
+          prevHour--;
+        }
+
+        while (nextHour < 24 && !nextData) {
+          nextData = hourMap.get(nextHour);
+          nextHour++;
+        }
+
+        // Create a time for this hour
+        const time = new Date(dayStart);
+        time.setHours(hour);
+
+        if (prevData && nextData) {
+          // Interpolate values
+          const ratio = (hour - (prevHour + 2)) / (nextHour - (prevHour + 2));
+          hourMap.set(hour, {
+            time,
+            windSpeed: prevData.windSpeed + (nextData.windSpeed - prevData.windSpeed) * ratio,
+            windGust: prevData.windGust + (nextData.windGust - prevData.windGust) * ratio,
+            windDirection: prevData.windDirection + (nextData.windDirection - prevData.windDirection) * ratio
+          });
+        } else if (prevData) {
+          // Use previous value with slight decay
+          hourMap.set(hour, {
+            time,
+            windSpeed: prevData.windSpeed * 0.9,
+            windGust: prevData.windGust * 0.9,
+            windDirection: prevData.windDirection
+          });
+        } else if (nextData) {
+          // Use next value with slight decay
+          hourMap.set(hour, {
+            time,
+            windSpeed: nextData.windSpeed * 0.9,
+            windGust: nextData.windGust * 0.9,
+            windDirection: nextData.windDirection
+          });
+        } else {
+          // No nearby data, use null values
+          hourMap.set(hour, {
+            time,
+            windSpeed: 0,
+            windGust: 0,
+            windDirection: 0
+          });
+        }
+      }
+    }
+
+    // Convert map to sorted array
+    return Array.from(hourMap.entries())
+      .sort(([hourA], [hourB]) => hourA - hourB)
+      .map(([_, data]) => data);
+  }
 
   async function fetchWindyDays(year: number | null) {
     const cached = cachedData.get(year);
@@ -465,13 +641,44 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
     setSelectedYear(year);
   };
 
-  const handleClick = useCallback((_event: any, elements: any[]) => {
+  const handleClick = useCallback(async (_event: any, elements: any[]) => {
     if (elements.length > 0) {
       const dataIndex = elements[0].index;
       const selectedDay = windyDays[dataIndex];
+      const fullDayData = await fetch24HourData(selectedDay.date);
+      setSelectedDay({
+        ...selectedDay,
+        hourlyData: fullDayData
+      });
       onDateSelect(selectedDay.date);
     }
-  }, [windyDays, onDateSelect]);
+  }, [windyDays, onDateSelect, fetch24HourData]);
+
+  const handleDateChange = useCallback(async (direction: 'prev' | 'next') => {
+    if (!selectedDay) return;
+
+    // Find current index
+    const currentIndex = windyDays.findIndex(day => 
+      day.date.getTime() === selectedDay.date.getTime()
+    );
+
+    if (currentIndex === -1) return;
+
+    // Calculate new index
+    const newIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= windyDays.length) return;
+
+    // Get new day
+    const newDay = windyDays[newIndex];
+    const fullDayData = await fetch24HourData(newDay.date);
+    
+    const updatedDay = {
+      ...newDay,
+      hourlyData: fullDayData
+    };
+    
+    setSelectedDay(updatedDay);
+  }, [selectedDay, windyDays, fetch24HourData]);
 
   const chartData = {
     labels: windyDays.map(day => format(day.date, 'd MMM yyyy', { locale: sv })),
@@ -735,17 +942,19 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
             }))}
             bestYear={!selectedYear && bestYearStats ? bestYearStats.year : undefined}
             bestYearDays={!selectedYear && bestYearStats ? bestYearStats.days : undefined}
-            onDaySelect={(date) => {
-              const dayToShow = windyDays.find(day => day.date.getTime() === date.getTime());
-              if (dayToShow) {
-                setSelectedDay(dayToShow);
-              }
-            }}
+            fetch24HourData={fetch24HourData}
+            onDaySelect={setSelectedDay}
           />
           
           {/* Add Advanced Stats */}
           <h3 className="text-xl font-semibold mt-8 mb-4">Mer statistik</h3>
-          <AdvancedWindStats windyDays={windyDays} />
+          <AdvancedWindStats 
+            windyDays={windyDays} 
+            fetch24HourData={fetch24HourData}
+            onDaySelect={(day: BinnedWindData) => {
+              setSelectedDay(day);
+            }}
+          />
 
           {/* Add WindDetailModal */}
           <WindDetailModal
@@ -763,6 +972,13 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
                 direction: data.windDirection
               }))
             } : undefined}
+            onDateChange={handleDateChange}
+            hasPrevDay={selectedDay ? windyDays.findIndex(day => 
+              day.date.getTime() === selectedDay.date.getTime()
+            ) > 0 : false}
+            hasNextDay={selectedDay ? windyDays.findIndex(day => 
+              day.date.getTime() === selectedDay.date.getTime()
+            ) < windyDays.length - 1 : false}
           />
         </div>
       )}

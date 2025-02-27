@@ -13,6 +13,8 @@ interface WindMapProps {
   windData: WindData[];
   date: string;
   onDateChange?: (direction: 'prev' | 'next') => void;
+  hasPrevDay?: boolean;
+  hasNextDay?: boolean;
 }
 
 function getWindColor(speed: number) {
@@ -28,7 +30,7 @@ function getWindColor(speed: number) {
   return "rgba(255, 255, 255, 1)"; // Max intensity
 }
 
-export default function WindMap({ windData, date, onDateChange }: WindMapProps) {
+export default function WindMap({ windData, date, onDateChange, hasPrevDay, hasNextDay }: WindMapProps) {
   const [timeIndex, setTimeIndex] = useState(2);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const waveCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -164,15 +166,17 @@ export default function WindMap({ windData, date, onDateChange }: WindMapProps) 
       
       <div className="flex justify-between items-center px-2">
         <Button 
-          className="text-black bg-black" 
+          className="text-green-500 bg-white" 
           onClick={() => onDateChange?.('prev')}
+          disabled={!hasPrevDay}
         >
           &lt;
         </Button>
         <h3 className="font-semibold">{date} <br></br>{windData[timeIndex]?.time || '--:--'}</h3>
         <Button 
-          className="text-black bg-black" 
+          className="text-green-500 bg-white" 
           onClick={() => onDateChange?.('next')}
+          disabled={!hasNextDay}
         >
           &gt;
         </Button>
@@ -207,7 +211,7 @@ export default function WindMap({ windData, date, onDateChange }: WindMapProps) 
           step={1}
           value={timeIndex}
           onChange={setTimeIndex}
-          data={windData}
+          data={windData.map(data => ({ speed: data.speed }))}
           className="relative z-10"
         />
         <div className="flex justify-between text-sm text-white">
