@@ -17,6 +17,7 @@ import { format, startOfYear, endOfYear, startOfDay } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import 'chartjs-plugin-zoom';
 import { WindDetailModal } from './WindDetailModal';
+import { useWindCache } from '../hooks/useWindCache';
 
 // Register Chart.js plugins
 ChartJS.register(
@@ -366,7 +367,11 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
   const [error, setError] = useState<Error | null>(null);
   const [windyDays, setWindyDays] = useState<BinnedWindData[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [cachedData, setCachedData] = useState<Map<number | null, BinnedWindData[]>>(new Map());
+  const { cachedData, setCachedData, isDataFresh, updateLastFetchedDate } = useWindCache<BinnedWindData[]>({
+    expirationTime: 7 * 24 * 60 * 60 * 1000, // 7 days for historical data
+    key: 'windyDays',
+    maxAge: 30 * 60 * 1000 // 30 minutes for recent data
+  });
   const chartRef = useRef<any>(null);
   const [selectedDay, setSelectedDay] = useState<BinnedWindData | null>(null);
 
@@ -478,11 +483,25 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
 
   async function fetchWindyDays(year: number | null) {
     const cached = cachedData.get(year);
+    
+    // If we have cached data and it's either historical or fresh enough, use it
     if (cached && cached.length > 0) {
-      console.log(`Using cached data for ${year ? year : "all years"}`);
-      setWindyDays(cached);
-      setLoading(false);
-      return;
+      const mostRecentDate = new Date(Math.max(...cached.map(day => day.date.getTime())));
+      
+      if (isDataFresh(mostRecentDate)) {
+        console.log(`Using cached data for ${year ? year : "all years"}`);
+        setWindyDays(cached);
+        setLoading(false);
+        return;
+      }
+      
+      // If we're looking at a past year, we can use cached data
+      if (year && year < new Date().getFullYear()) {
+        console.log(`Using cached historical data for ${year}`);
+        setWindyDays(cached);
+        setLoading(false);
+        return;
+      }
     }
 
     try {
@@ -501,25 +520,28 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
           windRef,
           where('time', '>=', Timestamp.fromDate(yearStart)),
           where('time', '<=', Timestamp.fromDate(yearEnd)),
-          where('force', '>=', 10),  // Show all days with wind over 10 m/s
-          orderBy('time', 'asc')     // Sort chronologically
+          where('force', '>=', 10),
+          orderBy('time', 'asc')
         );
       } else {
-        // Fetch all windy days across all years
+        // For current year or all years, only fetch new data if needed
+        const lastFetchedData = cached && cached.length > 0 
+          ? new Date(Math.max(...cached.map(day => day.date.getTime())))
+          : new Date(2020, 0, 1);
+
         q = query(
           windRef,
-          where('force', '>=', 10),  // Get all days over 10 m/s
-          where('time', '>=', Timestamp.fromDate(new Date(2020, 0, 1))), // Start from 2020
-          orderBy('force', 'desc'),  // Sort by wind speed first
-          orderBy('time', 'asc')     // Then by time
+          where('force', '>=', 10),
+          where('time', '>', Timestamp.fromDate(lastFetchedData)),
+          orderBy('time', 'asc')
         );
       }
 
       const querySnapshot = await getDocs(q);
-      console.log('Query snapshot size:', querySnapshot.size);
+      let newData = [] as BinnedWindData[];
 
+      // Process new data
       const dailyMax: Map<string, BinnedWindData> = new Map();
-
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         const date = data.time.toDate();
@@ -557,31 +579,21 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
         });
       });
 
-      // Sort hourly data for each day
-      dailyMax.forEach(day => {
-        day.hourlyData.sort((a, b) => a.time.getTime() - b.time.getTime());
-      });
-
-      // Convert to array and sort
-      let sortedDays = Array.from(dailyMax.values());
-      
-      if (year) {
-        // For year view: sort chronologically
-        sortedDays = sortedDays.sort((a, b) => a.date.getTime() - b.date.getTime());
+      // Combine with existing cached data if needed
+      if (cached && cached.length > 0 && !year) {
+        newData = [...cached, ...Array.from(dailyMax.values())];
       } else {
-        // Store all windy days for stats calculation
-        setAllWindyDays(sortedDays);
-        
-        // For display: get top 200 windiest days, then sort chronologically
-        sortedDays = sortedDays
-          .sort((a, b) => a.date.getTime() - b.date.getTime()); // Sort by date only, no limit
+        newData = Array.from(dailyMax.values());
       }
 
-      console.log('Processed days:', sortedDays.length);
+      // Sort the combined data
+      const sortedDays = newData.sort((a, b) => a.date.getTime() - b.date.getTime());
 
       if (sortedDays.length > 0) {
         setCachedData(prev => new Map(prev).set(year, sortedDays));
+        updateLastFetchedDate(); // Update the last fetch timestamp
       }
+      
       setWindyDays(sortedDays);
       
     } catch (err) {
