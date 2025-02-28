@@ -6,14 +6,14 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
-        <nav className="bg-kallsjon-blue shadow py-4">
+        <nav className="bg-kallsjon-green-dark shadow py-4">
           <div className="max-w-7xl mx-auto flex justify-center gap-4">
             <NavLink 
               to="/" 
               className={({ isActive }: { isActive: boolean }) => 
                 isActive 
-                  ? "bg-white text-kallsjon-blue px-4 py-2 rounded-md" 
-                  : "text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                  ? "bg-white text-kallsjon-green px-4 py-2 rounded-md" 
+                  : "text-white px-4 py-2 rounded-md hover:bg-kallsjon-lt-green"
               }
               end
             >
@@ -23,8 +23,8 @@ function App() {
               to="/experiments" 
               className={({ isActive }: { isActive: boolean }) => 
                 isActive 
-                  ? "bg-white text-kallsjon-blue px-4 py-2 rounded-md" 
-                  : "text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                  ? "bg-white text-kallsjon-green px-4 py-2 rounded-md" 
+                  : "text-white px-4 py-2 rounded-md hover:bg-kallsjon-green"
               }
             >
               Experiments

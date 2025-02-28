@@ -14,8 +14,8 @@ function Experiments() {
   };
 
   return (
-    <div className="container mx-auto px-2 py-4 max-w-screen-2xl">
-      <h1 className="text-2xl font-bold mb-4 px-2">Experiment med vinddata</h1>
+    <div className="bg-kallsjon-green container mx-auto px-2 py-4 max-w-screen-2xl">
+      <h1 className="text-2xl text-kallsjon-green-dark font-bold mb-4 px-2">Experiment med vinddata</h1>
       
       <div className="space-y-4">
         {selectedDate ? (

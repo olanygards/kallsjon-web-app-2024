@@ -401,9 +401,9 @@ function Home() {
   return (
     <div className="min-h-screen bg-kallsjon-green dark:bg-gray-900">
       <PullToRefresh onRefresh={handleRefresh}>
-        <header className="bg-kallsjon-blue shadow mb-6">
+        <header className="bg-kallsjon-green shadow mb-6">
           <div className="max-w-7xl mx-auto py-4 px-4">
-            <h1 className="text-3xl font-bold text-white text-center">Surf i Kallsjön</h1>
+            <h1 className="text-3xl font-bold text-white text-center">Kallifornien</h1>
           </div>
         </header>
       </PullToRefresh>
@@ -457,7 +457,7 @@ function Home() {
           <button
             onClick={() => findNextWindyDate('forward')}
             aria-label="Nästa blåsiga dag"
-            className="px-3 py-2 bg-gray-300 text-black dark:bg-blue-700 rounded-md border shadow-sm hover:bg-blue-600 dark:hover:bg-blue-800"
+            className="px-3 py-2 bg-gray-300 text-black dark:bg-kallsjon-green rounded-md border shadow-sm hover:bg-kalsjon-green dark:hover:bg-blue-800"
             disabled={loading}
           >
             <span className="sr-only">Nästa blåsiga</span>

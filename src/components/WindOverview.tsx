@@ -61,13 +61,13 @@ interface StatCardProps {
 function StatCard({ title, value, subtitle, children, onClick }: StatCardProps) {
   return (
     <div 
-      className={`bg-blue-50 rounded-lg border border-blue-100 p-4 flex flex-col justify-between ${onClick ? 'cursor-pointer hover:bg-blue-100 transition-colors' : ''}`}
+      className={`bg-kallsjon-green rounded-lg border p-4 flex flex-col justify-between ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
-      <h3 className="text-lg font-semibold text-blue-900">{title}</h3>
-      {value !== undefined && <p className="text-2xl font-bold mt-2 text-blue-800">{value}</p>}
-      {subtitle && <p className="text-blue-600 text-sm">{subtitle}</p>}
-      {children && <div className="text-blue-800">{children}</div>}
+      <h3 className="text-lg font-semibold text-green-900">{title}</h3>
+      {value !== undefined && <p className="text-2xl font-bold mt-2 text-green-800">{value}</p>}
+      {subtitle && <p className="text-green-800 text-sm">{subtitle}</p>}
+      {children && <div className="text-green-800">{children}</div>}
     </div>
   );
 }
@@ -115,7 +115,7 @@ function WindStats({ bestDay, totalDays, topDays, bestYear, bestYearDays, fetch2
             {topDays.map((day, index) => (
               <li 
                 key={index} 
-                className="flex justify-between text-sm cursor-pointer hover:bg-blue-50 p-2 rounded transition-colors"
+                className="flex justify-between text-sm cursor-pointer p-2 rounded transition-colors"
                 onClick={async () => {
                   const fullDayData = await fetch24HourData(day.date);
                   onDaySelect({
@@ -869,7 +869,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="p-4 border-b">
-        <h2 className="text-xl font-semibold">Översikt - Blåsiga dagar</h2>
+        <h2 className="text-xl font-semibold">Översikt - dagar över 10 m/s</h2>
         <p className="text-gray-600 text-sm mt-1">
           {selectedYear 
             ? `Visar alla dagar med vind över 10 m/s under ${selectedYear}, sorterade efter datum.`
@@ -881,7 +881,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
             onClick={() => handleYearSelect(null)}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               selectedYear === null
-                ? 'bg-blue-500 text-white'
+                ? 'bg-green-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -893,7 +893,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
               onClick={() => handleYearSelect(year)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 selectedYear === year
-                  ? 'bg-blue-500 text-white'
+                  ? 'bg-green-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -916,7 +916,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
           <div className="mb-4">
             <button
               onClick={() => chartRef.current?.resetZoom()}
-              className="px-3 py-1 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600 float-right"
+              className="px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 float-right"
             >
               Återställ zoom
             </button>

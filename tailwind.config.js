@@ -10,7 +10,9 @@ export default {
       colors: {
         'kallsjon-blue': '#0036a7',
         'kallsjon-gray': '#f3f4f6',
-        'kallsjon-green': '#008000',
+        'kallsjon-lt-green': 'rgb(151 183 166)',
+        'kallsjon-green': 'rgb(174 208 175)',
+        'kallsjon-green-dark': 'rgb(38 79 34)',
       }
     },
   },

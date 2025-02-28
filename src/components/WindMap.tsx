@@ -138,7 +138,7 @@ export default function WindMap({ windData, onDateChange }: WindMapProps) {
       });
 
     Promise.all([
-      loadImage(baseMapImg.current, "/lake-map-kall-details.svg"),
+      loadImage(baseMapImg.current, "/lake-map-kall-back.svg"),
       loadImage(maskImg.current, "/lake-map-kall-mask.svg"),
     ]).then(() => {
       console.log("✅ Both images loaded. Starting animation...");
@@ -162,14 +162,14 @@ export default function WindMap({ windData, onDateChange }: WindMapProps) {
       
       <div className="flex justify-between items-center px-2">
         <Button 
-          className="!text-green-600 !bg-white !border-2 !border-white !px-4 !py-2 !rounded-md !font-bold hover:!bg-gray-50 active:!bg-gray-100 [&:hover]:!text-green-600" 
+          className="!text-kallsjon-green !bg-white !border-2 !border-white !px-4 !py-2 !rounded-md !font-bold hover:!bg-gray-50 active:!bg-gray-100 [&:hover]:!text-green-600" 
           onClick={() => onDateChange?.('prev')}
         >
           &lt;
         </Button>
-        <h3 className="font-semibold">Tid: {windData[timeIndex]?.time || '--:--'}</h3>
+        <h3 className="font-bold text-white text-xl">Tid: {windData[timeIndex]?.time || '--:--'}</h3>
         <Button 
-          className="!text-green-600 !bg-white !border-2 !border-white !px-4 !py-2 !rounded-md !font-bold hover:!bg-gray-50 active:!bg-gray-100 [&:hover]:!text-green-600" 
+          className="!text-kallsjon-green !bg-white !border-2 !border-white !px-4 !py-2 !rounded-md !font-bold hover:!bg-gray-50 active:!bg-gray-100 [&:hover]:!text-green-600" 
           onClick={() => onDateChange?.('next')}
         >
           &gt;
@@ -215,7 +215,7 @@ export default function WindMap({ windData, onDateChange }: WindMapProps) {
         </div>
       </div>
 
-      <div className="relative w-full aspect-square rounded-lg overflow-hidden mainBG">
+      <div className="relative w-full aspect-square">
         <canvas
           ref={canvasRef}
           width={400}
