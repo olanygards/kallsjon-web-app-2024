@@ -368,16 +368,16 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
   const [windyDays, setWindyDays] = useState<BinnedWindData[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const { cachedData, setCachedData, isDataFresh, updateLastFetchedDate } = useWindCache<BinnedWindData[]>({
-    expirationTime: 7 * 24 * 60 * 60 * 1000, // 7 days for historical data
+    expirationTime: 7 * 24 * 60 * 60 * 1000,
     key: 'windyDays',
-    maxAge: 30 * 60 * 1000 // 30 minutes for recent data
+    maxAge: 30 * 60 * 1000
   });
   const chartRef = useRef<any>(null);
   const [selectedDay, setSelectedDay] = useState<BinnedWindData | null>(null);
 
   // Add new state for year stats
   const [yearStats, setYearStats] = useState<{ year: number; count: number }[]>([]);
-  const [allWindyDays, setAllWindyDays] = useState<BinnedWindData[]>([]);
+  const allWindyDaysRef = useRef<BinnedWindData[]>([]); // Changed to useRef since we only need it for calculations
 
   async function fetch24HourData(date: Date) {
     const dayStart = startOfDay(date);
@@ -608,11 +608,14 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
     fetchWindyDays(selectedYear);
   }, [selectedYear]);
 
-  // Calculate stats when allWindyDays changes (not windyDays)
+  // Update the useEffect that uses allWindyDays
   useEffect(() => {
-    if (!selectedYear && allWindyDays.length > 0) {
+    if (!selectedYear && windyDays.length > 0) {
+      // Store all windy days for stats calculation
+      allWindyDaysRef.current = windyDays;
+      
       // Calculate stats for all years using allWindyDays
-      const yearCounts = allWindyDays.reduce((acc, day) => {
+      const yearCounts = windyDays.reduce((acc, day) => {
         const year = day.date.getFullYear();
         acc[year] = (acc[year] || 0) + 1;
         return acc;
@@ -625,7 +628,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
 
       setYearStats(stats.sort((a, b) => b.count - a.count));
     }
-  }, [allWindyDays, selectedYear]);
+  }, [windyDays, selectedYear]);
 
   // Get best year stats
   const bestYearStats = yearStats.length > 0 ? {

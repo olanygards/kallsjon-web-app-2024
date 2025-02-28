@@ -58,7 +58,7 @@ export function useWindCache<T>(
       if (!storedItem) return new Map();
 
       const cacheItem: CacheItem<T> = JSON.parse(storedItem);
-      const { data, timestamp, expiresIn } = cacheItem;
+      const { data, timestamp } = cacheItem; // Removed unused expiresIn
       
       // Check if cache has completely expired
       if (Date.now() - timestamp > expirationTimeRef.current) {
@@ -103,7 +103,7 @@ export function useWindCache<T>(
         lastFetchedDate
       };
 
-      localStorage.setItem(keyRef.current, JSON.stringify(cacheItem, (key, value) => {
+      localStorage.setItem(keyRef.current, JSON.stringify(cacheItem, (_k, value) => { // Renamed key to _k to indicate it's unused
         if (value instanceof Date) {
           return value.toISOString();
         }
@@ -112,7 +112,7 @@ export function useWindCache<T>(
     } catch (error) {
       console.error('Error saving to cache:', error);
     }
-  }, [cachedData, lastFetchedDate]); // Removed expirationTime and key from dependencies
+  }, [cachedData, lastFetchedDate]);
 
   const isDataFresh = (date: Date): boolean => {
     if (!lastFetchedDate) return false;
