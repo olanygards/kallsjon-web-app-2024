@@ -47,7 +47,7 @@ export function Slider({ min, max, step, value, onChange, className = '', data }
   return (
     <div className={`relative flex items-center w-full h-9 touch-none ${className}`}>
       <div 
-        className="absolute w-full h-5 rounded-full cursor-pointer" 
+        className="absolute w-full h-9 rounded-full cursor-pointer" 
         style={backgroundStyle}
       />
       <input
@@ -57,7 +57,7 @@ export function Slider({ min, max, step, value, onChange, className = '', data }
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="relative w-full h-5 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-12 [&::-webkit-slider-thumb]:h-12 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-gray-400 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-colors [&::-webkit-slider-thumb]:hover:border-gray-500"
+        className="relative w-full h-5 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-9 [&::-webkit-slider-thumb]:h-9 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-gray-400 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-colors [&::-webkit-slider-thumb]:hover:border-gray-500"
       />
     </div>
   );

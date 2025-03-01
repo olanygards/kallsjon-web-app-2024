@@ -827,7 +827,8 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
         }
       },
       y: {
-        beginAtZero: true,
+        beginAtZero: false,
+        min: 8,
         max: 35,
         title: {
           display: true,
@@ -863,7 +864,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
           mode: 'x' as const,
         },
         limits: {
-          y: { min: 0, max: 35 }
+          y: { min: 8, max: 35 }
         },
       },
       tooltip: {
@@ -936,7 +937,7 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
               Återställ zoom
             </button>
           </div>
-          <div className="h-[500px] relative clear-both">
+          <div className="h-[350px] relative clear-both">
             <Line ref={chartRef} data={chartData} options={options} />
           </div>
 

@@ -381,9 +381,9 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
           },
         },
         y: {
-          beginAtZero: true,
+          beginAtZero: !isExperiment,
           max: 30,
-          min: 0,
+          min: isExperiment ? 8 : 0,
           title: {
             display: true,
             text: 'Vindstyrka (m/s)',
@@ -446,7 +446,7 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
           },
           limits: {
             x: { min: 'original', max: 'original' },
-            y: { min: 0, max: 30 },
+            y: { min: isExperiment ? 8 : 0, max: 30 },
           },
         } : undefined,
         annotation: isExperiment ? undefined : {
@@ -519,7 +519,7 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
   return (
     <div className={variant === 'experiment' ? 'bg-white rounded-lg' : 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow'}>
       <h2 className="text-lg font-semibold mb-4 dark:text-white">{title}</h2>
-      <div className="relative h-[calc(100vh-300px)] min-h-[400px]">
+      <div className="relative h-[calc(100vh-600px)] min-h-[200px]">
         {zoomEnabled && (
           <button
             onClick={handleResetZoom}
