@@ -45,15 +45,6 @@ interface WindChartProps {
   variant?: 'default' | 'experiment';
 }
 
-interface ChartDataPoint {
-  x: Date;
-  y: number | null;
-  isForecast: boolean;
-  windDirection: number;
-  windSpeed: number;
-  windGust: number;
-}
-
 const getGustColor = (windGust: number): string => {
   if (!windGust || windGust < 0) return '#a02109';
   if (windGust >= 25.0) return '#ad3c1f';
@@ -199,7 +190,8 @@ export function WindChart({
     [allData, variant]
   );
 
-  const chartRef = useRef<Chart<'line', ChartDataPoint[]>>(null);
+  // Use the correct type for the chart ref with the actual data type
+  const chartRef = useRef<any>(null);
 
   // Modify the customTooltip function
   const customTooltip = useCallback((args: { 
@@ -507,7 +499,8 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
 
   const handleResetZoom = useCallback(() => {
     if (chartRef.current) {
-      // @ts-ignore - resetZoom exists on the chart instance when zoom plugin is registered
+      // @ts-ignore - The resetZoom method is added by the zoom plugin at runtime
+      // and is not included in the Chart type definition from chart.js
       chartRef.current.resetZoom();
     }
   }, []);
@@ -523,7 +516,7 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
         {zoomEnabled && (
           <button
             onClick={handleResetZoom}
-            className="absolute top-2 right-2 px-3 py-1 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600"
+            className="absolute top-2 right-2 px-3 py-1 bg-white text-kallsjon-green-dark rounded-md text-sm hover:bg-gray-50 border border-kallsjon-green"
           >
             Återställ zoom
           </button>

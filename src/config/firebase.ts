@@ -43,8 +43,6 @@ try {
 // Test Firestore connection
 const testConnection = async () => {
   try {
-    console.log('Testing Firestore connection...');
-    console.log('Project ID:', firebaseConfig.projectId);
     // You can add more connection testing here if needed
   } catch (error) {
     console.error('Firestore connection test failed:', error);

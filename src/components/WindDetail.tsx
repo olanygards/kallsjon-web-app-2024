@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { WindChart } from './WindChart';
 import { format, startOfDay, endOfDay, addDays, subDays } from 'date-fns';
@@ -31,33 +31,27 @@ export function WindDetail({ selectedDate, onBack }: WindDetailProps) {
         const start = startOfDay(currentDate);
         const end = endOfDay(currentDate);
         
-        console.log('Fetching detailed data for:', {
-          start: start.toISOString(),
-          end: end.toISOString()
-        });
-
         const windRef = collection(db, 'wind');
         const q = query(
           windRef,
           where('time', '>=', Timestamp.fromDate(start)),
-          where('time', '<=', Timestamp.fromDate(end))
+          where('time', '<=', Timestamp.fromDate(end)),
+          orderBy('time', 'asc')
         );
 
         const querySnapshot = await getDocs(q);
-        console.log('Query snapshot size:', querySnapshot.size);
         const data: WindData[] = [];
 
         querySnapshot.forEach((doc) => {
           const docData = doc.data();
-          console.log('Document data:', docData);
           
           if (!docData.time || typeof docData.force !== 'number' || 
               typeof docData.forceMax !== 'number' || typeof docData.direction !== 'number') {
-            console.warn('Invalid data structure:', docData);
             return;
           }
 
           data.push({
+            id: doc.id,
             time: docData.time.toDate(),
             windSpeed: docData.force,
             windGust: docData.forceMax,
@@ -66,7 +60,6 @@ export function WindDetail({ selectedDate, onBack }: WindDetailProps) {
           });
         });
 
-        console.log('Processed data:', data);
         setDetailedData(data.sort((a, b) => a.time.getTime() - b.time.getTime()));
       } catch (err) {
         console.error('Error fetching detailed wind data:', err);

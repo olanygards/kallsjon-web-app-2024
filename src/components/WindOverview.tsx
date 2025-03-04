@@ -489,7 +489,6 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
       const mostRecentDate = new Date(Math.max(...cached.map(day => day.date.getTime())));
       
       if (isDataFresh(mostRecentDate)) {
-        console.log(`Using cached data for ${year ? year : "all years"}`);
         setWindyDays(cached);
         setLoading(false);
         return;
@@ -497,7 +496,6 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
       
       // If we're looking at a past year, we can use cached data
       if (year && year < new Date().getFullYear()) {
-        console.log(`Using cached historical data for ${year}`);
         setWindyDays(cached);
         setLoading(false);
         return;
@@ -506,7 +504,6 @@ export function WindOverview({ onDateSelect }: WindOverviewProps) {
 
     try {
       setLoading(true);
-      console.log(`Fetching windiest days for ${year ? `year ${year}` : "all years"}...`);
       
       const windRef = collection(db, 'wind');
       let q;

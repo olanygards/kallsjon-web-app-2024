@@ -2,9 +2,6 @@ import { useWindData } from '../hooks/useWindData';
 import { useForecast } from '../hooks/useForecast';
 import { WindChart } from '../components/WindChart';
 import { PullToRefresh } from '../components/PullToRefresh';
-import { WindDataGroup } from '../components/WindDataGroup';
-import { getSunrise, getSunset } from 'sunrise-sunset-js';
-import { CONFIG } from '../config/constants';
 import {
   format,
   addDays,
@@ -18,54 +15,29 @@ import {
   roundToNearestMinutes,
 } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { WindData } from '../types/WindData';
 import { Header } from '../components/Header';
 
-const KALLSJON_COORDINATES = {
-  latitude: 63.3,
-  longitude: 13.8
-};
-
-const getMoonInfo = (date: Date) => {
-  const synmonth = 29.53058867;
-  const reference = new Date("2000-01-06").getTime();
-  const phase = ((date.getTime() - reference) % (synmonth * 86400000)) / (synmonth * 86400000);
-  const percentage = Math.round(phase * 100);
-  
-  if (phase < 0.125) return { emoji: '🌑', percentage };
-  if (phase < 0.25) return { emoji: '🌒', percentage };
-  if (phase < 0.375) return { emoji: '🌓', percentage };
-  if (phase < 0.625) return { emoji: '🌔', percentage };
-  if (phase < 0.75) return { emoji: '🌕', percentage };
-  if (phase < 0.875) return { emoji: '🌖', percentage };
-  if (phase < 1) return { emoji: '🌗', percentage };
-  return { emoji: '🌘', percentage };
-};
-
 const LoadingSpinner = () => (
-  <div className="flex justify-center items-center h-64">
-    <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-gray-900"></div>
+  <div className="flex justify-center items-center p-8">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-600"></div>
   </div>
 );
 
 function ChartView() {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [showForecast, setShowForecast] = useState(true);
+  const [timeRange] = useState(1);
+  const [todayTimeWindow, setTodayTimeWindow] = useState<{ start: Date; end: Date } | null>(null);
+  const [searchingWindyDays] = useState<{ direction: 'forward' | 'backward' } | null>(null);
+
   // Initialize the state to start with the "Idag" view
   const now = new Date();
   const initialTodayTimeWindow = {
     start: subHours(now, 6), // 6 hours ago
     end: addHours(now, 16),  // 16 hours in the future
   };
-
-  const [currentDate, setCurrentDate] = useState(now);
-  const [timeRange, setTimeRange] = useState(1);
-  const [showForecast, setShowForecast] = useState(true);
-  const [showOnlyForecast, setShowOnlyForecast] = useState(false);
-  const [todayTimeWindow, setTodayTimeWindow] = useState<{ start: Date; end: Date } | null>(initialTodayTimeWindow);
-  const [searchingWindyDays, setSearchingWindyDays] = useState<{ direction: 'forward' | 'backward' } | null>(null);
-  const searchAttemptsRef = useRef(0);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   // Calculate the date range for fetching wind data
   const windDataRange = useMemo(() => {
@@ -74,7 +46,7 @@ function ChartView() {
     return { start, end };
   }, [currentDate]);
 
-  const { data: windData, loading: windLoading, error: windError, isEmpty } = useWindData({
+  const { data: windData, loading: windLoading, error: windError } = useWindData({
     startDate: windDataRange.start,
     endDate: windDataRange.end,
   });
@@ -276,15 +248,14 @@ function ChartView() {
 
   const handleRefresh = async () => {
     // Force a refresh by updating the key
-    setRefreshKey(prev => prev + 1);
+    setCurrentDate(prev => new Date(prev.getTime() + 1));
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header title="Graf vy" />
-      
-      <PullToRefresh onRefresh={handleRefresh}>
-        <main className="max-w-7xl mx-auto px-4 py-6 w-full">
+    <div className="min-h-screen bg-white">
+      <Header />
+      <main className="container mx-auto px-4 py-6">
+        <PullToRefresh onRefresh={handleRefresh}>
           <div className="mb-6 bg-white rounded-lg shadow p-4">
             <div className="flex flex-wrap items-center justify-between mb-4">
               <div className="flex items-center space-x-2 mb-2 sm:mb-0">
@@ -332,7 +303,7 @@ function ChartView() {
                   disabled={!isToday(currentDate)}
                   className={`px-3 py-1 text-sm rounded-md ${
                     showForecast && isToday(currentDate)
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-kallsjon-green-dark text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50'
                   }`}
                 >
@@ -362,8 +333,8 @@ function ChartView() {
               </div>
             </ErrorBoundary>
           </div>
-        </main>
-      </PullToRefresh>
+        </PullToRefresh>
+      </main>
     </div>
   );
 }

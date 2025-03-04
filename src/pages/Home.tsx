@@ -361,7 +361,6 @@ function Home() {
     // No windy days found in current chunk, try next chunk
     searchAttemptsRef.current += 1;
     if (searchAttemptsRef.current >= 10) { // Limit search to 10 chunks
-      console.log('Reached maximum search attempts');
       setSearchingWindyDays(null);
       searchAttemptsRef.current = 0;
       return;
@@ -375,13 +374,11 @@ function Home() {
     // Stop if we've gone too far
     const now = new Date();
     if (searchingWindyDays.direction === 'forward' && nextDate > addDays(now, 10)) {
-      console.log('Reached maximum future date');
       setSearchingWindyDays(null);
       searchAttemptsRef.current = 0;
       return;
     }
     if (searchingWindyDays.direction === 'backward' && nextDate < subDays(now, 30)) {
-      console.log('Reached maximum past date');
       setSearchingWindyDays(null);
       searchAttemptsRef.current = 0;
       return;
@@ -413,7 +410,7 @@ function Home() {
           <button
             onClick={() => findNextWindyDate('backward')}
             aria-label="Föregående blåsiga dag"
-            className="px-3 py-2 bg-gray-300 text-black dark:bg-gray-700 rounded-md border shadow-sm hover:bg-blue-600 dark:hover:bg-blue-800"
+            className="px-3 py-2 bg-gray-300 text-black dark:bg-gray-700 rounded-md border shadow-sm hover:bg-kallsjon-green-dark dark:hover:bg-kallsjon-green-dark"
             disabled={loading}
           >
             <span className="sr-only">Föregående blåsiga</span>
@@ -457,7 +454,7 @@ function Home() {
           <button
             onClick={() => findNextWindyDate('forward')}
             aria-label="Nästa blåsiga dag"
-            className="px-3 py-2 bg-gray-300 text-black dark:bg-kallsjon-green rounded-md border shadow-sm hover:bg-kalsjon-green dark:hover:bg-blue-800"
+            className="px-3 py-2 bg-gray-300 text-black dark:bg-kallsjon-green rounded-md border shadow-sm hover:bg-kallsjon-green-dark dark:hover:bg-kallsjon-green-dark"
             disabled={loading}
           >
             <span className="sr-only">Nästa blåsiga</span>
@@ -506,7 +503,7 @@ function Home() {
                   onClick={handleForecastClick}
                   className={`px-4 py-2 rounded-md border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 ${
                     showOnlyForecast 
-                      ? 'bg-blue-100 dark:bg-blue-900 text-gray-900 dark:text-white' 
+                      ? 'bg-kallsjon-lt-green dark:bg-kallsjon-green-dark text-gray-900 dark:text-white' 
                       : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
                   }`}
                 >

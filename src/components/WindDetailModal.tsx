@@ -23,7 +23,7 @@ interface WindDetailModalProps {
   onDateChange?: (direction: 'prev' | 'next') => void;
 }
 
-export function WindDetailModal({ isOpen, onClose, date, windData, onDateChange }: WindDetailModalProps) {
+export function WindDetailModal({ isOpen, onClose, date, windData, onDateChange: _onDateChange }: WindDetailModalProps) {
   if (!isOpen || !date || !windData) return null;
 
   const formattedDate = format(date, 'EEEE d MMMM, yyyy', { locale: sv });
@@ -54,7 +54,6 @@ export function WindDetailModal({ isOpen, onClose, date, windData, onDateChange 
                     gust: data.gust,
                     direction: data.direction
                   }))}
-                  onDateChange={onDateChange}
                 />
               ) : (
                 <div className="text-center py-8 text-gray-400">

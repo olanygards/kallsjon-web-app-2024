@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { format, addDays, subDays, isToday, startOfDay, endOfDay } from 'date-fns';
+import { useState, useMemo } from 'react';
+import { format, addDays, subDays, startOfDay, endOfDay } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { getSunrise, getSunset } from 'sunrise-sunset-js';
 import WindMap from '../components/WindMap';
@@ -15,9 +15,7 @@ function DailyView() {
   
   const { data: windData, loading, error } = useWindData({
     startDate: startOfDay(currentDate),
-    endDate: endOfDay(currentDate),
-    includeObserved: true,
-    includeForecast: false,
+    endDate: endOfDay(currentDate)
   });
 
   // Kallsjön coordinates (approximate)
@@ -46,7 +44,7 @@ function DailyView() {
   }, [currentDate]);
 
   // Simple moon phase calculation (0-100%)
-  function calculateMoonPhase(date) {
+  function calculateMoonPhase(date: Date) {
     // Moon cycle is approximately 29.53 days
     const LUNAR_CYCLE = 29.53;
     
@@ -87,9 +85,11 @@ function DailyView() {
     }
   };
 
-  const handleDateSelect = (date: Date) => {
-    setCurrentDate(date);
-    setSelectedDate(date);
+  const handleDateSelect = (date: Date | null) => {
+    if (date) {
+      setCurrentDate(date);
+      setSelectedDate(date);
+    }
     setIsDatePickerOpen(false);
   };
 
@@ -116,13 +116,12 @@ function DailyView() {
   };
 
   return (
-    <div className="min-h-screen bg-kallsjon-green flex flex-col">
-      <Header title="Dagsvy" />
-      
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-2">
+    <div className="min-h-screen bg-kallsjon-green">
+      <Header />
+      <main className="container mx-auto px-4 py-6">
         <div className="overflow-hidden">
           {/* Date selector */}
-          <div className="py-4 px-3 flex justify-between items-center">
+          <div className="px-3 flex justify-between items-center">
             <button 
               onClick={() => handleDateChange('prev')}
               className="text-kallsjon-green font-bold"
@@ -144,11 +143,11 @@ function DailyView() {
           </div>
           
           {/* Dynamic sun and moon information - now centered */}
-          <div className="text-center w-full mb-3">
+          <div className="text-center w-full mb-3 mt-2">
             <span className="text-sm text-gray-600 dark:text-gray-400 inline-block">
-              ☀ {sunMoonInfo.sunriseTime}   
-              ☽ {sunMoonInfo.sunsetTime}   
-              {sunMoonInfo.moonPhase.emoji} {sunMoonInfo.moonPhase.percentage}%
+              <span className="px-2">☀ {sunMoonInfo.sunriseTime} </span>
+              <span className="px-2">☽ {sunMoonInfo.sunsetTime} </span>
+              <span className="px-2">{sunMoonInfo.moonPhase.emoji} {sunMoonInfo.moonPhase.percentage}%</span>
             </span>
           </div>
 
@@ -240,9 +239,9 @@ function DailyView() {
           ) : windData && windData.length > 0 ? (
             <WindMap windData={windData.map(item => ({
               time: item.time instanceof Date ? format(item.time, 'HH:mm') : String(item.time),
-              speed: item.windSpeed !== undefined ? item.windSpeed : (item.speed || 0),
-              gust: item.windGust !== undefined ? item.windGust : (item.gust || 0),
-              direction: item.windDirection !== undefined ? item.windDirection : (item.direction || 0)
+              speed: item.windSpeed !== undefined ? item.windSpeed : 0,
+              gust: item.windGust !== undefined ? item.windGust : 0,
+              direction: item.windDirection !== undefined ? item.windDirection : 0
             }))} />
           ) : (
             <div className="p-4 text-center">Ingen vinddata tillgänglig</div>

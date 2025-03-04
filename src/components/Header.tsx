@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import { Drawer, DrawerNavItem } from './ui/Drawer';
+import logoImage from '../assets/kall-ifornien-logo.png';
 
 interface HeaderProps {
-  title?: string;
+  // Remove the title prop since we're not using it
 }
 
-export function Header({ title }: HeaderProps) {
+export function Header({}: HeaderProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const openDrawer = () => setIsDrawerOpen(true);
@@ -18,7 +19,7 @@ export function Header({ title }: HeaderProps) {
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center">
             <img 
-              src="/src/assets/kall-ifornien-logo.png" 
+              src={logoImage} 
               alt="Kall-ifornien Logo" 
               className="h-8 w-auto"
             />

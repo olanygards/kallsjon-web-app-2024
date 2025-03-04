@@ -1,13 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Slider } from "./ui/slider";
 
-interface WindData {
-  time: string;
-  speed: number;
-  gust: number;
-  direction: number;
-}
-
 interface WindMapProps {
   windData: Array<{
     time: string;
@@ -144,7 +137,6 @@ export default function WindMap({ windData }: WindMapProps) {
       loadImage(baseMapImg.current, "/lake-map-kall-back.svg"),
       loadImage(maskImg.current, "/lake-map-kall-mask.svg"),
     ]).then(() => {
-      console.log("✅ Both images loaded. Starting animation...");
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
