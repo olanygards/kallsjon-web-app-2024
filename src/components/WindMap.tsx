@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { Slider } from "./ui/slider";
-import { Button } from "./ui/button";
 
 interface WindData {
   time: string;
@@ -10,8 +9,12 @@ interface WindData {
 }
 
 interface WindMapProps {
-  windData: WindData[];
-  onDateChange?: (direction: 'prev' | 'next') => void;
+  windData: Array<{
+    time: string;
+    speed: number;
+    gust: number;
+    direction: number;
+  }>;
 }
 
 function getWindColor(speed: number) {
@@ -27,8 +30,8 @@ function getWindColor(speed: number) {
   return "rgba(255, 255, 255, 1)"; // Max intensity
 }
 
-export default function WindMap({ windData, onDateChange }: WindMapProps) {
-  const [timeIndex, setTimeIndex] = useState(2);
+export default function WindMap({ windData }: WindMapProps) {
+  const [timeIndex, setTimeIndex] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const waveCanvasRef = useRef<HTMLCanvasElement>(null);
   const baseMapImg = useRef(new Image());
@@ -159,62 +162,36 @@ export default function WindMap({ windData, onDateChange }: WindMapProps) {
 
   return (
     <div className="p-2 space-y-3 md:p-4 md:space-y-4 w-full md:max-w-2xl mx-auto">
-      
-      <div className="flex justify-between items-center px-2">
-        <Button 
-          className="!text-kallsjon-green !bg-white !border-2 !border-white !px-4 !py-2 !rounded-md !font-bold hover:!bg-gray-50 active:!bg-gray-100 [&:hover]:!text-green-600" 
-          onClick={() => onDateChange?.('prev')}
-        >
-          &lt;
-        </Button>
-        <h3 className="font-bold text-white text-xl">Tid: {windData[timeIndex]?.time || '--:--'}</h3>
-        <Button 
-          className="!text-kallsjon-green !bg-white !border-2 !border-white !px-4 !py-2 !rounded-md !font-bold hover:!bg-gray-50 active:!bg-gray-100 [&:hover]:!text-green-600" 
-          onClick={() => onDateChange?.('next')}
-        >
-          &gt;
-        </Button>
-      </div>
-
-      <div className="text-center space-y-4">
-        <p className="text-2xl text-white items-center gap-2">
-  <span className="font-bold">{windData[timeIndex]?.speed}</span>
-  <span className="text-lg">({windData[timeIndex]?.gust})</span> m/s
-  <br />
-  <span className="items-center gap-1">
-    {windData[timeIndex]?.direction}°
-    <svg
-      className="inline-block"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ transform: `rotate(${windData[timeIndex]?.direction - 180}deg)` }}
-    >
-      <path d="M12 2L15 8H9L12 2Z" fill="currentColor" />
-      <path d="M12 22V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  </span>
-</p>
-
-      <div className="space-y-3">
-        <Slider
-          min={0}
-          max={windData.length - 1}
-          step={1}
-          value={timeIndex}
-          onChange={setTimeIndex}
-          data={windData.map(data => ({ speed: data.speed }))}
-          className="relative z-10"
-        />
-        <div className="flex justify-between text-sm text-white">
-          <span>00:00</span>
-          <span>12:00</span>
-          <span>23:59</span>
+      {/* Wind data display */}
+      <div 
+        className="flex justify-between p-3 mb-4 rounded-lg shadow" 
+        style={{ backgroundColor: "rgb(252 255 252)" }}
+      >
+        <div className="text-center" style={{ width: '25%' }}>
+          <div className="text-sm text-gray-500">Tid:</div>
+          <div className="text-xl font-bold">
+            {windData && windData[timeIndex] ? windData[timeIndex].time : '--:--'}
+          </div>
+        </div>
+        
+        <div className="text-center" style={{ width: '45%' }}>
+          <div className="text-sm text-gray-500">Vindhastighet</div>
+          <div className="text-xl font-bold whitespace-nowrap">
+            {windData && windData[timeIndex] ? 
+              `${windData[timeIndex].speed.toFixed(1)} (${windData[timeIndex].gust.toFixed(1)}) m/s` : 
+              '-- (--) m/s'}
+          </div>
+        </div>
+        
+        <div className="text-center" style={{ width: '30%' }}>
+          <div className="text-sm text-gray-500">Riktning</div>
+          <div className="text-xl font-bold flex items-center justify-center">
+            {windData && windData[timeIndex] ? `${windData[timeIndex].direction}°` : '--°'}
+          </div>
         </div>
       </div>
 
+      {/* Map */}
       <div className="relative w-full aspect-square">
         <canvas
           ref={canvasRef}
@@ -230,6 +207,22 @@ export default function WindMap({ windData, onDateChange }: WindMapProps) {
         />
       </div>
 
+      {/* Slider */}
+      <div className="relative pt-4">
+        <Slider
+          min={0}
+          max={windData.length - 1}
+          step={1}
+          value={timeIndex}
+          onChange={setTimeIndex}
+          data={windData.map(data => ({ speed: data.speed }))}
+          className="relative z-10"
+        />
+        <div className="flex justify-between text-sm text-white mt-2">
+          <span>00:00</span>
+          <span>12:00</span>
+          <span>23:59</span>
+        </div>
       </div>
     </div>
   );

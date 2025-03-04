@@ -11,20 +11,29 @@ interface SliderProps {
 }
 
 const getWindColor = (speed: number): string => {
-  if (speed <= 7) return "#ffffff";  //  White
-  if (speed <= 8) return "#f1f1f1";    // Light Gray
-  if (speed <= 9) return "#49654c96";  // Soft Greenish Gray
-  if (speed <= 10) return "#388957";   // Pastel Green
-  if (speed <= 11) return "#0b7c46";   // Light Green
-  if (speed <= 12) return "#00703a";   // Green
-  if (speed <= 13) return "#005b2f";   // Deep Green
-  if (speed <= 14) return "#a55c3b";   // Brownish Red
-  if (speed <= 15) return "#ad3c1f";   // Reddish Orange
-  if (speed <= 16) return "#a02109";   // Strong Red
-  if (speed <= 17) return "#8c1a06";   // Darker Red
-  if (speed <= 18) return "#761103";   // Deep Red
-  if (speed <= 19) return "#cc0e93";   // Magenta
-  return "#720288";                    // Dark Purple
+  // Light green to solid green gradient for speeds 1 to 10
+  if (speed <= 1) return "#ddf3dd";
+  if (speed <= 3) return "#cde8cd";
+  if (speed <= 5) return "#bddcc5";
+  if (speed <= 9) return "#abd0bd";
+  if (speed <= 11) return "#428979";  // Solid green
+
+  // Transition from red to dark purple for speeds 13-15
+  if (speed <= 12) return "#f2352d"; // Starting to darken
+  if (speed <= 13) return "#e02c40"; // More purple undertone
+  if (speed <= 14) return "#c82048"; // Approaching dark purple
+
+  // Transition from dark purple to fluorescent purple for speeds 16-18
+  if (speed <= 16) return "#a51055"; // Dark purple
+  if (speed <= 17) return "#8e0d63"; // Deepening the purple
+  if (speed <= 18) return "#a80e7b"; // Transitioning toward fluorescent
+
+  // Fluorescent purple for speeds 19-20
+  if (speed <= 19) return "#cc0e93"; // Fluorescent purple
+  if (speed <= 20) return "#d0209b"; // More intense fluorescent purple
+
+  // Fallback for speeds above 20
+  return "#e130a3"; // Final intense fluorescent purple
 };
 
 const createGradientBackground = (data: Array<{ speed: number }> | undefined) => {
@@ -57,7 +66,7 @@ export function Slider({ min, max, step, value, onChange, className = '', data }
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="relative w-full h-5 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-9 [&::-webkit-slider-thumb]:h-9 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-gray-400 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-colors [&::-webkit-slider-thumb]:hover:border-gray-500"
+        className="relative w-full h-5 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-9 [&::-webkit-slider-thumb]:h-9 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#f1f1f1] [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-gray-400 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-colors [&::-webkit-slider-thumb]:hover:border-gray-500"
       />
     </div>
   );
