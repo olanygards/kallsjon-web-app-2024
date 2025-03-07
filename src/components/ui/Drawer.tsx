@@ -9,17 +9,31 @@ interface DrawerProps {
 }
 
 export function Drawer({ isOpen, onClose, children }: DrawerProps) {
-  const [isRendered, setIsRendered] = useState(isOpen);
+  const [isRendered, setIsRendered] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // Duration should match the Tailwind duration-300 class (300ms)
+  const TRANSITION_DURATION = 300;
 
   useEffect(() => {
+    
+    let timer: NodeJS.Timeout;
+  
     if (isOpen) {
       setIsRendered(true);
+      
+      timer = setTimeout(() => {
+        setIsAnimating(true);
+      }, 10);
     } else {
-      const timer = setTimeout(() => {
+      setIsAnimating(false);
+  
+      timer = setTimeout(() => {
         setIsRendered(false);
-      }, 300); // Match this to the transition duration
-      return () => clearTimeout(timer);
+      }, TRANSITION_DURATION);
     }
+  
+    return () => clearTimeout(timer);
   }, [isOpen]);
 
   if (!isRendered) return null;
@@ -29,24 +43,29 @@ export function Drawer({ isOpen, onClose, children }: DrawerProps) {
       className="fixed inset-0 z-50 overflow-hidden"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-black bg-opacity-50 transition-opacity duration-300"
-        style={{ opacity: isOpen ? '1' : '0' }}
-      />
+      {/* Backdrop with fade transition */}
+      <div 
+  className={`absolute inset-0 bg-black transition-opacity duration-300 ${isAnimating ? 'opacity-50' : 'opacity-0'}`}
+/>
       
+      {/* Drawer panel with slide transition */}
       <div 
         className="fixed inset-y-0 right-0 max-w-full flex outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div 
-          className="w-screen max-w-md transform transition-transform duration-300 ease-in-out"
-          style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}
+          className={`
+            w-screen max-w-md transform transition-transform duration-300 ease-in-out
+            ${isAnimating ? 'translate-x-0' : 'translate-x-full'}
+          `}
         >
+          {/* Drawer content */}
           <div className="h-full flex flex-col bg-white shadow-xl">
             <div className="px-4 py-6 bg-kallsjon-green-dark text-white flex items-center justify-between">
               <h2 className="text-lg font-medium">Meny</h2>
               <button
                 onClick={onClose}
-                className="rounded-md text-white hover:text-gray-300 focus:outline-none"
+                className="rounded-md text-kallsjon-green-dark focus:outline-none"
               >
                 <XMarkIcon className="h-6 w-6" />
               </button>

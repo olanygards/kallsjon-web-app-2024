@@ -15,8 +15,8 @@ export function Header({}: HeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white shadow-sm">
-        <div className="flex items-center justify-between px-4 py-2">
+      <header className="top-0 z-40 bg-white shadow-sm">
+        <div className="max-w-[640px] mx-auto flex items-center justify-between px-4 py-2">
           <div className="flex items-center">
             <img 
               src={logoImage} 

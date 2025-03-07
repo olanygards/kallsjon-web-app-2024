@@ -196,7 +196,7 @@ function DailyView() {
   return (
     <div className="min-h-screen bg-kallsjon-green">
       <Header />
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 max-w-[640px]">
         <div className="overflow-hidden">
           {/* Date selector */}
           <div className="px-3 flex justify-between items-center">
