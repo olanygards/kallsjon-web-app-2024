@@ -211,9 +211,9 @@ export default function WindMap({ windData }: WindMapProps) {
           className="relative z-10"
         />
         <div className="flex justify-between text-sm text-white mt-2">
-          <span>00:00</span>
-          <span>12:00</span>
-          <span>23:59</span>
+          <span>{windData.length > 0 ? windData[0].time : "00:00"}</span>
+          <span>{windData.length > 0 ? windData[Math.floor(windData.length / 2)].time : "12:00"}</span>
+          <span>{windData.length > 0 ? windData[windData.length - 1].time : "23:59"}</span>
         </div>
       </div>
     </div>
