@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sidan hittades inte - Surf i Kallsjön</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: rgb(223, 241, 223);
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      padding: 30px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      margin-top: 0;
+      color: #005b2f;
+    }
+    p {
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    a {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #005b2f;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    a:hover {
+      background-color: #00703a;
+    }
+  </style>
+  <script>
+    // Check if this is an old URL that we should redirect
+    const path = window.location.pathname;
+    const oldPaths = [
+      '/index.html',
+      '/old-path',
+      // Add any other old paths here
+    ];
+    
+    if (oldPaths.includes(path)) {
+      window.location.href = '/';
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>Sidan hittades inte</h1>
+    <p>Sidan du söker finns inte längre eller har flyttats.</p>
+    <p>Vår webbplats har uppdaterats med ny design och struktur.</p>
+    <a href="/">Gå till startsidan</a>
+  </div>
+</body>
+</html> 

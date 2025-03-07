@@ -63,7 +63,7 @@ export const WindDataGroup = ({ bestWind, hourData, isForecast = false, hideDrop
             </div>
             <div className="flex items-center gap-1 w-[55px]">
               <span className="text-sm">{bestWind.windDirection}°</span>
-              <span className="font-bold text-xl transform rotate-[270deg] inline-block">
+              <span className="font-bold text-xl transform rotate-[270deg -90deg] inline-block">
                 {getDirectionArrow(bestWind.windDirection)}
               </span>
             </div>

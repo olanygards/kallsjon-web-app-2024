@@ -4,23 +4,35 @@ import { sv } from 'date-fns/locale';
 import { getSunrise, getSunset } from 'sunrise-sunset-js';
 import WindMap from '../components/WindMap';
 import { useWindData } from '../hooks/useWindData';
+import { useForecast } from '../hooks/useForecast';
 import { Header } from '../components/Header';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { WindDataGroup } from '../components/WindDataGroup';
 
 function DailyView() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [showForecast, setShowForecast] = useState(true);
   
-  const { data: windData, loading, error } = useWindData({
+  const { data: windData, loading: windLoading, error: windError } = useWindData({
     startDate: startOfDay(currentDate),
     endDate: endOfDay(currentDate)
   });
 
+  const { data: forecastData, loading: forecastLoading, error: forecastError } = useForecast({
+    startDate: startOfDay(currentDate),
+    endDate: endOfDay(currentDate)
+  });
+
+  const loading = windLoading || forecastLoading;
+  const error = windError || forecastError;
+
   // Kallsjön coordinates (approximate)
   const KALLSJON_LAT = 63.4;
   const KALLSJON_LNG = 13.2;
+  const KALLSJON_COORDINATES = { latitude: KALLSJON_LAT, longitude: KALLSJON_LNG };
 
   // Calculate sun and moon information
   const sunMoonInfo = useMemo(() => {
@@ -114,6 +126,72 @@ function DailyView() {
     
     return maxEntry;
   };
+
+  // Group forecast data by hour
+  const groupedForecastData = useMemo(() => {
+    if (!forecastData || forecastData.length === 0) return {};
+    
+    const grouped: Record<string, { best: any; records: any[] }> = {};
+    
+    // Group by hour
+    forecastData.forEach(item => {
+      if (!item || !item.time) return;
+      
+      const hourKey = format(item.time, 'HH');
+      if (!grouped[hourKey]) {
+        grouped[hourKey] = {
+          best: item,
+          records: [item]
+        };
+      } else {
+        grouped[hourKey].records.push(item);
+        // Update best if this item has higher wind speed
+        if (item.windSpeed > grouped[hourKey].best.windSpeed) {
+          grouped[hourKey].best = item;
+        }
+      }
+    });
+    
+    return grouped;
+  }, [forecastData]);
+
+  // Group data by date for observed data
+  const groupedByDate = useMemo(() => {
+    if (!windData || windData.length === 0) return {};
+    
+    const grouped: Record<string, { best: any; records: any[] }[]> = {};
+    
+    // First group by date
+    windData.forEach(item => {
+      if (!item || !item.time) return;
+      
+      const dateKey = format(item.time, 'yyyy-MM-dd');
+      const hourKey = format(item.time, 'HH');
+      
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      
+      // Find if hour group exists
+      let hourGroup = grouped[dateKey].find(g => format(g.best.time, 'HH') === hourKey);
+      
+      if (!hourGroup) {
+        hourGroup = {
+          best: item,
+          records: [item]
+        };
+        grouped[dateKey].push(hourGroup);
+      } else {
+        hourGroup.records.push(item);
+        // Update best if this item has higher wind speed
+        if (item.windSpeed > hourGroup.best.windSpeed) {
+          hourGroup.best = item;
+        }
+      }
+    });
+    
+    return grouped;
+  }, [windData]);
 
   return (
     <div className="min-h-screen bg-kallsjon-green">
@@ -245,6 +323,72 @@ function DailyView() {
             }))} />
           ) : (
             <div className="p-4 text-center">Ingen vinddata tillgänglig</div>
+          )}
+          
+          {/* Toggle forecast button */}
+          <div className="flex justify-center mt-4 mb-2">
+            <button
+              onClick={() => setShowForecast(!showForecast)}
+              className={`px-4 py-2 rounded-lg ${
+                showForecast ? 'bg-kallsjon-green text-white' : 'bg-gray-200 text-gray-800'
+              }`}
+            >
+              {showForecast ? 'Dölj prognos' : 'Visa prognos'}
+            </button>
+          </div>
+          
+          {/* Listing for Observed Data */}
+          {!loading && windData && windData.length > 0 && (
+            <div className="bg-white shadow rounded-lg p-4 mt-4">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900">
+                Observerade värden
+              </h2>
+              {Object.entries(groupedByDate)
+                .sort(([a], [b]) => b.localeCompare(a))
+                .map(([dateKey, hourGroups]) => (
+                  <div key={dateKey} className="mb-6">
+                    <h3 className="text-lg font-medium mb-2 text-gray-900">
+                      {format(new Date(dateKey), 'EEE d MMM', { locale: sv })}
+                      <span className="text-sm text-gray-600 ml-2">
+                        ☀ {format(getSunrise(KALLSJON_COORDINATES.latitude, KALLSJON_COORDINATES.longitude, new Date(dateKey)), 'HH:mm')}
+                        {' '} {' '} 
+                        ☽ {format(getSunset(KALLSJON_COORDINATES.latitude, KALLSJON_COORDINATES.longitude, new Date(dateKey)), 'HH:mm')}
+                        {' '} {' '}
+                        {calculateMoonPhase(new Date(dateKey)).emoji} {calculateMoonPhase(new Date(dateKey)).percentage}%
+                      </span>
+                    </h3>
+                    {hourGroups
+                      .sort((a, b) => b.best.time.getTime() - a.best.time.getTime())
+                      .map(({ best, records }) => (
+                        <WindDataGroup
+                          key={best.time.getTime()}
+                          bestWind={best}
+                          hourData={records.sort((a, b) => b.time.getTime() - a.time.getTime())}
+                          isForecast={false}
+                        />
+                      ))}
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {/* Listing for Forecast Data */}
+          {!loading && showForecast && forecastData && forecastData.length > 0 && (
+            <div className="bg-white shadow rounded-lg p-4 mt-4">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900">
+                Prognosvärden
+              </h2>
+              {Object.entries(groupedForecastData)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([hourKey, { best, records }]) => (
+                  <WindDataGroup
+                    key={hourKey}
+                    bestWind={best}
+                    hourData={records}
+                    isForecast={true}
+                  />
+                ))}
+            </div>
           )}
         </div>
       </main>
