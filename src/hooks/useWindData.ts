@@ -1,45 +1,63 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { WindData } from '../types/WindData';
 
-interface UseWindDataProps {
-  startDate: Date;
-  endDate: Date;
-}
+// Simple cache implementation
+const windCache = {
+  data: new Map<string, { data: WindData[]; timestamp: number }>(),
+  maxAge: 5 * 60 * 1000, // 5 minutes for current data
 
-const CACHE_TIME = 5 * 60 * 1000; // 5 minuter
-const cache = new Map<string, {data: WindData[], timestamp: number}>();
+  getKey(date: Date) {
+    return date.toISOString().split('T')[0];
+  },
 
-export function useWindData({ startDate, endDate }: UseWindDataProps) {
+  isDataFresh(date: Date) {
+    const key = this.getKey(date);
+    const cached = this.data.get(key);
+    if (!cached) return false;
+    return Date.now() - cached.timestamp < this.maxAge;
+  },
+
+  getData(date: Date) {
+    const key = this.getKey(date);
+    return this.data.get(key)?.data || [];
+  },
+
+  setData(date: Date, data: WindData[]) {
+    const key = this.getKey(date);
+    this.data.set(key, { data, timestamp: Date.now() });
+  },
+
+  clearData(date: Date) {
+    const key = this.getKey(date);
+    this.data.delete(key);
+  }
+};
+
+export function useWindData({ startDate, endDate }: { startDate: Date; endDate: Date }) {
   const [data, setData] = useState<WindData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [isEmpty, setIsEmpty] = useState(false);
-  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    // Reset mount ref on mount
-    isMountedRef.current = true;
+    let mounted = true;
 
-    async function fetchData() {
+    const fetchData = async () => {
+      if (!mounted) return;
+      
       try {
-        if (!isMountedRef.current) return;
-
-        const cacheKey = `${startDate.getTime()}-${endDate.getTime()}`;
-        const cachedData = cache.get(cacheKey);
-
-        // Check cache inside the effect
-        if (cachedData && Date.now() - cachedData.timestamp < CACHE_TIME) {
-          setData(cachedData.data);
-          setLoading(false);
-          setIsEmpty(false);
+        // Check cache first
+        if (windCache.isDataFresh(startDate)) {
+          const cachedData = windCache.getData(startDate);
+          if (mounted) {
+            setData(cachedData);
+            setLoading(false);
+          }
           return;
         }
 
-        setLoading(true);
-        setError(null);
-        
+        // Fetch from Firebase
         const windRef = collection(db, 'wind');
         const q = query(
           windRef,
@@ -49,8 +67,7 @@ export function useWindData({ startDate, endDate }: UseWindDataProps) {
         );
 
         const querySnapshot = await getDocs(q);
-        
-        if (!isMountedRef.current) return;
+        if (!mounted) return;
 
         const windData = querySnapshot.docs.map(doc => ({
           id: doc.id,
@@ -59,33 +76,35 @@ export function useWindData({ startDate, endDate }: UseWindDataProps) {
           windGust: doc.data().forceMax,
           time: doc.data().time?.toDate() || new Date(doc.data().time),
           isForecast: false
-        } as WindData));
+        }));
 
-        setData(windData);
-        setIsEmpty(windData.length === 0);
-        cache.set(cacheKey, { data: windData, timestamp: Date.now() });
-      } catch (err: unknown) {
-        if (!isMountedRef.current) return;
-        setError(err instanceof Error ? err : new Error('An unknown error occurred'));
+        // Update cache and state
+        if (mounted) {
+          windCache.setData(startDate, windData);
+          setData(windData);
+          setError(null);
+          setLoading(false);
+        }
+      } catch (err) {
         console.error('Error fetching wind data:', err);
-      } finally {
-        if (isMountedRef.current) {
+        if (mounted) {
+          setError(err as Error);
           setLoading(false);
         }
       }
-    }
+    };
 
+    setLoading(true);
     fetchData();
 
     return () => {
-      isMountedRef.current = false;
+      mounted = false;
     };
   }, [startDate, endDate]);
 
-  return { 
-    data, 
-    loading, 
-    error,
-    isEmpty
+  const clearCache = () => {
+    windCache.clearData(startDate);
   };
+
+  return { data, loading, error, clearCache };
 }

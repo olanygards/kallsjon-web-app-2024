@@ -72,9 +72,9 @@ function Home() {
     return { start, end };
   }, [currentDate]);
 
-  const { data: windData, loading: windLoading, error: windError, isEmpty } = useWindData({
-    startDate: windDataRange.start,
-    endDate: windDataRange.end,
+  const { data: windData, loading: windLoading, error: windError } = useWindData({
+    startDate: startOfDay(new Date()),
+    endDate: endOfDay(new Date())
   });
   const { data: forecastData, loading: forecastLoading, error: forecastError } = useForecast({
     startDate: windDataRange.start,
@@ -469,13 +469,7 @@ function Home() {
           </div>
         )}
 
-        {!loading && isEmpty && (
-          <div className="bg-yellow-50 text-yellow-600 p-4 rounded-lg mb-4">
-            Ingen data tillgänglig för valt datum
-          </div>
-        )}
-
-        {(aggregatedWindData.length > 0 || processedForecastData.length > 0) && (
+        {!loading && (
           <>
             <div className="mb-6">
               <ErrorBoundary>

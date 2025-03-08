@@ -11,19 +11,25 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { WindDataGroup } from '../components/WindDataGroup';
 
 function DailyView() {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [showForecast, setShowForecast] = useState(true);
   
+  // Memoize date range to prevent unnecessary recalculations
+  const dateRange = useMemo(() => ({
+    start: startOfDay(currentDate),
+    end: endOfDay(currentDate)
+  }), [currentDate]);
+  
   const { data: windData, loading: windLoading, error: windError } = useWindData({
-    startDate: startOfDay(currentDate),
-    endDate: endOfDay(currentDate)
+    startDate: dateRange.start,
+    endDate: dateRange.end
   });
 
   const { data: forecastData, loading: forecastLoading, error: forecastError } = useForecast({
-    startDate: startOfDay(currentDate),
-    endDate: endOfDay(currentDate)
+    startDate: dateRange.start,
+    endDate: dateRange.end
   });
 
   const loading = windLoading || forecastLoading;
@@ -218,7 +224,7 @@ function DailyView() {
                   onChange={handleDateSelect}
                   inline
                   locale={sv}
-                  minDate={new Date('2025-01-01')}
+                  minDate={new Date('2020-01-01')}
                   maxDate={addDays(new Date(), 7)}
                 />
                 <div className="flex justify-end mt-4">

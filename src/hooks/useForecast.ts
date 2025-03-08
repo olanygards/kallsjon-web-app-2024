@@ -1,85 +1,100 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { isWithinInterval } from 'date-fns';
 import { WindData } from '../types/WindData';
 
-interface SmhiForecastData {
-  validTime: string;
-  parameters: Array<{
-    name: string;
-    values: number[];
-  }>;
-}
+const FORECAST_URL = 'https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/13.8/lat/63.3/data.json';
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
 
-interface UseForecastProps {
-  startDate: Date;
-  endDate: Date;
-}
+// Global cache
+const forecastCache = {
+  data: null as WindData[] | null,
+  timestamp: 0,
+  pendingPromise: null as Promise<WindData[]> | null
+};
 
-export function useForecast({ startDate, endDate }: UseForecastProps) {
+export function useForecast({ startDate, endDate }: { startDate: Date; endDate: Date }) {
   const [data, setData] = useState<WindData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    // Cleanup any existing controller
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
+    let mounted = true;
 
-    async function fetchForecast() {
+    const fetchData = async () => {
       try {
-        abortControllerRef.current = new AbortController();
-        const response = await fetch(
-          'https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/13.8/lat/63.3/data.json',
-          { signal: abortControllerRef.current.signal }
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch forecast data');
+        // Use cache if valid
+        if (forecastCache.data && Date.now() - forecastCache.timestamp < CACHE_DURATION) {
+          const filteredData = forecastCache.data.filter(item =>
+            isWithinInterval(item.time, { start: startDate, end: endDate })
+          );
+          if (mounted) {
+            setData(filteredData);
+            setLoading(false);
+          }
+          return;
         }
 
-        const result = await response.json();
-        const forecastData = result.timeSeries as SmhiForecastData[];
+        // Wait for pending request if exists
+        if (forecastCache.pendingPromise) {
+          const result = await forecastCache.pendingPromise;
+          if (mounted) {
+            const filteredData = result.filter(item =>
+              isWithinInterval(item.time, { start: startDate, end: endDate })
+            );
+            setData(filteredData);
+            setLoading(false);
+          }
+          return;
+        }
 
-        // Convert SmhiForecastData to WindData
-        const windData = forecastData
-          .filter(f => {
-            const time = new Date(f.validTime);
-            return time >= startDate && time <= endDate;
+        // Make new request
+        forecastCache.pendingPromise = fetch(FORECAST_URL)
+          .then(response => {
+            if (!response.ok) throw new Error('Failed to fetch forecast');
+            return response.json();
           })
-          .map(f => {
-            const time = new Date(f.validTime);
-            const windSpeed = f.parameters.find(p => p.name === 'ws')?.values[0] ?? 0;
-            const windDirection = f.parameters.find(p => p.name === 'wd')?.values[0] ?? 0;
-            const windGust = windSpeed * 1.5; // Estimate gust as 1.5x wind speed
+          .then(json => {
+            if (!json.timeSeries) throw new Error('Invalid forecast data');
+            
+            const processedData = json.timeSeries.map((item: any) => ({
+              time: new Date(item.validTime),
+              windSpeed: item.parameters.find((p: any) => p.name === 'ws')?.values[0] ?? 0,
+              windGust: item.parameters.find((p: any) => p.name === 'gust')?.values[0] ?? 0,
+              windDirection: item.parameters.find((p: any) => p.name === 'wd')?.values[0] ?? 0,
+              isForecast: true
+            }));
 
-            return {
-              time,
-              windSpeed,
-              windDirection,
-              windGust,
-              isForecast: true,
-            };
+            forecastCache.data = processedData;
+            forecastCache.timestamp = Date.now();
+            return processedData;
+          })
+          .finally(() => {
+            forecastCache.pendingPromise = null;
           });
 
-        setData(windData);
-        setLoading(false);
-      } catch (err) {
-        if (err instanceof Error && err.name !== 'AbortError') {
-          console.error('Error fetching forecast:', err);
-          setError(err);
+        const result = await forecastCache.pendingPromise;
+        if (mounted) {
+          const filteredData = result.filter(item =>
+            isWithinInterval(item.time, { start: startDate, end: endDate })
+          );
+          setData(filteredData);
+          setError(null);
+          setLoading(false);
         }
-      } finally {
-        setLoading(false);
+      } catch (err) {
+        console.error('Forecast error:', err);
+        if (mounted) {
+          setError(err as Error);
+          setLoading(false);
+        }
       }
-    }
+    };
 
-    fetchForecast();
+    setLoading(true);
+    fetchData();
 
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      mounted = false;
     };
   }, [startDate, endDate]);
 

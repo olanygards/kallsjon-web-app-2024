@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useRef } from 'react';
+import { format } from 'date-fns';
 
 interface CacheItem<T> {
-  data: { [key: string]: T };
+  data: T[];
   timestamp: number;
   expiresIn: number;
-  lastFetchedDate?: string; // Track the most recent date we have data for
 }
 
 // Helper function to revive dates in objects
@@ -20,7 +20,6 @@ function reviveDates<T>(obj: any): T {
   const result: any = {};
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
-      // This looks like an ISO date string
       result[key] = new Date(value);
     } else if (typeof value === 'object') {
       result[key] = reviveDates(value);
@@ -33,7 +32,7 @@ function reviveDates<T>(obj: any): T {
 
 interface WindCacheOptions {
   expirationTime?: number; // in milliseconds, default 7 days for historical data
-  key?: string;
+  baseKey?: string;
   maxAge?: number; // in milliseconds, how fresh should recent data be
 }
 
@@ -41,69 +40,50 @@ export function useWindCache<T>(
   options: WindCacheOptions = {}
 ) {
   const {
-    expirationTime = 7 * 24 * 60 * 60 * 1000,
-    key = 'windData',
-    maxAge = 30 * 60 * 1000
+    expirationTime = 7 * 24 * 60 * 60 * 1000, // 7 days
+    baseKey = 'windData',
+    maxAge = 30 * 60 * 1000 // 30 minutes
   } = options;
 
-  // Store static values in refs to prevent unnecessary effect re-runs
-  const keyRef = useRef(key);
+  const keyRef = useRef(baseKey);
   const expirationTimeRef = useRef(expirationTime);
   const maxAgeRef = useRef(maxAge);
 
-  // Get data from localStorage with smart expiration check
-  const getStoredData = (): Map<number | null, T> => {
+  // Get data for a specific date from localStorage
+  const getStoredDataForDate = (date: Date): T[] => {
     try {
-      const storedItem = localStorage.getItem(keyRef.current);
-      if (!storedItem) return new Map();
+      const dateKey = `${keyRef.current}-${format(date, 'yyyy-MM-dd')}`;
+      const storedItem = localStorage.getItem(dateKey);
+      
+      if (!storedItem) return [];
 
       const cacheItem: CacheItem<T> = JSON.parse(storedItem);
-      const { data, timestamp } = cacheItem; // Removed unused expiresIn
+      const { data, timestamp } = cacheItem;
       
-      // Check if cache has completely expired
+      // Check if this day's cache has expired
       if (Date.now() - timestamp > expirationTimeRef.current) {
-        localStorage.removeItem(keyRef.current);
-        return new Map();
+        localStorage.removeItem(dateKey);
+        return [];
       }
 
-      // Convert the plain object back to a Map and revive dates
-      return new Map(
-        Object.entries(data).map(([k, v]) => [
-          k === 'null' ? null : Number(k),
-          reviveDates<T>(v)
-        ])
-      );
+      return reviveDates<T[]>(data);
     } catch (error) {
       console.error('Error reading from cache:', error);
-      return new Map();
+      return [];
     }
   };
 
-  const [cachedData, setCachedData] = useState<Map<number | null, T>>(getStoredData);
-  const [lastFetchedDate, setLastFetchedDate] = useState<string | undefined>(() => {
+  // Store data for a specific date
+  const setStoredDataForDate = (date: Date, data: T[]) => {
     try {
-      const stored = localStorage.getItem(keyRef.current);
-      return stored ? JSON.parse(stored).lastFetchedDate : undefined;
-    } catch {
-      return undefined;
-    }
-  });
-
-  // Update localStorage when cachedData changes
-  useEffect(() => {
-    try {
-      const mapData = Object.fromEntries(
-        Array.from(cachedData.entries()).map(([k, v]) => [k === null ? 'null' : k, v])
-      );
-
+      const dateKey = `${keyRef.current}-${format(date, 'yyyy-MM-dd')}`;
       const cacheItem: CacheItem<T> = {
-        data: mapData,
+        data,
         timestamp: Date.now(),
-        expiresIn: expirationTimeRef.current,
-        lastFetchedDate
+        expiresIn: expirationTimeRef.current
       };
 
-      localStorage.setItem(keyRef.current, JSON.stringify(cacheItem, (_k, value) => { // Renamed key to _k to indicate it's unused
+      localStorage.setItem(dateKey, JSON.stringify(cacheItem, (_k, value) => {
         if (value instanceof Date) {
           return value.toISOString();
         }
@@ -112,36 +92,57 @@ export function useWindCache<T>(
     } catch (error) {
       console.error('Error saving to cache:', error);
     }
-  }, [cachedData, lastFetchedDate]);
-
-  const isDataFresh = (date: Date): boolean => {
-    if (!lastFetchedDate) return false;
-    
-    const dateStr = date.toISOString().split('T')[0];
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    
-    if (dateStr === today || dateStr === yesterday) {
-      return Date.now() - new Date(lastFetchedDate).getTime() < maxAgeRef.current;
-    }
-    
-    return true;
   };
 
-  const updateLastFetchedDate = () => {
-    const now = new Date().toISOString();
-    setLastFetchedDate(now);
+  // Check if data for a specific date is fresh
+  const isDataFreshForDate = (date: Date): boolean => {
+    try {
+      const dateKey = `${keyRef.current}-${format(date, 'yyyy-MM-dd')}`;
+      const storedItem = localStorage.getItem(dateKey);
+      
+      if (!storedItem) return false;
+
+      const cacheItem: CacheItem<T> = JSON.parse(storedItem);
+      const { timestamp } = cacheItem;
+
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const yesterday = format(new Date(Date.now() - 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
+
+      // For today or yesterday, check if data is within maxAge
+      if (dateStr === today || dateStr === yesterday) {
+        return Date.now() - timestamp < maxAgeRef.current;
+      }
+
+      // For older dates, check if cache hasn't expired
+      return Date.now() - timestamp < expirationTimeRef.current;
+    } catch (error) {
+      console.error('Error checking cache freshness:', error);
+      return false;
+    }
+  };
+
+  // Clear cache for a specific date
+  const clearCacheForDate = (date: Date) => {
+    const dateKey = `${keyRef.current}-${format(date, 'yyyy-MM-dd')}`;
+    localStorage.removeItem(dateKey);
+  };
+
+  // Clear all cached data
+  const clearAllCache = () => {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(keyRef.current)) {
+        localStorage.removeItem(key);
+      }
+    }
   };
 
   return {
-    cachedData,
-    setCachedData,
-    isDataFresh,
-    updateLastFetchedDate,
-    clearCache: () => {
-      localStorage.removeItem(keyRef.current);
-      setCachedData(new Map());
-      setLastFetchedDate(undefined);
-    }
+    getStoredDataForDate,
+    setStoredDataForDate,
+    isDataFreshForDate,
+    clearCacheForDate,
+    clearAllCache
   };
 } 
