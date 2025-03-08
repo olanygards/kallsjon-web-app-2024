@@ -127,32 +127,12 @@ function DailyView() {
     return maxEntry;
   };
 
-  // Group forecast data by hour
+  // Simplify forecast data grouping
   const groupedForecastData = useMemo(() => {
-    if (!forecastData || forecastData.length === 0) return {};
+    if (!forecastData || forecastData.length === 0) return [];
     
-    const grouped: Record<string, { best: any; records: any[] }> = {};
-    
-    // Group by hour
-    forecastData.forEach(item => {
-      if (!item || !item.time) return;
-      
-      const hourKey = format(item.time, 'HH');
-      if (!grouped[hourKey]) {
-        grouped[hourKey] = {
-          best: item,
-          records: [item]
-        };
-      } else {
-        grouped[hourKey].records.push(item);
-        // Update best if this item has higher wind speed
-        if (item.windSpeed > grouped[hourKey].best.windSpeed) {
-          grouped[hourKey].best = item;
-        }
-      }
-    });
-    
-    return grouped;
+    // Sort forecast data by time
+    return [...forecastData].sort((a, b) => b.time.getTime() - a.time.getTime());
   }, [forecastData]);
 
   // Group data by date for observed data
@@ -238,8 +218,8 @@ function DailyView() {
                   onChange={handleDateSelect}
                   inline
                   locale={sv}
+                  minDate={new Date('2025-01-01')}
                   maxDate={addDays(new Date(), 7)}
-                  minDate={subDays(new Date(), 30)}
                 />
                 <div className="flex justify-end mt-4">
                   <button
@@ -330,13 +310,31 @@ function DailyView() {
             <button
               onClick={() => setShowForecast(!showForecast)}
               className={`px-4 py-2 rounded-lg ${
-                showForecast ? 'bg-kallsjon-green text-white' : 'bg-gray-200 text-gray-800'
+                showForecast ? 'bg-kallsjon-green-dark text-white' : 'bg-gray-200 text-gray-800'
               }`}
             >
               {showForecast ? 'Dölj prognos' : 'Visa prognos'}
             </button>
           </div>
           
+          {/* Listing for Forecast Data */}
+          {!loading && showForecast && forecastData && forecastData.length > 0 && (
+            <div className="bg-white shadow rounded-lg p-4 mt-4">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900">
+                Prognosvärden
+              </h2>
+              {groupedForecastData.map((forecast) => (
+                <WindDataGroup
+                  key={forecast.time.getTime()}
+                  bestWind={forecast}
+                  hourData={[forecast]} // Pass single item array since it's forecast data
+                  isForecast={true}
+                  hideDropdown={true} // Hide dropdown since there's only one data point
+                />
+              ))}
+            </div>
+          )}
+
           {/* Listing for Observed Data */}
           {!loading && windData && windData.length > 0 && (
             <div className="bg-white shadow rounded-lg p-4 mt-4">
@@ -372,24 +370,7 @@ function DailyView() {
             </div>
           )}
 
-          {/* Listing for Forecast Data */}
-          {!loading && showForecast && forecastData && forecastData.length > 0 && (
-            <div className="bg-white shadow rounded-lg p-4 mt-4">
-              <h2 className="text-xl font-semibold mb-4 text-gray-900">
-                Prognosvärden
-              </h2>
-              {Object.entries(groupedForecastData)
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([hourKey, { best, records }]) => (
-                  <WindDataGroup
-                    key={hourKey}
-                    bestWind={best}
-                    hourData={records}
-                    isForecast={true}
-                  />
-                ))}
-            </div>
-          )}
+          
         </div>
       </main>
     </div>

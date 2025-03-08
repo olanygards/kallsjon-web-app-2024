@@ -12,7 +12,13 @@ interface WindDataGroupProps {
 
 export const WindDataGroup = ({ bestWind, hourData, isForecast = false, hideDropdown = false }: WindDataGroupProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [touchStartTime, setTouchStartTime] = useState(0);
+  const [touchStartY, setTouchStartY] = useState(0);
   const hourLabel = format(bestWind.time, 'HH:00');
+
+  // Get the current time
+  const now = new Date();
+  const currentHour = now.getHours();
 
   // Function to get arrow direction
   const getDirectionArrow = (direction: number): string => {
@@ -20,21 +26,89 @@ export const WindDataGroup = ({ bestWind, hourData, isForecast = false, hideDrop
     return directions[Math.round(((direction % 360) / 45)) % 8];
   };
 
-  // Sorting Observations:
-  // - Observed: Latest first (descending)
-  // - Forecast: Oldest first (ascending)
-  const sortedHourData = [...hourData].sort((a, b) =>
-    isForecast ? a.time.getTime() - b.time.getTime() : b.time.getTime() - a.time.getTime()
-  );
+  // Sort data by time descending (newest first)
+  const sortedHourData = [...hourData].sort((a, b) => b.time.getTime() - a.time.getTime());
+
+  // Check if this is the latest hour group
+  const isLatestHour = !isForecast && bestWind.time.getHours() === currentHour;
+  
+  // Determine if details should be shown
+  const showDetails = isLatestHour || isExpanded;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartTime(Date.now());
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEndY = e.changedTouches[0].clientY;
+    const touchDuration = Date.now() - touchStartTime;
+    const touchDistance = Math.abs(touchEndY - touchStartY);
+
+    // If the touch was short and didn't move much, consider it a tap
+    if (touchDuration < 200 && touchDistance < 10) {
+      setIsExpanded(false);
+    }
+  };
 
   return (
     <div className="mb-2">
+      {/* Expanded details - now with touch handlers */}
+      {!hideDropdown && (
+        <div
+          className={`transition-all duration-300 ease-in-out overflow-hidden mb-2 ${
+            showDetails ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
+          }`}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onClick={(e) => {
+            // Only handle click if it's not from scrolling
+            if (e.detail === 1) {  // Single click only
+              const target = e.target as HTMLElement;
+              // Check if we're not clicking on a scrollable area
+              if (!target.closest('.scrollable')) {
+                setIsExpanded(false);
+              }
+            }
+          }}
+        >
+          <div className="pl-6 space-y-2 scrollable">
+            {sortedHourData.map((data) => (
+              <div
+                key={data.time.getTime()}
+                className="flex items-center justify-between p-1 bg-white dark:bg-gray-800 rounded"
+              >
+                <div className="w-[50px] text-lg text-gray-900 dark:text-white">
+                  {format(data.time, 'HH:mm')}
+                </div>
+                <div className="flex-[2] flex items-center justify-end gap-4">
+                  <div className="flex flex-col items-center flex-[3]">
+                    <div className="text-lg">
+                      <span className="font-semibold">{data.windSpeed.toFixed(1)}</span>
+                      <span className="text-gray-600 dark:text-gray-300"> ({data.windGust.toFixed(1)})</span>
+                      <span className="text-[0.9rem] text-gray-600 dark:text-gray-300"> m/s</span>
+                    </div>
+                    <div className="mt-1">
+                      <WindRating avgWind={data.windSpeed} gustWind={data.windGust} />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 w-[55px]">
+                    <span className="text-lg">{data.windDirection}°</span>
+                    <span className="text-xl transform rotate-[270deg -90deg] inline-block">
+                      {getDirectionArrow(data.windDirection)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Hour header - always visible */}
       <div
         onClick={() => !hideDropdown && setIsExpanded(!isExpanded)}
         className={`p-2 rounded-lg cursor-pointer focus:outline-none ${
-          isExpanded ? 'mb-0' : 'mb-2'
-        } ${
           bestWind.windSpeed >= 18
             ? 'bg-red-200 dark:bg-red-900'
             : bestWind.windSpeed >= 15
@@ -70,7 +144,7 @@ export const WindDataGroup = ({ bestWind, hourData, isForecast = false, hideDrop
             {!hideDropdown && (
               <span
                 className="transition-transform duration-200 w-[20px] text-gray-300"
-                style={{ transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+                style={{ transform: showDetails ? 'rotate(180deg)' : 'rotate(0deg)' }}
               >
                 ▼
               </span>
@@ -78,46 +152,6 @@ export const WindDataGroup = ({ bestWind, hourData, isForecast = false, hideDrop
           </div>
         </div>
       </div>
-
-      {/* Expanded details with animation */}
-      {!hideDropdown && (
-        <div
-          className={`transition-all duration-300 ease-in-out ${
-            isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
-          } overflow-hidden`}
-        >
-          <div className="pl-6 mt-2 space-y-2 pb-4">
-            {sortedHourData.map((data) => (
-              <div
-                key={data.time.getTime()}
-                className="flex items-center justify-between p-1 bg-white dark:bg-gray-800 rounded"
-              >
-                <div className="w-[50px] text-lg text-gray-900 dark:text-white">
-                  {format(data.time, 'HH:mm')}
-                </div>
-                <div className="flex-[2] flex items-center justify-end gap-4">
-                  <div className="flex flex-col items-center flex-[3]">
-                    <div className="text-lg">
-                      <span className="font-semibold">{data.windSpeed.toFixed(1)}</span>
-                      <span className="text-gray-600 dark:text-gray-300"> ({data.windGust.toFixed(1)})</span>
-                      <span className="text-[0.9rem] text-gray-600 dark:text-gray-300"> m/s</span>
-                    </div>
-                    <div className="mt-1">
-                      <WindRating avgWind={data.windSpeed} gustWind={data.windGust} />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 w-[55px]">
-                    <span className="text-lg">{data.windDirection}°</span>
-                    <span className="text-xl transform rotate-[270deg -90deg] inline-block">
-                      {getDirectionArrow(data.windDirection)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }; 
