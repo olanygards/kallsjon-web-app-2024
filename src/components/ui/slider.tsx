@@ -8,6 +8,7 @@ interface SliderProps {
   onChange: (value: number) => void;
   className?: string;
   data?: Array<{ speed: number }>;
+  forecastStartIndex?: number;
 }
 
 const getWindColor = (speed: number): string => {
@@ -36,22 +37,30 @@ const getWindColor = (speed: number): string => {
   return "#e130a3"; // Final intense fluorescent purple
 };
 
-const createGradientBackground = (data: Array<{ speed: number }> | undefined) => {
+const createGradientBackground = (data: Array<{ speed: number }> | undefined, forecastStartIndex?: number) => {
   if (!data) return 'bg-gray-200';
   
   const gradientStops = data.map((item, index) => {
     const percentage = (index / (data.length - 1)) * 100;
     const color = getWindColor(item.speed);
+    
+    // Add a subtle visual distinction for forecast data
+    if (forecastStartIndex !== undefined && index >= forecastStartIndex) {
+      // Add a slight transparency to forecast colors
+      const [r, g, b] = color.match(/\d+/g)?.map(Number) || [0, 0, 0];
+      return `rgba(${r}, ${g}, ${b}, 0.7) ${percentage}%`;
+    }
+    
     return `${color} ${percentage}%`;
   });
 
   return `linear-gradient(to right, ${gradientStops.join(', ')})`;
 };
 
-export function Slider({ min, max, step, value, onChange, className = '', data }: SliderProps) {
+export function Slider({ min, max, step, value, onChange, className = '', data, forecastStartIndex }: SliderProps) {
   const backgroundStyle = useMemo(() => ({
-    background: createGradientBackground(data)
-  }), [data]);
+    background: createGradientBackground(data, forecastStartIndex)
+  }), [data, forecastStartIndex]);
 
   return (
     <div className={`relative flex items-center w-full h-9 touch-none ${className}`}>

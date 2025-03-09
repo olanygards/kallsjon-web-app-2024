@@ -1,13 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Slider } from "./ui/slider";
 
+interface WindData {
+  time: string;
+  speed: number;
+  gust: number;
+  direction: number;
+}
+
 interface WindMapProps {
-  windData: Array<{
-    time: string;
-    speed: number;
-    gust: number;
-    direction: number;
-  }>;
+  windData: WindData[];
+  forecastData?: WindData[];
 }
 
 function getWindColor(speed: number) {
@@ -23,7 +26,7 @@ function getWindColor(speed: number) {
   return "rgba(255, 255, 255, 1)"; // Max intensity
 }
 
-export default function WindMap({ windData }: WindMapProps) {
+export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
   const [timeIndex, setTimeIndex] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const waveCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -32,6 +35,25 @@ export default function WindMap({ windData }: WindMapProps) {
   const animationFrameRef = useRef<number | undefined>(undefined);
   const streaksRef = useRef<any[]>([]);
   const timeRef = useRef<number>(0);
+
+  // Merge and sort wind data and forecast data
+  const mergedData = useMemo(() => {
+    const allData = [
+      ...windData.map(data => ({ ...data, isForecast: false })),
+      ...forecastData.map(data => ({ ...data, isForecast: true }))
+    ].sort((a, b) => {
+      const timeA = new Date(`1970/01/01 ${a.time}`).getTime();
+      const timeB = new Date(`1970/01/01 ${b.time}`).getTime();
+      return timeA - timeB;
+    });
+    
+    return allData;
+  }, [windData, forecastData]);
+
+  // Calculate the index where forecast data starts
+  const forecastStartIndex = useMemo(() => {
+    return mergedData.findIndex(data => data.isForecast);
+  }, [mergedData]);
 
   const createStreak = (canvas: HTMLCanvasElement, windSpeed: number) => {
     if (windSpeed < 2) return null;
@@ -107,7 +129,7 @@ export default function WindMap({ windData }: WindMapProps) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(baseMapImg.current, 0, 0, canvas.width, canvas.height);
 
-    const { speed, direction } = windData[timeIndex];
+    const { speed, direction } = mergedData[timeIndex];
     
     timeRef.current += 0.1;
     updateStreaks(waveCanvas, speed, direction);
@@ -162,15 +184,15 @@ export default function WindMap({ windData }: WindMapProps) {
         <div className="text-center" style={{ width: '25%' }}>
           <div className="text-sm text-gray-500">Tid:</div>
           <div className="text-xl font-bold">
-            {windData && windData[timeIndex] ? windData[timeIndex].time : '--:--'}
+            {mergedData[timeIndex]?.time || '--:--'}
           </div>
         </div>
         
         <div className="text-center" style={{ width: '45%' }}>
           <div className="text-sm text-gray-500">Vindhastighet</div>
           <div className="text-xl font-bold whitespace-nowrap">
-            {windData && windData[timeIndex] ? 
-              `${windData[timeIndex].speed.toFixed(1)} (${windData[timeIndex].gust.toFixed(1)}) m/s` : 
+            {mergedData[timeIndex] ? 
+              `${mergedData[timeIndex].speed.toFixed(1)} (${mergedData[timeIndex].gust.toFixed(1)}) m/s` : 
               '-- (--) m/s'}
           </div>
         </div>
@@ -178,7 +200,7 @@ export default function WindMap({ windData }: WindMapProps) {
         <div className="text-center" style={{ width: '30%' }}>
           <div className="text-sm text-gray-500">Riktning</div>
           <div className="text-xl font-bold flex items-center justify-center">
-            {windData && windData[timeIndex] ? `${windData[timeIndex].direction}°` : '--°'}
+            {mergedData[timeIndex] ? `${mergedData[timeIndex].direction}°` : '--°'}
           </div>
         </div>
       </div>
@@ -203,17 +225,18 @@ export default function WindMap({ windData }: WindMapProps) {
       <div className="relative pt-4">
         <Slider
           min={0}
-          max={windData.length - 1}
+          max={mergedData.length - 1}
           step={1}
           value={timeIndex}
           onChange={setTimeIndex}
-          data={windData.map(data => ({ speed: data.speed }))}
+          data={mergedData.map(data => ({ speed: data.speed }))}
+          forecastStartIndex={forecastStartIndex >= 0 ? forecastStartIndex : undefined}
           className="relative z-10"
         />
         <div className="flex justify-between text-sm text-white mt-2">
-          <span>{windData.length > 0 ? windData[0].time : "00:00"}</span>
-          <span>{windData.length > 0 ? windData[Math.floor(windData.length / 2)].time : "12:00"}</span>
-          <span>{windData.length > 0 ? windData[windData.length - 1].time : "23:59"}</span>
+          <span>{mergedData.length > 0 ? mergedData[0].time : "00:00"}</span>
+          <span>{mergedData.length > 0 ? mergedData[Math.floor(mergedData.length / 2)].time : "12:00"}</span>
+          <span>{mergedData.length > 0 ? mergedData[mergedData.length - 1].time : "23:59"}</span>
         </div>
       </div>
     </div>

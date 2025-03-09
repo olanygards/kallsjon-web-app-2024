@@ -111,13 +111,14 @@ function DailyView() {
     setIsDatePickerOpen(false);
   };
 
-  const findMaxWindData = (data: any[]) => {
-    if (!data || data.length === 0) return null;
+  const findMaxWindData = (data: any[], forecastData: any[] = []) => {
+    if ((!data || data.length === 0) && (!forecastData || forecastData.length === 0)) return null;
     
     let maxEntry = null;
     let maxSpeed = -1;
     
-    for (let i = 0; i < data.length; i++) {
+    // Check observed data
+    for (let i = 0; i < (data?.length || 0); i++) {
       const entry = data[i];
       if (!entry) continue;
       
@@ -126,7 +127,21 @@ function DailyView() {
       
       if (speed > maxSpeed) {
         maxSpeed = speed;
-        maxEntry = entry;
+        maxEntry = { ...entry, isForecast: false };
+      }
+    }
+    
+    // Check forecast data
+    for (let i = 0; i < (forecastData?.length || 0); i++) {
+      const entry = forecastData[i];
+      if (!entry) continue;
+      
+      const speed = entry.windSpeed !== undefined ? entry.windSpeed : 
+                   (entry.speed !== undefined ? entry.speed : 0);
+      
+      if (speed > maxSpeed) {
+        maxSpeed = speed;
+        maxEntry = { ...entry, isForecast: true };
       }
     }
     
@@ -225,7 +240,7 @@ function DailyView() {
                   inline
                   locale={sv}
                   minDate={new Date('2020-01-01')}
-                  maxDate={addDays(new Date(), 7)}
+                  maxDate={addDays(new Date(), 8)}
                 />
                 <div className="flex justify-end mt-4">
                   <button
@@ -248,13 +263,13 @@ function DailyView() {
               <div className="text-sm text-gray-500">Bäst idag</div>
               <div className="text-xl font-bold">
                 {(() => {
-                  const maxEntry = findMaxWindData(windData || []);
+                  const maxEntry = findMaxWindData(windData || [], forecastData || []);
                   if (!maxEntry) return "--:--";
                   
                   if (maxEntry.time instanceof Date) {
-                    return format(maxEntry.time, 'HH:mm');
+                    return format(maxEntry.time, 'HH:mm') + (maxEntry.isForecast ? '*' : '');
                   } else {
-                    return maxEntry.time || "--:--";
+                    return (maxEntry.time || "--:--") + (maxEntry.isForecast ? '*' : '');
                   }
                 })()}
               </div>
@@ -264,7 +279,7 @@ function DailyView() {
               <div className="text-sm text-gray-500">Vindhastighet</div>
               <div className="text-xl font-bold whitespace-nowrap">
                 {(() => {
-                  const maxEntry = findMaxWindData(windData || []);
+                  const maxEntry = findMaxWindData(windData || [], forecastData || []);
                   if (!maxEntry) return "-- (--) m/s";
                   
                   const speed = maxEntry.windSpeed !== undefined ? maxEntry.windSpeed : 
@@ -283,7 +298,7 @@ function DailyView() {
               <div className="text-sm text-gray-500">Riktning</div>
               <div className="text-xl font-bold">
                 {(() => {
-                  const maxEntry = findMaxWindData(windData || []);
+                  const maxEntry = findMaxWindData(windData || [], forecastData || []);
                   if (!maxEntry) return "--°";
                   
                   const direction = maxEntry.direction !== undefined ? maxEntry.direction : 
@@ -300,13 +315,25 @@ function DailyView() {
             <div className="p-4 text-center">Laddar vinddata...</div>
           ) : error ? (
             <div className="p-4 text-center text-red-500">Kunde inte ladda vinddata</div>
-          ) : windData && windData.length > 0 ? (
-            <WindMap windData={windData.map(item => ({
-              time: item.time instanceof Date ? format(item.time, 'HH:mm') : String(item.time),
-              speed: item.windSpeed !== undefined ? item.windSpeed : 0,
-              gust: item.windGust !== undefined ? item.windGust : 0,
-              direction: item.windDirection !== undefined ? item.windDirection : 0
-            }))} />
+          ) : (windData?.length > 0 || forecastData?.length > 0) ? (
+            <WindMap 
+              windData={windData?.map(item => {
+                return {
+                  time: item.time instanceof Date ? format(item.time, 'HH:mm') : String(item.time),
+                  speed: item.windSpeed !== undefined ? item.windSpeed : 0,
+                  gust: item.windGust !== undefined ? item.windGust : 0,
+                  direction: item.windDirection !== undefined ? item.windDirection : 0
+                };
+              }) ?? []}
+              forecastData={forecastData?.map(item => {
+                return {
+                  time: item.time instanceof Date ? format(item.time, 'HH:mm') : String(item.time),
+                  speed: item.windSpeed ?? 0,
+                  gust: item.windGust ?? (item.windSpeed ? item.windSpeed * 1.5 : 0),
+                  direction: item.windDirection ?? 0
+                };
+              }) ?? []}
+            />
           ) : (
             <div className="p-4 text-center">Ingen vinddata tillgänglig</div>
           )}
@@ -382,5 +409,6 @@ function DailyView() {
     </div>
   );
 }
+
 
 export default DailyView; 
