@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Slider } from "./ui/slider";
+import { WindRating } from "./WindRating";
 
 interface WindData {
   time: string;
@@ -25,6 +26,18 @@ function getWindColor(speed: number) {
   if (speed <= 21) return "rgba(255, 255, 255, 0.9)"; // Intense white
   return "rgba(255, 255, 255, 1)"; // Max intensity
 }
+
+// Helper function to get direction arrow based on wind direction
+const getDirectionArrow = (direction: number): string => {
+  if (direction < 22.5 || direction >= 337.5) return "↓";
+  if (direction >= 22.5 && direction < 67.5) return "↙";
+  if (direction >= 67.5 && direction < 112.5) return "←";
+  if (direction >= 112.5 && direction < 157.5) return "↖";
+  if (direction >= 157.5 && direction < 202.5) return "↑";
+  if (direction >= 202.5 && direction < 247.5) return "↗";
+  if (direction >= 247.5 && direction < 292.5) return "→";
+  return "↘";
+};
 
 export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
   const [timeIndex, setTimeIndex] = useState(0);
@@ -255,31 +268,42 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
 
   return (
     <div className="p-2 space-y-3 md:p-4 md:space-y-4 w-full md:max-w-2xl mx-auto">
-      {/* Wind data display */}
-      <div 
-        className="flex justify-between p-3 mb-4 rounded-lg shadow" 
-        style={{ backgroundColor: "rgb(252 255 252)" }}
-      >
-        <div className="text-center" style={{ width: '25%' }}>
-          <div className="text-sm text-gray-500">Tid:</div>
-          <div className="text-xl font-bold">
-            {mergedData[timeIndex]?.time || '--:--'}
-          </div>
-        </div>
-        
-        <div className="text-center" style={{ width: '45%' }}>
-          <div className="text-sm text-gray-500">Vindhastighet</div>
-          <div className="text-xl font-bold whitespace-nowrap">
-            {mergedData[timeIndex] ? 
-              `${mergedData[timeIndex].speed.toFixed(1)} (${mergedData[timeIndex].gust.toFixed(1)}) m/s` : 
-              '-- (--) m/s'}
-          </div>
-        </div>
-        
-        <div className="text-center" style={{ width: '30%' }}>
-          <div className="text-sm text-gray-500">Riktning</div>
-          <div className="text-xl font-bold flex items-center justify-center">
-            {mergedData[timeIndex] ? `${mergedData[timeIndex].direction}°` : '--°'}
+      {/* Wind data display - updated styling */}
+      <div className="mb-2">
+        <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700">
+          <div className="flex items-center">
+            <div className="w-[70px] text-lg p-2 font-bold text-gray-900 dark:text-white">
+              {mergedData[timeIndex]?.time || '--:--'}
+            </div>
+            <div className="flex-[2] flex items-center justify-end gap-4">
+              <div className="flex flex-col items-center flex-[3]">
+                <div className="text-base">
+                  <span className="font-semibold">
+                    {mergedData[timeIndex] ? mergedData[timeIndex].speed.toFixed(1) : '--'}
+                  </span>
+                  <span className="text-gray-600 dark:text-gray-300 text-sm">
+                    {" "}({mergedData[timeIndex] ? mergedData[timeIndex].gust.toFixed(1) : '--'})
+                  </span>
+                  <span className="text-[0.8rem] text-gray-600 dark:text-gray-300"> m/s</span>
+                </div>
+                <div className="mt-1">
+                  {mergedData[timeIndex] && (
+                    <WindRating 
+                      avgWind={mergedData[timeIndex].speed} 
+                      gustWind={mergedData[timeIndex].gust} 
+                    />
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-1 w-[55px]">
+                <span className="text-sm">
+                  {mergedData[timeIndex] ? `${mergedData[timeIndex].direction}°` : '--°'}
+                </span>
+                <span className="font-bold text-xl transform rotate-[270deg -90deg] inline-block">
+                  {mergedData[timeIndex] ? getDirectionArrow(mergedData[timeIndex].direction) : ''}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

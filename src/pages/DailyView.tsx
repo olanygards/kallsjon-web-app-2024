@@ -9,6 +9,19 @@ import { Header } from '../components/Header';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { WindDataGroup } from '../components/WindDataGroup';
+import { WindRating } from '../components/WindRating';
+
+// Helper function to get direction arrow based on wind direction
+const getDirectionArrow = (direction: number): string => {
+  if (direction < 22.5 || direction >= 337.5) return "↓";
+  if (direction >= 22.5 && direction < 67.5) return "↙";
+  if (direction >= 67.5 && direction < 112.5) return "←";
+  if (direction >= 112.5 && direction < 157.5) return "↖";
+  if (direction >= 157.5 && direction < 202.5) return "↑";
+  if (direction >= 202.5 && direction < 247.5) return "↗";
+  if (direction >= 247.5 && direction < 292.5) return "→";
+  return "↘";
+};
 
 function DailyView() {
   const [currentDate, setCurrentDate] = useState(() => new Date());
@@ -264,57 +277,80 @@ function DailyView() {
           )}
           
           {/* Best wind of the day */}
-          <div 
-            className="flex justify-between p-3 mx-2 mb-4 rounded-lg shadow" 
-            style={{ backgroundColor: "rgb(223, 241, 223)" }}
-          >
-            <div className="text-center" style={{ width: '25%' }}>
-              <div className="text-sm text-gray-500">Bäst idag</div>
-              <div className="text-xl font-bold">
-                {(() => {
-                  const maxEntry = findMaxWindData(windData || [], forecastData || []);
-                  if (!maxEntry) return "--:--";
-                  
-                  if (maxEntry.time instanceof Date) {
-                    return format(maxEntry.time, 'HH:mm') + (maxEntry.isForecast ? '*' : '');
-                  } else {
-                    return (maxEntry.time || "--:--") + (maxEntry.isForecast ? '*' : '');
-                  }
-                })()}
-              </div>
-            </div>
-            
-            <div className="text-center" style={{ width: '45%' }}>
-              <div className="text-sm text-gray-500">Vindhastighet</div>
-              <div className="text-xl font-bold whitespace-nowrap">
-                {(() => {
-                  const maxEntry = findMaxWindData(windData || [], forecastData || []);
-                  if (!maxEntry) return "-- (--) m/s";
-                  
-                  const speed = maxEntry.windSpeed !== undefined ? maxEntry.windSpeed : 
-                               (maxEntry.speed !== undefined ? maxEntry.speed : 0);
-                  
-                  const gust = maxEntry.windGust !== undefined ? maxEntry.windGust :
-                              (maxEntry.gustSpeed !== undefined ? maxEntry.gustSpeed :
-                              (maxEntry.gust !== undefined ? maxEntry.gust : speed * 1.5));
-                  
-                  return `${speed.toFixed(1)} (${gust.toFixed(1)}) m/s`;
-                })()}
-              </div>
-            </div>
-            
-            <div className="text-center" style={{ width: '30%' }}>
-              <div className="text-sm text-gray-500">Riktning</div>
-              <div className="text-xl font-bold">
-                {(() => {
-                  const maxEntry = findMaxWindData(windData || [], forecastData || []);
-                  if (!maxEntry) return "--°";
-                  
-                  const direction = maxEntry.direction !== undefined ? maxEntry.direction : 
-                                   (maxEntry.windDirection !== undefined ? maxEntry.windDirection : 0);
-                  
-                  return `${direction}°`;
-                })()}
+          <div className="mb-2 mx-2">
+            <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgb(218 244 230)' }}>
+              <div className="flex items-center">
+                <div className="w-[70px] text-lg p-2 font-bold text-green-900">
+                  <div className="text-xs text-green-800">Top</div>
+                  {(() => {
+                    const maxEntry = findMaxWindData(windData || [], forecastData || []);
+                    if (!maxEntry) return "--:--";
+                    
+                    if (maxEntry.time instanceof Date) {
+                      return format(maxEntry.time, 'HH:mm') + (maxEntry.isForecast ? '*' : '');
+                    } else {
+                      return (maxEntry.time || "--:--") + (maxEntry.isForecast ? '*' : '');
+                    }
+                  })()}
+                </div>
+                <div className="flex-[2] flex items-center justify-end gap-4">
+                  <div className="flex flex-col items-center flex-[3]">
+                    <div className="text-base">
+                      {(() => {
+                        const maxEntry = findMaxWindData(windData || [], forecastData || []);
+                        if (!maxEntry) return <span className="font-semibold">-- (--) m/s</span>;
+                        
+                        const speed = maxEntry.windSpeed !== undefined ? maxEntry.windSpeed : 
+                                     (maxEntry.speed !== undefined ? maxEntry.speed : 0);
+                        
+                        const gust = maxEntry.windGust !== undefined ? maxEntry.windGust :
+                                    (maxEntry.gustSpeed !== undefined ? maxEntry.gustSpeed :
+                                    (maxEntry.gust !== undefined ? maxEntry.gust : speed * 1.5));
+                        
+                        return (
+                          <>
+                            <span className="font-semibold">{speed.toFixed(1)}</span>
+                            <span className="text-green-800 text-sm"> ({gust.toFixed(1)})</span>
+                            <span className="text-[0.8rem] text-green-800"> m/s</span>
+                          </>
+                        );
+                      })()}
+                    </div>
+                    <div className="mt-1">
+                      {(() => {
+                        const maxEntry = findMaxWindData(windData || [], forecastData || []);
+                        if (!maxEntry) return null;
+                        
+                        const speed = maxEntry.windSpeed !== undefined ? maxEntry.windSpeed : 
+                                     (maxEntry.speed !== undefined ? maxEntry.speed : 0);
+                        
+                        const gust = maxEntry.windGust !== undefined ? maxEntry.windGust :
+                                    (maxEntry.gustSpeed !== undefined ? maxEntry.gustSpeed :
+                                    (maxEntry.gust !== undefined ? maxEntry.gust : speed * 1.5));
+                        
+                        return <WindRating avgWind={speed} gustWind={gust} />;
+                      })()}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 w-[55px]">
+                    {(() => {
+                      const maxEntry = findMaxWindData(windData || [], forecastData || []);
+                      if (!maxEntry) return <span className="text-sm">--°</span>;
+                      
+                      const direction = maxEntry.direction !== undefined ? maxEntry.direction : 
+                                       (maxEntry.windDirection !== undefined ? maxEntry.windDirection : 0);
+                      
+                      return (
+                        <>
+                          <span className="text-sm">{direction}°</span>
+                          <span className="font-bold text-xl transform rotate-[270deg -90deg] inline-block">
+                            {getDirectionArrow(direction)}
+                          </span>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
