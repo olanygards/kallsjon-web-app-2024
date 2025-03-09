@@ -24,7 +24,16 @@ function DailyView() {
   
   const { data: windData, loading: windLoading, error: windError } = useWindData({
     startDate: dateRange.start,
-    endDate: dateRange.end
+    endDate: dateRange.end,
+    minForce: 0 // Explicitly set to 0 to get ALL wind data, regardless of wind speed
+  });
+
+  // Add logging to verify we're getting all wind data
+  console.log('DailyView wind data:', {
+    date: dateRange.start.toISOString().split('T')[0],
+    count: windData?.length || 0,
+    sample: windData?.slice(0, 3) || [],
+    windSpeeds: windData?.slice(0, 10).map(d => d.windSpeed) || []
   });
 
   const { data: forecastData, loading: forecastLoading, error: forecastError } = useForecast({
