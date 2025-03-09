@@ -38,13 +38,44 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
 
   // Merge and sort wind data and forecast data
   const mergedData = useMemo(() => {
-    const allData = [
-      ...windData.map(data => ({ ...data, isForecast: false })),
-      ...forecastData.map(data => ({ ...data, isForecast: true }))
-    ].sort((a, b) => {
-      const timeA = new Date(`1970/01/01 ${a.time}`).getTime();
-      const timeB = new Date(`1970/01/01 ${b.time}`).getTime();
-      return timeA - timeB;
+    // Make sure we mark observed data as isForecast=false and forecast data as isForecast=true
+    const observedData = windData.map(data => ({
+      ...data,
+      isForecast: false
+    }));
+    
+    const forecastOnly = forecastData.map(data => ({
+      ...data,
+      isForecast: true // Explicitly mark as forecast data
+    }));
+    
+    console.log('WindMap data sources:', {
+      observedCount: observedData.length,
+      forecastCount: forecastOnly.length,
+      observedSample: observedData.slice(0, 1),
+      forecastSample: forecastOnly.slice(0, 1)
+    });
+    
+    // Combine and sort
+    const allData = [...observedData, ...forecastOnly].sort((a, b) => {
+      // Ensure both are string times
+      const timeA = String(a.time);
+      const timeB = String(b.time);
+      
+      // Parse as dates to compare
+      const dateA = new Date(`1970/01/01 ${timeA}`).getTime();
+      const dateB = new Date(`1970/01/01 ${timeB}`).getTime();
+      
+      return dateA - dateB;
+    });
+    
+    // Log the merged data to debug
+    console.log('WindMap merged data:', {
+      totalLength: allData.length,
+      firstForecastIndex: allData.findIndex(d => d.isForecast),
+      hasForecast: allData.some(d => d.isForecast),
+      forecastCount: allData.filter(d => d.isForecast).length,
+      onlyForecast: allData.length > 0 && allData.every(d => d.isForecast)
     });
     
     return allData;
@@ -52,8 +83,56 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
 
   // Calculate the index where forecast data starts
   const forecastStartIndex = useMemo(() => {
-    return mergedData.findIndex(data => data.isForecast);
+    // If no data, return -1
+    if (mergedData.length === 0) return -1;
+    
+    // Check if all data is forecast
+    const onlyForecast = mergedData.every(d => d.isForecast);
+    if (onlyForecast) {
+      console.log('Only forecast data available - setting forecastStartIndex to 0');
+      return 0;
+    }
+    
+    // Find the index of the first forecast item
+    const firstForecastIndex = mergedData.findIndex(data => data.isForecast);
+    console.log(`Found first forecast at index ${firstForecastIndex} of ${mergedData.length}`);
+    
+    return firstForecastIndex;
   }, [mergedData]);
+  
+  // For slider component - log what we're passing
+  const sliderData = useMemo(() => {
+    // Check for zero wind speeds that might be causing black colors
+    const zeroSpeedCount = mergedData.filter(d => d.speed === 0).length;
+    if (zeroSpeedCount > 0) {
+      console.warn(`Found ${zeroSpeedCount} entries with zero wind speed which will appear black`);
+    }
+    
+    // Get the minimum wind speed value to ensure we have proper colors
+    const minSpeed = Math.min(...mergedData.map(d => d.speed).filter(s => s > 0));
+    
+    const mappedData = mergedData.map(data => {
+      // Ensure we have at least some wind speed for display purposes (prevent black)
+      const adjustedSpeed = data.speed === 0 ? Math.max(minSpeed, 1) : data.speed;
+      
+      return { 
+        speed: adjustedSpeed,
+        originalSpeed: data.speed,
+        isForecast: data.isForecast
+      };
+    });
+    
+    console.log('Slider data prepared:', {
+      length: mappedData.length,
+      forecastStartIndex,
+      speedSamples: mappedData.slice(0, 5).map(d => d.speed),
+      minSpeed,
+      forecastSpeeds: mappedData.filter(d => d.isForecast).map(d => d.speed).slice(0, 5)
+    });
+    
+    // Map to just what the Slider needs
+    return mappedData.map(d => ({ speed: d.speed }));
+  }, [mergedData, forecastStartIndex]);
 
   const createStreak = (canvas: HTMLCanvasElement, windSpeed: number) => {
     if (windSpeed < 2) return null;
@@ -225,11 +304,11 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
       <div className="relative pt-4">
         <Slider
           min={0}
-          max={mergedData.length - 1}
+          max={mergedData.length > 0 ? mergedData.length - 1 : 0}
           step={1}
           value={timeIndex}
           onChange={setTimeIndex}
-          data={mergedData.map(data => ({ speed: data.speed }))}
+          data={sliderData}
           forecastStartIndex={forecastStartIndex >= 0 ? forecastStartIndex : undefined}
           className="relative z-10"
         />
