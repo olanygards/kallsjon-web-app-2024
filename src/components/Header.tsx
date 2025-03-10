@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import { Drawer, DrawerNavItem } from './ui/Drawer';
 import logoImage from '../assets/kall-ifornien-logo-lg-green.png';
@@ -7,14 +7,27 @@ interface HeaderProps {
   // Remove the title prop since we're not using it
 }
 
+// Throttle function to limit how often the scroll handler fires
+function throttle(func: Function, limit: number): (...args: any[]) => void {
+  let inThrottle: boolean = false;
+  return function(...args: any[]) {
+    if (!inThrottle) {
+      func(...args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  };
+}
+
 export function Header({}: HeaderProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const lastScrollY = useRef(0);
   
-  // Calculate scaling factor based on scroll position - using 80px instead of 200px for faster shrinking
-  const scale = Math.max(0.8, 1 - (scrollY / 50) * 0.2); // Will go from 1 to 0.8 as you scroll just 50px
-  const headerPadding = Math.max(0.6, 1 - (scrollY / 50) * 0.4); // Reduce padding more aggressively
+  // Calculate scaling factor based on scroll position, ensuring it never exceeds 1.0
+  const scale = Math.min(1, Math.max(0.8, 1 - (Math.max(0, scrollY) / 50) * 0.2));
+  const headerPadding = Math.min(1, Math.max(0.6, 1 - (Math.max(0, scrollY) / 50) * 0.4)); 
 
   useEffect(() => {
     // Check if we're in standalone mode (launched from homescreen)
@@ -39,38 +52,47 @@ export function Header({}: HeaderProps) {
       const handleScroll = () => {
         // First try the #root element which should work in PWA mode
         const scrollElement = document.getElementById('root');
+        let currentScrollY = 0;
+        
         if (scrollElement) {
-          setScrollY(scrollElement.scrollTop);
+          currentScrollY = scrollElement.scrollTop;
         } else {
           // Fallback to window.scrollY for browser mode
-          setScrollY(window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0);
+          currentScrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+        }
+        
+        // Only update state if the scroll position changed significantly (reduces jitter)
+        if (Math.abs(currentScrollY - lastScrollY.current) > 1) {
+          // Prevent negative scroll values which can happen during bounce
+          currentScrollY = Math.max(0, currentScrollY);
+          setScrollY(currentScrollY);
+          lastScrollY.current = currentScrollY;
         }
       };
+      
+      // Throttle the scroll handler to improve performance and reduce jitter
+      const throttledHandleScroll = throttle(handleScroll, 10);
       
       // Check what element should receive the scroll event
       // For iOS, document might be more reliable
       const scrollElement = document.getElementById('root') || document;
       
       // Try to capture scroll events at the document level for iOS
-      document.addEventListener('scroll', handleScroll, { passive: true });
+      document.addEventListener('scroll', throttledHandleScroll, { passive: true });
       
       // Also add to the root element which works better in PWA mode on some devices
       if (scrollElement && scrollElement !== document) {
-        scrollElement.addEventListener('scroll', handleScroll, { passive: true });
+        scrollElement.addEventListener('scroll', throttledHandleScroll, { passive: true });
       }
-      
-      // Also listen for touchmove which can help on iOS
-      document.addEventListener('touchmove', handleScroll, { passive: true });
       
       // Call handleScroll once to initialize
       handleScroll();
       
       // Clean up function to remove all listeners
       return () => {
-        document.removeEventListener('scroll', handleScroll);
-        document.removeEventListener('touchmove', handleScroll);
+        document.removeEventListener('scroll', throttledHandleScroll);
         if (scrollElement && scrollElement !== document) {
-          scrollElement.removeEventListener('scroll', handleScroll);
+          scrollElement.removeEventListener('scroll', throttledHandleScroll);
         }
       };
     };
@@ -90,20 +112,26 @@ export function Header({}: HeaderProps) {
   return (
     <>
       <header 
-        className="top-0 sticky z-50 shadow-sm transition-all duration-200 ease-in-out" 
+        className="top-0 sticky z-50 shadow-sm will-change-transform" 
         style={{ 
           backgroundColor: '#96b9a3',
-          paddingTop: isStandalone ? 'env(safe-area-inset-top)' : '0'
+          paddingTop: isStandalone ? 'env(safe-area-inset-top)' : '0',
+          transition: 'all 0.2s cubic-bezier(0.33, 1, 0.68, 1)'
         }}
       >
         <div 
-          className="max-w-[640px] mx-auto flex items-center justify-between transition-all duration-200 ease-in-out"
+          className="max-w-[640px] mx-auto flex items-center justify-between will-change-transform"
           style={{
-            padding: `${0.5 * headerPadding}rem ${1 * headerPadding}rem` // Scale padding with scroll
+            padding: `${0.5 * headerPadding}rem ${1 * headerPadding}rem`,
+            transition: 'all 0.2s cubic-bezier(0.33, 1, 0.68, 1)'
           }}
         >
-          <div className="flex items-center transition-transform duration-200 ease-in-out"
-               style={{ transform: `scale(${scale})`, transformOrigin: 'left center' }}>
+          <div className="flex items-center will-change-transform"
+               style={{ 
+                 transform: `scale(${scale})`, 
+                 transformOrigin: 'left center',
+                 transition: 'transform 0.2s cubic-bezier(0.33, 1, 0.68, 1)'
+               }}>
             <img 
               src={logoImage} 
               alt="Kall-ifornien Logo" 
@@ -113,8 +141,12 @@ export function Header({}: HeaderProps) {
           
           <button
             onClick={openDrawer}
-            className="p-2 text-kallsjon-green-dark hover:bg-gray-100 rounded-md transition-transform duration-200 ease-in-out"
-            style={{ transform: `scale(${scale})`, transformOrigin: 'right center' }}
+            className="p-2 text-kallsjon-green-dark hover:bg-gray-100 rounded-md will-change-transform"
+            style={{ 
+              transform: `scale(${scale})`, 
+              transformOrigin: 'right center',
+              transition: 'transform 0.2s cubic-bezier(0.33, 1, 0.68, 1)'
+            }}
             aria-label="Open menu"
           >
             <Bars3Icon className="h-6 w-6" />
