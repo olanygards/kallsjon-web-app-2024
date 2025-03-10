@@ -9,6 +9,15 @@ interface WindData {
   direction: number;
 }
 
+interface HighlightArea {
+  x: number;
+  y: number;
+  radius: number;
+  minSpeed: number;
+  directionRange: [number, number];
+  label?: string;
+}
+
 interface WindMapProps {
   windData: WindData[];
   forecastData?: WindData[];
@@ -48,6 +57,15 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
   const animationFrameRef = useRef<number | undefined>(undefined);
   const streaksRef = useRef<any[]>([]);
   const timeRef = useRef<number>(0);
+  const latestWindSpeedRef = useRef<number>(0);
+  const latestWindDirectionRef = useRef<number>(0);
+
+  // Define highlight areas - these are surf spots that work with specific wind conditions
+  const highlightAreas: HighlightArea[] = [
+    { x: 240, y: 160, radius: 10, minSpeed: 10, directionRange: [220, 320], label: "Sulviken" }, 
+    { x: 230, y: 135, radius: 10, minSpeed: 10, directionRange: [225, 265], label: "Revet" }, 
+    { x: 265, y: 315, radius: 10, minSpeed: 10, directionRange: [290, 359], label: "Grundsviken" },   
+  ];
 
   // Merge and sort wind data and forecast data
   const mergedData = useMemo(() => {
@@ -160,11 +178,44 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
         if (newStreak) streaks.push(newStreak);
       }
     }
+
+    latestWindSpeedRef.current = windSpeed;
+    latestWindDirectionRef.current = windDirection;
+  };
+
+  const drawFlashingHighlight = (ctx: CanvasRenderingContext2D, windSpeed: number, windDirection: number) => {
+    highlightAreas.forEach(({ x, y, radius, minSpeed, directionRange, label }) => {
+      const [minDir, maxDir] = directionRange;
+
+      // Check if wind conditions match
+      if (windSpeed >= minSpeed && windDirection >= minDir && windDirection <= maxDir) {
+        const pulse = Math.abs(Math.sin(timeRef.current * 0.1)) * 0.6 + 0.4; // Pulsating effect
+        
+        // Draw highlight circle
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 215, 0, ${pulse * 0.7})`; // Golden highlight with fading effect
+        ctx.fill();
+        
+        // Draw a border
+        ctx.strokeStyle = `rgba(255, 140, 0, ${pulse})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Add label if provided
+        if (label) {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(label, x, y + 4);
+        }
+      }
+    });
   };
 
   const drawStreaks = (ctx: CanvasRenderingContext2D, windSpeed: number, windDirection: number) => {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    
+
     ctx.strokeStyle = getWindColor(windSpeed);
     ctx.lineWidth = 3;
     ctx.lineCap = "round";
@@ -179,10 +230,16 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
       );
       ctx.stroke();
     }
+    
     ctx.globalAlpha = 1;
+    
+    // Removed drawFlashingHighlight call from here since we call it separately in animate()
   };
 
   const animate = () => {
+    // Increment time for the pulsating highlight effect
+    timeRef.current += 0.1;
+    
     const canvas = canvasRef.current;
     const waveCanvas = waveCanvasRef.current;
     if (!canvas || !waveCanvas) return;
@@ -197,7 +254,10 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
 
     const { speed, direction } = mergedData[timeIndex];
     
-    timeRef.current += 0.1;
+    // Update wind references for highlights
+    latestWindSpeedRef.current = speed;
+    latestWindDirectionRef.current = direction;
+    
     updateStreaks(waveCanvas, speed, direction);
 
     // Draw waves with correct masking order
@@ -210,6 +270,10 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
     waveCtx.globalCompositeOperation = "destination-in";
     waveCtx.drawImage(maskImg.current, 0, 0, waveCanvas.width, waveCanvas.height);
     waveCtx.globalCompositeOperation = "source-over";
+    
+    // Step 3: Draw the highlights on top of the main canvas (not the wave canvas)
+    // This ensures highlights appear on top of everything
+    drawFlashingHighlight(ctx, speed, direction);
 
     animationFrameRef.current = requestAnimationFrame(animate);
   };
