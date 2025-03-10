@@ -3,16 +3,130 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
     <meta name="color-scheme" content="light dark">
     <title>Surf i Kallsjön</title>
     <meta name="description" content="Aktuell vinddata och prognoser för Kallsjön">
-    <meta name="theme-color" content="#0036a7">
+    <meta name="theme-color" content="#96b9a3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="/manifest.json" crossorigin="use-credentials">
     <link rel="apple-touch-icon" href="/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="apple-touch-startup-image" href="/apple-splash-2048-2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/apple-splash-1668-2388.png" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/apple-splash-1536-2048.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/apple-splash-1125-2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/apple-splash-828-1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/apple-splash-750-1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <style>
+      /* Define CSS variables for safe area insets */
+      :root {
+        --sat: env(safe-area-inset-top);
+        --sab: env(safe-area-inset-bottom);
+        --sal: env(safe-area-inset-left);
+        --sar: env(safe-area-inset-right);
+        scroll-behavior: smooth;
+      }
+      
+      /* iOS status bar styling */
+      @supports (padding-top: env(safe-area-inset-top)) {
+        html {
+          /* Remove padding-top to prevent double padding */
+          background-color: #96b9a3;
+        }
+      }
+      
+      /* Enhanced scroll styling for iOS */
+      html {
+        overflow: hidden;
+        height: 100%;
+        -webkit-text-size-adjust: 100%;
+      }
+      
+      /* Prevent scrolling bounce effect on iOS */
+      html, body {
+        overflow-x: hidden;
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: none;
+        margin: 0;
+        padding: 0;
+      }
+      
+      /* Allow the main content to scroll */
+      #root {
+        height: 100%;
+        overflow-y: auto;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch; /* For better iOS scrolling */
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      /* Fix for PWA and header scaling on scroll */
+      body.standalone #root {
+        overflow-y: scroll;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      /* Ensure iOS respects scroll events */
+      body.ios * {
+        -webkit-transform: translateZ(0);
+      }
+      
+      @media (display-mode: standalone) {
+        body {
+          background-color: #96b9a3;
+        }
+        
+        body.standalone #root header {
+          z-index: 1000;
+        }
+      }
+    </style>
   </head>
   <body class="dark:bg-gray-900">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Add standalone class to body when in PWA mode
+      if (window.matchMedia('(display-mode: standalone)').matches || 
+          (window.navigator.standalone) || 
+          document.referrer.includes('android-app://')) {
+        document.body.classList.add('standalone');
+      }
+      
+      // Add iOS class for specific iOS fixes
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+        document.body.classList.add('ios');
+      }
+      
+      // Monitor scroll events on iOS in a more compatible way
+      document.addEventListener('DOMContentLoaded', function() {
+        const root = document.getElementById('root');
+        if (root) {
+          // Force scroll event registration on iOS
+          root.addEventListener('scroll', function() {}, { passive: true });
+          document.addEventListener('scroll', function() {}, { passive: true });
+          
+          // Initialize window.scrollY polyfill for iOS
+          if (typeof window.scrollY === 'undefined') {
+            Object.defineProperty(window, 'scrollY', {
+              get: function() {
+                return document.documentElement.scrollTop || document.body.scrollTop || root.scrollTop || 0;
+              }
+            });
+          }
+        }
+      });
+    </script>
   </body>
 </html>

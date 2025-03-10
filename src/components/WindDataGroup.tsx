@@ -8,17 +8,19 @@ interface WindDataGroupProps {
   hourData: WindData[];
   isForecast?: boolean;
   hideDropdown?: boolean;
+  initiallyExpanded?: boolean;
 }
 
-export const WindDataGroup = ({ bestWind, hourData, isForecast = false, hideDropdown = false }: WindDataGroupProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+export const WindDataGroup = ({ 
+  bestWind, 
+  hourData,  
+  hideDropdown = false,
+  initiallyExpanded = false
+}: WindDataGroupProps) => {
+  const [isExpanded, setIsExpanded] = useState(initiallyExpanded);
   const [touchStartTime, setTouchStartTime] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
   const hourLabel = format(bestWind.time, 'HH:00');
-
-  // Get the current time
-  const now = new Date();
-  const currentHour = now.getHours();
 
   // Function to get arrow direction
   const getDirectionArrow = (direction: number): string => {
@@ -28,12 +30,12 @@ export const WindDataGroup = ({ bestWind, hourData, isForecast = false, hideDrop
 
   // Sort data by time descending (newest first)
   const sortedHourData = [...hourData].sort((a, b) => b.time.getTime() - a.time.getTime());
-
-  // Check if this is the latest hour group
-  const isLatestHour = !isForecast && bestWind.time.getHours() === currentHour;
   
-  // Determine if details should be shown
-  const showDetails = isLatestHour || isExpanded;
+  // Remove the forced expansion for current hour
+  // const isLatestHour = !isForecast && bestWind.time.getHours() === currentHour;
+  
+  // Determine if details should be shown - now only based on user interaction
+  const showDetails = isExpanded;
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStartTime(Date.now());

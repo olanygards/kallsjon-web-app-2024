@@ -1,6 +1,6 @@
 {
-  "short_name": "Kallsjön Wind",
-  "name": "Kallsjön Wind Data",
+  "short_name": "Kall-ifornien",
+  "name": "Kall-ifornien",
   "icons": [
     {
       "src": "/favicon.ico",
@@ -12,10 +12,16 @@
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff"
+  "theme_color": "#96b9a3",
+  "background_color": "#96b9a3"
 } 

@@ -19,7 +19,6 @@ function Experiments() {
       start: new Date(2020, 0, 1), // Start from January 1, 2020
       end: endOfDay(now)
     };
-    console.log('Overview Date Range:', range);
     return range;
   }, []);
 
@@ -47,44 +46,7 @@ function Experiments() {
 
   // Process the data once it's loaded
   useEffect(() => {
-    console.log('Effect triggered with data:', {
-      dataAvailable: !!overviewWindData,
-      dataLength: overviewWindData?.length || 0,
-      loading: overviewLoading,
-      error: overviewError?.message
-    });
-    
     if (overviewWindData && overviewWindData.length > 0) {
-      console.log('Processing overview data with', overviewWindData.length, 'records');
-      
-      // Log year distribution
-      const yearDistribution = overviewWindData.reduce((acc, item) => {
-        if (!item.time) return acc;
-        
-        // Try to extract year safely
-        let year;
-        try {
-          const date = item.time instanceof Date ? item.time : new Date(item.time);
-          year = date.getFullYear();
-          
-          // Validate year is reasonable
-          if (year < 2000 || year > 2100) {
-            console.warn('Suspicious year value:', {
-              year,
-              originalTime: item.time,
-              parsedDate: date.toString()
-            });
-          }
-        } catch (e) {
-          console.error('Error parsing date:', item.time);
-          return acc;
-        }
-        
-        acc[year] = (acc[year] || 0) + 1;
-        return acc;
-      }, {} as Record<number, number>);
-      
-      console.log('Raw data year distribution:', yearDistribution);
       
       try {
         // Group by date to ensure we only have one entry per day
@@ -152,15 +114,6 @@ function Experiments() {
         // Convert map to array
         const processedData = Array.from(dateMap.values());
         
-        // Log year distribution of processed data
-        const processedYearDistribution = processedData.reduce((acc, item) => {
-          const year = item.time.getFullYear();
-          acc[year] = (acc[year] || 0) + 1;
-          return acc;
-        }, {} as Record<number, number>);
-        
-        console.log('Processed data year distribution:', processedYearDistribution);
-        
         console.log('Processed data:', {
           totalDays: processedData.length,
           sample: processedData.length > 0 ? processedData[0] : null
@@ -208,7 +161,7 @@ function Experiments() {
   , [windData]);
 
   return (
-    <div className="min-h-screen bg-kallsjon-green flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <Header />
       
       <main className="flex-1 container mx-auto px-4 py-6 max-w-screen-2xl">

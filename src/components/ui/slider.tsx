@@ -47,14 +47,6 @@ const createGradientBackground = (data: Array<{ speed: number }> | undefined, fo
     return 'linear-gradient(to right, #f1f1f1, #e1e1e1)';
   }
   
-  // Log the data to help diagnose issues
-  console.log('Creating gradient with:', {
-    dataPoints: data.length,
-    speeds: data.map(d => d.speed).slice(0, 5),
-    forecastStartIndex,
-    allForecast: forecastStartIndex === 0
-  });
-  
   // If there's only 1 data point, create a solid color gradient
   if (data.length === 1) {
     const color = getWindColor(data[0].speed);
@@ -79,7 +71,6 @@ const createGradientBackground = (data: Array<{ speed: number }> | undefined, fo
         r = parseInt(color.slice(1, 3), 16);
         g = parseInt(color.slice(3, 5), 16);
         b = parseInt(color.slice(5, 7), 16);
-        console.log(`Parsed hex color ${color} to RGB: ${r},${g},${b}`);
       } 
       // Handle rgb(r,g,b) format
       else if (color.startsWith('rgb')) {
@@ -105,7 +96,6 @@ const createGradientBackground = (data: Array<{ speed: number }> | undefined, fo
 export function Slider({ min, max, step, value, onChange, className = '', data, forecastStartIndex }: SliderProps) {
   const backgroundStyle = useMemo(() => {
     const gradient = createGradientBackground(data, forecastStartIndex);
-    console.log('Applied gradient:', gradient);
     
     // Ensure we have a fallback color to avoid black backgrounds
     return { 

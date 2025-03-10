@@ -368,11 +368,6 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
 
   // Add logging to see the input data
   useEffect(() => {
-    console.log('WindOverview received data:', {
-      dataLength: windData?.length || 0,
-      hasData: !!windData && windData.length > 0,
-      sample: windData?.length > 0 ? windData[0] : null
-    });
 
     if (windData && windData.length > 0) {
       // Process the data for the chart
@@ -405,11 +400,6 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
           };
         }).filter(Boolean) as BinnedWindData[];
 
-        console.log('WindOverview processed days:', {
-          processedCount: processedDays.length,
-          sample: processedDays.length > 0 ? processedDays[0] : null
-        });
-
         // Set the processed days data
         setWindyDays(processedDays);
         
@@ -432,15 +422,6 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
       try {
         console.log('Processing wind data for year filter. Selected year:', selectedYear);
         
-        // Count data by year for debugging
-        const yearCounts = windData.reduce((acc, day) => {
-          const date = day.time instanceof Date ? day.time : new Date(day.time);
-          const year = date.getFullYear();
-          acc[year] = (acc[year] || 0) + 1;
-          return acc;
-        }, {} as Record<number, number>);
-        
-        console.log('Years present in data:', yearCounts);
         
         // Get the processed days again
         const processedDays: BinnedWindData[] = windData.map(day => {
@@ -449,16 +430,6 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
           // Create date object
           const date = day.time instanceof Date ? day.time : new Date(day.time);
           
-          // Log sample dates to check format
-          if (Math.random() < 0.01) {  // Log ~1% of dates to avoid console spam
-            console.log('Sample date:', {
-              original: day.time,
-              parsed: date,
-              year: date.getFullYear(),
-              toString: date.toString(),
-              isValid: !isNaN(date.getTime())
-            });
-          }
           
           // Determine wind bin
           let windBin: '2-5' | '5-7' | '7-10' | '10+' = '2-5';
@@ -487,7 +458,6 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
   // Function to apply year filter
   const applyYearFilter = (year: number, allDays: BinnedWindData[]) => {
     try {
-      console.log(`Applying year filter for ${year === 0 ? 'ALL YEARS' : year} with ${allDays.length} days`);
       
       // Count by year before filtering
       const yearCounts = allDays.reduce((acc, day) => {
@@ -528,7 +498,6 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
           return matches;
         });
         
-        console.log(`Filtered to ${filteredDays.length} days for year ${year} (from ${allDays.length} total)`);
       } else {
         console.log(`Showing all ${filteredDays.length} days across all years`);
       }
@@ -544,7 +513,6 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
       
       // Filter for days with wind >= 10 m/s
       const strongWindDays = filteredDays.filter(day => day.maxWindSpeed >= 10);
-      console.log(`${strongWindDays.length} days with wind >= 10 m/s out of ${filteredDays.length} total`);
       
       // Update state with filtered days
       setWindyDays(strongWindDays);

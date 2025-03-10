@@ -41,14 +41,6 @@ function DailyView() {
     minForce: 0 // Explicitly set to 0 to get ALL wind data, regardless of wind speed
   });
 
-  // Add logging to verify we're getting all wind data
-  console.log('DailyView wind data:', {
-    date: dateRange.start.toISOString().split('T')[0],
-    count: windData?.length || 0,
-    sample: windData?.slice(0, 3) || [],
-    windSpeeds: windData?.slice(0, 10).map(d => d.windSpeed) || []
-  });
-
   const { data: forecastData, loading: forecastLoading, error: forecastError } = useForecast({
     startDate: dateRange.start,
     endDate: dateRange.end
@@ -216,8 +208,21 @@ function DailyView() {
     return grouped;
   }, [windData]);
 
+  // Add a function to check if a time is in the current hour of today
+  const isCurrentHour = (time: Date): boolean => {
+    const now = new Date();
+    const today = format(now, 'yyyy-MM-dd');
+    const selectedDay = format(currentDate, 'yyyy-MM-dd');
+    const timeDate = format(time, 'yyyy-MM-dd');
+    const currentHour = now.getHours();
+    const timeHour = time.getHours();
+    
+    // Only expand if we're viewing today's date AND the hour matches current hour
+    return today === selectedDay && today === timeDate && currentHour === timeHour;
+  };
+
   return (
-    <div className="min-h-screen bg-kallsjon-green">
+    <div className="min-h-screen">
       <Header />
       <main className="container mx-auto px-4 py-6 max-w-[640px]">
         <div className="overflow-hidden">
@@ -384,34 +389,62 @@ function DailyView() {
           )}
           
           {/* Toggle forecast button */}
-          <div className="flex justify-center mt-4 mb-2">
-            <button
-              onClick={() => setShowForecast(!showForecast)}
-              className={`px-4 py-2 rounded-lg ${
-                showForecast ? 'bg-kallsjon-green-dark text-white' : 'bg-gray-200 text-gray-800'
-              }`}
-            >
-              {showForecast ? 'Dölj prognos' : 'Visa prognos'}
-            </button>
-          </div>
+          {(() => {
+            // Check if we're viewing today's date
+            const now = new Date();
+            const today = format(now, 'yyyy-MM-dd');
+            const selectedDay = format(currentDate, 'yyyy-MM-dd');
+            const isToday = today === selectedDay;
+            
+            // Only show the button when viewing today's date
+            return isToday && (
+              <div className="flex justify-center mt-4 mb-2">
+                <button
+                  onClick={() => setShowForecast(!showForecast)}
+                  className={`px-4 py-2 rounded-lg ${
+                    showForecast ? 'bg-kallsjon-green-dark text-white' : 'bg-gray-200 text-gray-800'
+                  }`}
+                >
+                  {showForecast ? 'Dölj prognos' : 'Visa prognos'}
+                </button>
+              </div>
+            );
+          })()}
           
           {/* Listing for Forecast Data */}
-          {!loading && showForecast && forecastData && forecastData.length > 0 && (
-            <div className="bg-white shadow rounded-lg p-4 mt-4">
-              <h2 className="text-xl font-semibold mb-4 text-gray-900">
-                Prognosvärden
-              </h2>
-              {groupedForecastData.map((forecast) => (
-                <WindDataGroup
-                  key={forecast.time.getTime()}
-                  bestWind={forecast}
-                  hourData={[forecast]} // Pass single item array since it's forecast data
-                  isForecast={true}
-                  hideDropdown={true} // Hide dropdown since there's only one data point
-                />
-              ))}
-            </div>
-          )}
+          {(() => {
+            // Check if we're viewing today's date or a future date
+            const now = new Date();
+            const today = format(now, 'yyyy-MM-dd');
+            const selectedDay = format(currentDate, 'yyyy-MM-dd');
+            const isToday = today === selectedDay;
+            const isFuture = currentDate > now;
+            
+            // Show forecast data when:
+            // 1. Today's date AND showForecast is true, OR
+            // 2. Future date (always show forecast for future dates)
+            return !loading && ((isToday && showForecast) || isFuture) && forecastData && forecastData.length > 0 && (
+              <div className="bg-white shadow rounded-lg p-4 mt-4">
+                <h2 className="text-xl font-semibold mb-4 text-gray-900">
+                  Prognosvärden
+                  {isFuture && !isToday && (
+                    <span className="block text-sm text-gray-600 font-normal mt-1">
+                      Visar endast prognosdata för framtida datum
+                    </span>
+                  )}
+                </h2>
+                {groupedForecastData.map((forecast) => (
+                  <WindDataGroup
+                    key={forecast.time.getTime()}
+                    bestWind={forecast}
+                    hourData={[forecast]} // Pass single item array since it's forecast data
+                    isForecast={true}
+                    hideDropdown={true} // Hide dropdown since there's only one data point
+                  />
+                ))}
+              </div>
+            );
+          })()}
 
           {/* Listing for Observed Data */}
           {!loading && windData && windData.length > 0 && (
@@ -435,14 +468,20 @@ function DailyView() {
                     </h3>
                     {hourGroups
                       .sort((a, b) => b.best.time.getTime() - a.best.time.getTime())
-                      .map(({ best, records }) => (
-                        <WindDataGroup
-                          key={best.time.getTime()}
-                          bestWind={best}
-                          hourData={records.sort((a, b) => b.time.getTime() - a.time.getTime())}
-                          isForecast={false}
-                        />
-                      ))}
+                      .map(({ best, records }) => {
+                        // Check if this is the current hour of today
+                        const isCurrentHourGroup = isCurrentHour(best.time);
+                        
+                        return (
+                          <WindDataGroup
+                            key={best.time.getTime()}
+                            bestWind={best}
+                            hourData={records.sort((a, b) => b.time.getTime() - a.time.getTime())}
+                            isForecast={false}
+                            initiallyExpanded={isCurrentHourGroup}
+                          />
+                        );
+                      })}
                   </div>
                 ))}
             </div>

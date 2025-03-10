@@ -65,27 +65,12 @@ export function useWindData({
           return;
         }
 
-        // Log the query details for debugging
-        console.log('Running wind data query with params:', {
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          collection: 'wind'
-        });
-
         // Fetch from Firebase - note: field name is 'force' in Firestore, not 'windSpeed'
         const windRef = collection(db, 'wind');
         // Log the start and end dates with timestamps
         const startTimestamp = Timestamp.fromDate(startDate);
         const endTimestamp = Timestamp.fromDate(endDate);
         
-        console.log('Date range details:', {
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          startTimestamp,
-          endTimestamp,
-          startTimestampSeconds: startTimestamp.seconds,
-          endTimestampSeconds: endTimestamp.seconds
-        });
         
         // Create the query based on whether filtering by force is needed
         let q;
@@ -99,12 +84,6 @@ export function useWindData({
             orderBy('time', 'asc')
           );
           
-          console.log(`Executing Firestore query with force >= ${minForce} filter:`, {
-            collection: 'wind',
-            timeStart: startDate.toISOString(), 
-            timeEnd: endDate.toISOString(),
-            minForce
-          });
         } else {
           // No force/wind speed filter
           q = query(
@@ -114,19 +93,9 @@ export function useWindData({
             orderBy('time', 'asc')
           );
           
-          console.log('Executing Firestore query with NO force filter:', {
-            collection: 'wind',
-            timeStart: startDate.toISOString(), 
-            timeEnd: endDate.toISOString()
-          });
         }
 
         const querySnapshot = await getDocs(q);
-        console.log('Wind data query returned:', {
-          recordCount: querySnapshot.size,
-          hasData: querySnapshot.size > 0,
-          empty: querySnapshot.empty
-        });
         
         if (querySnapshot.size > 0) {
           const sampleDoc = querySnapshot.docs[0].data();
@@ -153,13 +122,6 @@ export function useWindData({
               isForecast: false
             };
           });
-        
-        // Log with appropriate message based on whether filtering was applied
-        console.log('Processed wind data:', {
-          totalRecords: windData.length,
-          sample: windData.length > 0 ? windData[0] : null,
-          filtered: minForce > 0 ? `Only showing wind speeds >= ${minForce} m/s` : 'Showing all wind speeds'
-        });
 
         // Update cache and state
         if (mounted) {

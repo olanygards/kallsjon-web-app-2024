@@ -61,14 +61,7 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
       ...data,
       isForecast: true // Explicitly mark as forecast data
     }));
-    
-    console.log('WindMap data sources:', {
-      observedCount: observedData.length,
-      forecastCount: forecastOnly.length,
-      observedSample: observedData.slice(0, 1),
-      forecastSample: forecastOnly.slice(0, 1)
-    });
-    
+        
     // Combine and sort
     const allData = [...observedData, ...forecastOnly].sort((a, b) => {
       // Ensure both are string times
@@ -82,14 +75,6 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
       return dateA - dateB;
     });
     
-    // Log the merged data to debug
-    console.log('WindMap merged data:', {
-      totalLength: allData.length,
-      firstForecastIndex: allData.findIndex(d => d.isForecast),
-      hasForecast: allData.some(d => d.isForecast),
-      forecastCount: allData.filter(d => d.isForecast).length,
-      onlyForecast: allData.length > 0 && allData.every(d => d.isForecast)
-    });
     
     return allData;
   }, [windData, forecastData]);
@@ -102,14 +87,11 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
     // Check if all data is forecast
     const onlyForecast = mergedData.every(d => d.isForecast);
     if (onlyForecast) {
-      console.log('Only forecast data available - setting forecastStartIndex to 0');
       return 0;
     }
     
     // Find the index of the first forecast item
-    const firstForecastIndex = mergedData.findIndex(data => data.isForecast);
-    console.log(`Found first forecast at index ${firstForecastIndex} of ${mergedData.length}`);
-    
+    const firstForecastIndex = mergedData.findIndex(data => data.isForecast);  
     return firstForecastIndex;
   }, [mergedData]);
   
@@ -134,15 +116,7 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
         isForecast: data.isForecast
       };
     });
-    
-    console.log('Slider data prepared:', {
-      length: mappedData.length,
-      forecastStartIndex,
-      speedSamples: mappedData.slice(0, 5).map(d => d.speed),
-      minSpeed,
-      forecastSpeeds: mappedData.filter(d => d.isForecast).map(d => d.speed).slice(0, 5)
-    });
-    
+        
     // Map to just what the Slider needs
     return mappedData.map(d => ({ speed: d.speed }));
   }, [mergedData, forecastStartIndex]);
