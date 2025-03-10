@@ -60,14 +60,14 @@ export function Drawer({ isOpen, onClose, children }: DrawerProps) {
           `}
         >
           {/* Drawer content */}
-          <div className="h-full flex flex-col bg-white shadow-xl">
-            <div className="px-4 py-6 bg-kallsjon-green-dark text-white flex items-center justify-between">
-              <h2 className="text-lg font-medium">Meny</h2>
+          <div className="h-full flex flex-col bg-kallsjon-lt-green shadow-xl">
+            <div className="px-4 py-6 bg-kallsjon-lt-green text-white flex items-center justify-between">
+              <h2 className="text-5xl font-bold">Meny</h2>
               <button
                 onClick={onClose}
-                className="rounded-md text-kallsjon-green-dark focus:outline-none"
+                className="rounded-md bg-kallsjon-green text-white focus:outline-none"
               >
-                <XMarkIcon className="h-6 w-6" />
+                <XMarkIcon className="h-8 w-" />
               </button>
             </div>
             
@@ -87,8 +87,8 @@ export function DrawerNavItem({ to, label, onClick }: { to: string; label: strin
       to={to}
       onClick={onClick}
       className={({ isActive }) => 
-        `block px-4 py-3 text-base font-medium border-b border-gray-200 ${
-          isActive ? 'bg-kallsjon-green text-white' : 'text-gray-700 hover:bg-gray-100'
+        `block px-6 py-8 text-3xl font-bold ${
+          isActive ? 'bg-kallsjon-green text-white' : 'text-white hover:bg-gray-100'
         }`
       }
     >

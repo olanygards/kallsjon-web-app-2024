@@ -62,9 +62,9 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
 
   // Define highlight areas - these are surf spots that work with specific wind conditions
   const highlightAreas: HighlightArea[] = [
-    { x: 240, y: 160, radius: 10, minSpeed: 10, directionRange: [220, 320], label: "Sulviken" }, 
-    { x: 230, y: 135, radius: 10, minSpeed: 10, directionRange: [225, 265], label: "Revet" }, 
-    { x: 265, y: 315, radius: 10, minSpeed: 10, directionRange: [290, 359], label: "Grundsviken" },   
+    { x: 240, y: 160, radius: 8, minSpeed: 10, directionRange: [250, 310], label: "Sulviken" }, 
+    { x: 230, y: 135, radius: 8, minSpeed: 12, directionRange: [225, 250], label: "Revet" }, 
+    { x: 265, y: 315, radius: 8, minSpeed: 10, directionRange: [295, 359], label: "Grundsviken" },   
   ];
 
   // Merge and sort wind data and forecast data
@@ -188,26 +188,35 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
       const [minDir, maxDir] = directionRange;
 
       // Check if wind conditions match
-      if (windSpeed >= minSpeed && windDirection >= minDir && windDirection <= maxDir) {
-        const pulse = Math.abs(Math.sin(timeRef.current * 0.1)) * 0.6 + 0.4; // Pulsating effect
+      if (windSpeed >= minSpeed && 
+          ((windDirection >= minDir && windDirection <= maxDir) || 
+           (minDir > maxDir && (windDirection >= minDir || windDirection <= maxDir)))) {
         
-        // Draw highlight circle
+        // Calculate pulsating effect for the circle
+        const pulse = Math.abs(Math.sin(timeRef.current * 0.4)) * 0.4 + 0.7; // Pulsating effect
+        
+        // Draw highlight circle with pulsating effect
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(255, 215, 0, ${pulse * 0.7})`; // Golden highlight with fading effect
         ctx.fill();
         
-        // Draw a border
+        // Draw a border with pulsating effect
         ctx.strokeStyle = `rgba(255, 140, 0, ${pulse})`;
         ctx.lineWidth = 2;
         ctx.stroke();
         
-        // Add label if provided
+        // Add label if provided - with static opacity (no pulsating)
         if (label) {
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-          ctx.font = '12px Arial';
+          // Draw text background for better readability
+          const textWidth = ctx.measureText(label).width;
+          
+          // Draw text with full opacity (static, not pulsating)
+          ctx.fillStyle = 'rgba(255, 255, 255, 1.0)'; // White text, full opacity
+          ctx.font = 'bold 16px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText(label, x, y + 4);
+          ctx.textBaseline = 'middle';
+          ctx.fillText(label, x + textWidth/2, y - 10); // Position text above the circle
         }
       }
     });

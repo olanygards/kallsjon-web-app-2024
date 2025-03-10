@@ -230,7 +230,7 @@ function DailyView() {
           <div className="px-3 flex justify-between items-center">
             <button 
               onClick={() => handleDateChange('prev')}
-              className="text-kallsjon-green font-bold"
+              className="text-kallsjon-green font-bold rounded-full bg-kallsjon-lt-green-light py-3"
             >
               &lt;
             </button>
@@ -242,7 +242,7 @@ function DailyView() {
             </button>
             <button 
               onClick={() => handleDateChange('next')}
-              className="text-kallsjon-green font-bold"
+              className="text-kallsjon-green font-bold rounded-full bg-kallsjon-lt-green-light py-3"
             >
               &gt;
             </button>
@@ -285,8 +285,8 @@ function DailyView() {
           <div className="mb-2 mx-2">
             <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgb(218 244 230)' }}>
               <div className="flex items-center">
-                <div className="w-[70px] text-lg p-2 font-bold text-green-900">
-                  <div className="text-xs text-green-800">Top</div>
+                <div className="w-[90px] text-lg p-2 font-bold text-green-900">
+                  <div className="text-xs text-green-800">Bäst vind</div>
                   {(() => {
                     const maxEntry = findMaxWindData(windData || [], forecastData || []);
                     if (!maxEntry) return "--:--";
@@ -298,7 +298,7 @@ function DailyView() {
                     }
                   })()}
                 </div>
-                <div className="flex-[2] flex items-center justify-end gap-4">
+                <div className="flex-[2] flex items-center justify-end gap-10">
                   <div className="flex flex-col items-center flex-[3]">
                     <div className="text-base">
                       {(() => {

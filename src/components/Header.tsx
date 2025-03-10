@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import { Drawer, DrawerNavItem } from './ui/Drawer';
-import logoImage from '../assets/kall-ifornien-logo-lg-green.png';
+import logoImage from '../assets/kallifornien-logo-lg-green.png';
 
 interface HeaderProps {
   // Remove the title prop since we're not using it
@@ -141,7 +141,7 @@ export function Header({}: HeaderProps) {
           
           <button
             onClick={openDrawer}
-            className="p-2 text-kallsjon-green-dark hover:bg-gray-100 rounded-md will-change-transform"
+            className="p-0 bg-kallsjon-lt-green text-kallsjon-lt-green-light hover:bg-gray-100 rounded-md will-change-transform"
             style={{ 
               transform: `scale(${scale})`, 
               transformOrigin: 'right center',
@@ -156,9 +156,9 @@ export function Header({}: HeaderProps) {
 
       <Drawer isOpen={isDrawerOpen} onClose={closeDrawer}>
         <div className="py-2">
-          <DrawerNavItem to="/" label="Dagsvy" onClick={closeDrawer} />
-          <DrawerNavItem to="/chart" label="Graf vy" onClick={closeDrawer} />
-          <DrawerNavItem to="/experiments" label="Experiment" onClick={closeDrawer} />
+          <DrawerNavItem to="/" label="Hem" onClick={closeDrawer} />
+          <DrawerNavItem to="/chart" label="Grafer" onClick={closeDrawer} />
+          <DrawerNavItem to="/experiments" label="Statistik" onClick={closeDrawer} />
         </div>
       </Drawer>
     </>
