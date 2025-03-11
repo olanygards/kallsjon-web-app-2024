@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react';
-import { format, addDays, subDays, startOfDay, endOfDay } from 'date-fns';
+import { format, addDays, subDays, startOfDay, endOfDay} from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { getSunrise, getSunset } from 'sunrise-sunset-js';
 import WindMap from '../components/WindMap';
 import { useWindData } from '../hooks/useWindData';
 import { useForecast } from '../hooks/useForecast';
+import { useWindyDays } from '../hooks/useWindyDays';
 import { Header } from '../components/Header';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import './date-picker-custom.css';
 import { WindDataGroup } from '../components/WindDataGroup';
 import { WindRating } from '../components/WindRating';
 
@@ -28,6 +30,15 @@ function DailyView() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [showForecast, setShowForecast] = useState(true);
+  
+  // Current year for windy days highlighting
+  const currentYear = useMemo(() => currentDate.getFullYear(), [currentDate]);
+  
+  // Fetch days with strong wind (over 10 m/s)
+  const { windSpeedMap } = useWindyDays({ 
+    minForce: 10,
+    year: currentYear
+  });
   
   // Memoize date range to prevent unnecessary recalculations
   const dateRange = useMemo(() => ({
@@ -221,6 +232,28 @@ function DailyView() {
     return today === selectedDay && today === timeDate && currentHour === timeHour;
   };
 
+
+
+  // Function to get class name for date cell based on wind speed
+  const getDayClassName = (date: Date): string => {
+    if (!date) return '';
+    
+    const dateStr = format(date, 'yyyy-MM-dd');
+    if (!windSpeedMap.has(dateStr)) return '';
+    
+    const speed = windSpeedMap.get(dateStr) || 0;
+    let className = 'text-white rounded-full font-medium ';
+    
+    // Add appropriate color class based on wind speed
+    if (speed >= 16.0) className += 'bg-[#a02109]';
+    else if (speed >= 14.0) className += 'bg-[#005b2f]';
+    else if (speed >= 12.0) className += 'bg-[#388957]';
+    else if (speed >= 11.0) className += 'bg-[#9bb798]';
+    else if (speed >= 10.0) className += 'bg-[#b7d4b4]';
+    
+    return className;
+  };
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -259,8 +292,24 @@ function DailyView() {
 
           {/* Date Picker Modal */}
           {isDatePickerOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-4 rounded-lg">
+            <div className="fixed inset-0 z-50">
+              {/* Semi-transparent overlay for the background */}
+              <div className="absolute inset-0 bg-black bg-opacity-60" onClick={() => setIsDatePickerOpen(false)}></div>
+              
+              {/* Position date picker near the date display */}
+              <div 
+                className="absolute p-4 rounded-lg shadow-lg custom-datepicker-container"
+                style={{ 
+                  top: '40px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  maxWidth: '90%',
+                  width: '395px',
+                  backgroundColor: '#eaf5eb',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.15)'
+                }}
+              >
                 <DatePicker
                   selected={selectedDate}
                   onChange={handleDateSelect}
@@ -268,13 +317,40 @@ function DailyView() {
                   locale={sv}
                   minDate={new Date('2020-01-01')}
                   maxDate={addDays(new Date(), 8)}
+                  dayClassName={getDayClassName}
+                  wrapperClassName="custom-datepicker-wrapper"
+                  calendarClassName="custom-calendar"
                 />
-                <div className="flex justify-end mt-4">
+                
+                {/* Add a simple legend with improved styling */}
+                <div className="mt-3 text-xs text-center p-2 bg-white bg-opacity-80 rounded-md">
+                  <p className="text-xs mb-1 font-medium text-kallsjon-green-dark">Vindstyrka:</p>
+                  <div className="flex flex-wrap justify-center gap-2 mb-1">
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 rounded-full mr-1 bg-[#b7d4b4]"></div>
+                      <span className="text-xs">10-11 m/s</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 rounded-full mr-1 bg-[#388957]"></div>
+                      <span className="text-xs">12-13 m/s</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 rounded-full mr-1 bg-[#005b2f]"></div>
+                      <span className="text-xs text-[#005b2f] font-medium">14-15 m/s</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 rounded-full mr-1 bg-[#a02109]"></div>
+                      <span className="text-xs text-[#a02109] font-medium">16+ m/s</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-center mt-3">
                   <button
                     onClick={() => setIsDatePickerOpen(false)}
-                    className="bg-gray-200 text-gray-800 px-4 py-2 rounded"
+                    className="bg-kallsjon-green text-white px-4 py-2 rounded font-medium"
                   >
-                    Avbryt
+                    Stäng
                   </button>
                 </div>
               </div>
