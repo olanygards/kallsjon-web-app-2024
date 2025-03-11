@@ -63,8 +63,9 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
   // Define highlight areas - these are surf spots that work with specific wind conditions
   const highlightAreas: HighlightArea[] = [
     { x: 240, y: 160, radius: 8, minSpeed: 10, directionRange: [250, 310], label: "Sulviken" }, 
-    { x: 230, y: 135, radius: 8, minSpeed: 12, directionRange: [225, 250], label: "Revet" }, 
-    { x: 265, y: 315, radius: 8, minSpeed: 10, directionRange: [295, 359], label: "Grundsviken" },   
+    { x: 230, y: 135, radius: 8, minSpeed: 11, directionRange: [225, 250], label: "Revet" }, 
+    { x: 230, y: 135, radius: 8, minSpeed: 14, directionRange: [250, 270], label: "Revet" }, 
+    { x: 265, y: 315, radius: 8, minSpeed: 11, directionRange: [295, 359], label: "Grundsviken" },   
   ];
 
   // Merge and sort wind data and forecast data
@@ -184,6 +185,12 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
   };
 
   const drawFlashingHighlight = (ctx: CanvasRenderingContext2D, windSpeed: number, windDirection: number) => {
+    // Fine-tuning parameters for the white background circle
+    const circleOffsetX = -0.4; // Horizontal offset: positive values move right, negative left
+    const circleOffsetY = -0.4; // Vertical offset: positive values move down, negative up
+    const circleRadiusMultiplier = 0.48; // Adjust circle size (larger values = larger circle)
+    const fontSizeMultiplier = 2.4; // Adjust the star size
+    
     highlightAreas.forEach(({ x, y, radius, minSpeed, directionRange, label }) => {
       const [minDir, maxDir] = directionRange;
 
@@ -192,32 +199,62 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
           ((windDirection >= minDir && windDirection <= maxDir) || 
            (minDir > maxDir && (windDirection >= minDir || windDirection <= maxDir)))) {
         
-        // Calculate pulsating effect for the circle
-        const pulse = Math.abs(Math.sin(timeRef.current * 0.4)) * 0.4 + 0.7; // Pulsating effect
+        // Save the current context state
+        ctx.save();
         
-        // Draw highlight circle with pulsating effect
+        // Set the font size based on radius (making it proportional)
+        const fontSize = radius * fontSizeMultiplier;
+        ctx.font = `${fontSize}px Arial`;
+        
+        // Calculate the appropriate circle size
+        const circleRadius = fontSize * circleRadiusMultiplier;
+        
+        // First draw a white solid circle behind the star
         ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 215, 0, ${pulse * 0.7})`; // Golden highlight with fading effect
+        ctx.arc(x + circleOffsetX, y + circleOffsetY, circleRadius, 0, Math.PI * 2);
+        ctx.fillStyle = 'white';
         ctx.fill();
         
-        // Draw a border with pulsating effect
-        ctx.strokeStyle = `rgba(255, 140, 0, ${pulse})`;
-        ctx.lineWidth = 2;
+        // Draw a thin border around the white circle
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.lineWidth = 0.5;
         ctx.stroke();
         
-        // Add label if provided - with static opacity (no pulsating)
+        // Remove shadow effects for the star
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        
+        // Draw the Unicode star ✪
+        ctx.fillStyle = '#FFCC00'; // Bright yellow color
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Draw the Unicode star character
+        ctx.fillText('✪', x, y);
+        
+        // Add label if provided
         if (label) {
-          // Draw text background for better readability
-          const textWidth = ctx.measureText(label).width;
+          // Position text to the right of the star
+          const textX = x + circleRadius + 2; // Position to the right with some spacing
+          const textY = y; // Keep at the same vertical position as the star
           
-          // Draw text with full opacity (static, not pulsating)
-          ctx.fillStyle = 'rgba(255, 255, 255, 1.0)'; // White text, full opacity
+          // Add shadow only for the text
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+          ctx.shadowBlur = 3;
+          ctx.shadowOffsetX = 1;
+          ctx.shadowOffsetY = 1;
+          
+          // Draw text with shadow for better visibility
+          ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
           ctx.font = 'bold 16px Arial';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(label, x + textWidth/2, y - 10); // Position text above the circle
+          ctx.textAlign = 'left'; // Change text alignment to left for positioning to the right
+          ctx.fillText(label, textX, textY);
         }
+        
+        // Restore context
+        ctx.restore();
       }
     });
   };
@@ -242,7 +279,6 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
     
     ctx.globalAlpha = 1;
     
-    // Removed drawFlashingHighlight call from here since we call it separately in animate()
   };
 
   const animate = () => {

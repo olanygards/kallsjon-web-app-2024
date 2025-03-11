@@ -7,9 +7,26 @@ import { Header } from '../components/Header';
 import { useWindData } from '../hooks/useWindData';
 import WindMap from '../components/WindMap';
 
+// Helper function to convert wind direction in degrees to cardinal direction
+function getWindDirection(degrees: number): string {
+  const directions = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSV', 'SV', 'VSV', 'V', 'VNV', 'NV', 'NNV'];
+  const index = Math.round(degrees / 22.5) % 16;
+  return directions[index];
+}
+
+// Helper function to get a color based on wind speed
+function getWindSpeedColor(speed: number): string {
+  if (speed >= 18) return "bg-red-200 dark:bg-red-900 text-gray-900 dark:text-white";
+  if (speed >= 15) return "bg-orange-200 dark:bg-orange-900 text-gray-900 dark:text-white";
+  if (speed >= 12) return "bg-yellow-200 dark:bg-yellow-900 text-gray-900 dark:text-white";
+  if (speed >= 10) return "bg-green-200 dark:bg-green-900 text-gray-900 dark:text-white";
+  return "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white";
+}
+
 function Experiments() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [processedData, setProcessedData] = useState<any[]>([]);
+  const [windDirectionStats, setWindDirectionStats] = useState<Record<string, any[]>>({});
 
   // For WindOverview, we need data from the last few months
   const overviewDateRange = useMemo(() => {
@@ -51,6 +68,8 @@ function Experiments() {
       try {
         // Group by date to ensure we only have one entry per day
         const dateMap = new Map();
+        // Track top days by direction
+        const directionMap: Record<string, any[]> = {};
         
         // Sample a few items to debug
         const sampleItems = overviewWindData.slice(0, 5);
@@ -101,13 +120,33 @@ function Experiments() {
           // than what we've seen before, update the entry for this date
           if (!dateMap.has(dateStr) || 
               item.windSpeed > dateMap.get(dateStr).windSpeed) {
-            dateMap.set(dateStr, {
+            const entry = {
               time: date,
               windSpeed: item.windSpeed,
               windGust: item.windGust || item.windSpeed,
               windDirection: item.windDirection,
-              isForecast: false
-            });
+              isForecast: false,
+              dateStr // Keep the formatted date for easier reference
+            };
+            
+            dateMap.set(dateStr, entry);
+            
+            // Add to direction stats
+            if (item.windDirection !== undefined) {
+              const direction = getWindDirection(item.windDirection);
+              if (!directionMap[direction]) {
+                directionMap[direction] = [];
+              }
+              
+              // Add entry to direction map
+              directionMap[direction].push(entry);
+              
+              // Keep top 5 for each direction
+              directionMap[direction].sort((a, b) => b.windSpeed - a.windSpeed);
+              if (directionMap[direction].length > 5) {
+                directionMap[direction] = directionMap[direction].slice(0, 5);
+              }
+            }
           }
         });
         
@@ -120,6 +159,7 @@ function Experiments() {
         });
         
         setProcessedData(processedData);
+        setWindDirectionStats(directionMap);
       } catch (err) {
         console.error('Error processing wind data:', err);
       }
@@ -159,6 +199,16 @@ function Experiments() {
       direction: item.windDirection !== undefined ? item.windDirection : 0
     })) ?? []
   , [windData]);
+
+  // Get directions with data, sorted by the max wind speed in each direction
+  const directionsWithData = useMemo(() => {
+    return Object.entries(windDirectionStats)
+      .sort((a, b) => {
+        const aMax = Math.max(...a[1].map(item => item.windSpeed));
+        const bMax = Math.max(...b[1].map(item => item.windSpeed));
+        return bMax - aMax;
+      });
+  }, [windDirectionStats]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -208,10 +258,47 @@ function Experiments() {
               ) : (
                 <>
                   {processedData.length > 0 ? (
-                    <WindOverview 
-                      onDateSelect={handleDateSelect}
-                      windData={processedData}
-                    />
+                    <>
+                      <WindOverview 
+                        onDateSelect={handleDateSelect}
+                        windData={processedData}
+                      />
+                      
+                      {/* Top 5 Windy Days by Direction */}
+                      <section className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mt-8">
+                        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                          Topp 5 Blåsiga Dagar efter Vindriktning
+                        </h2>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {directionsWithData.map(([direction, days]) => (
+                            <div key={direction} className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 shadow-sm">
+                              <h3 className="text-lg font-medium mb-2 text-gray-900 dark:text-white flex items-center justify-between">
+                                <span>{direction}</span>
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                  {days[0]?.windDirection?.toFixed(0)}°
+                                </span>
+                              </h3>
+                              
+                              <ul className="space-y-2">
+                                {days.map((day, index) => (
+                                  <li 
+                                    key={index} 
+                                    className={`p-2 rounded-md ${getWindSpeedColor(day.windSpeed)} cursor-pointer hover:brightness-95`}
+                                    onClick={() => handleDateSelect(day.time)}
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <span>{format(day.time, 'd MMM yyyy', { locale: sv })}</span>
+                                      <span className="font-semibold">{day.windSpeed.toFixed(1)} m/s</span>
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    </>
                   ) : (
                     <div className="p-4 text-center bg-white rounded-lg shadow">
                       Ingen data med stark vind (10+ m/s) hittades från 2020 till idag
