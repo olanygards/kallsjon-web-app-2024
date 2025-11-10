@@ -108,9 +108,9 @@ export function Slider({ min, max, step, value, onChange, className = '', data, 
   const validMax = max >= min ? max : min;
 
   return (
-    <div className={`relative flex items-center w-full h-9 touch-none ${className}`}>
+    <div className={`relative flex items-center w-full h-6 touch-none ${className}`}>
       <div 
-        className="absolute w-full h-9 rounded-full cursor-pointer" 
+        className="absolute w-full h-6 rounded-full cursor-pointer" 
         style={backgroundStyle}
       />
       <input

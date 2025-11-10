@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import DailyView from "./pages/DailyView";
 import ChartView from "./pages/ChartView";
 import Experiments from "./pages/Experiments";
+import Now from "./pages/Now";
 
 // Component to handle route changes and app styling
 function AppContent() {
@@ -38,6 +39,7 @@ function AppContent() {
     <div className="min-h-screen bg-kallsjon-green">
       <Routes>
         <Route path="/" element={<DailyView />} />
+        <Route path="/now" element={<Now />} />
         <Route path="/chart" element={<ChartView />} />
         <Route path="/experiments" element={<Experiments />} />
       </Routes>

@@ -3,6 +3,7 @@ import { format, addDays, subDays, startOfDay, endOfDay} from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { getSunrise, getSunset } from 'sunrise-sunset-js';
 import WindMap from '../components/WindMap';
+import { WindChart } from '../components/WindChart';
 import { useWindData } from '../hooks/useWindData';
 import { useForecast } from '../hooks/useForecast';
 import { useWindyDays } from '../hooks/useWindyDays';
@@ -30,6 +31,7 @@ function DailyView() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [showForecast, setShowForecast] = useState(true);
+  const [activeTab, setActiveTab] = useState<'map' | 'chart'>('chart');
   
   // Current year for windy days highlighting
   const currentYear = useMemo(() => currentDate.getFullYear(), [currentDate]);
@@ -358,7 +360,7 @@ function DailyView() {
           )}
           
           {/* Best wind of the day */}
-          <div className="mb-2 mx-2">
+          <div className="mb-2">
             <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgb(218 244 230)' }}>
               <div className="flex items-center">
                 <div className="w-[90px] text-lg p-2 font-bold text-green-900">
@@ -436,33 +438,116 @@ function DailyView() {
             </div>
           </div>
           
-          {/* Wind map */}
-          {loading ? (
-            <div className="p-4 text-center">Laddar vinddata...</div>
-          ) : error ? (
-            <div className="p-4 text-center text-red-500">Kunde inte ladda vinddata</div>
-          ) : (windData?.length > 0 || forecastData?.length > 0) ? (
-            <WindMap 
-              windData={windData?.map(item => {
-                return {
-                  time: item.time instanceof Date ? format(item.time, 'HH:mm') : String(item.time),
-                  speed: item.windSpeed !== undefined ? item.windSpeed : 0,
-                  gust: item.windGust !== undefined ? item.windGust : 0,
-                  direction: item.windDirection !== undefined ? item.windDirection : 0
-                };
-              }) ?? []}
-              forecastData={forecastData?.map(item => {
-                return {
-                  time: item.time instanceof Date ? format(item.time, 'HH:mm') : String(item.time),
-                  speed: item.windSpeed ?? 0,
-                  gust: item.windGust ?? (item.windSpeed ? item.windSpeed * 1.5 : 0),
-                  direction: item.windDirection ?? 0
-                };
-              }) ?? []}
-            />
-          ) : (
-            <div className="p-4 text-center">Ingen vinddata tillgänglig</div>
-          )}
+          {/* Tabs for Karta and Graf */}
+          <div>
+             <div className="flex bg-white rounded-t-lg">
+               <button
+                 onClick={() => setActiveTab('chart')}
+                 className={`flex-1 py-3 font-semibold transition-all rounded-tl-lg border-0 ${
+                   activeTab === 'chart'
+                     ? 'text-kallsjon-green-dark bg-white relative z-10'
+                     : 'text-gray-500 bg-gray-50'
+                 }`}
+                 style={activeTab === 'chart' ? { 
+                   boxShadow: '2px 0 0 rgba(0,0,0,0.1)',
+                   marginBottom: '-1px',
+                   paddingBottom: 'calc(0.75rem + 1px)'
+                 } : {}}
+               >
+                 Graf
+               </button>
+               <button
+                 onClick={() => setActiveTab('map')}
+                 className={`flex-1 py-3 font-semibold transition-all rounded-tr-lg border-0 ${
+                   activeTab === 'map'
+                     ? 'text-kallsjon-green-dark bg-white relative z-10'
+                     : 'text-gray-500 bg-gray-50'
+                 }`}
+                 style={activeTab === 'map' ? { 
+                   boxShadow: '-2px 0 0 rgba(0,0,0,0.1)',
+                   marginBottom: '-1px',
+                   paddingBottom: 'calc(0.75rem + 1px)'
+                 } : {}}
+               >
+                 Karta
+               </button>
+             </div>
+
+            {/* Karta tab content */}
+            {activeTab === 'map' && (
+              <>
+                {loading ? (
+                  <div className="p-4 text-center">Laddar vinddata...</div>
+                ) : error ? (
+                  <div className="p-4 text-center text-red-500">Kunde inte ladda vinddata</div>
+                ) : (windData?.length > 0 || forecastData?.length > 0) ? (
+                  <WindMap 
+                    windData={windData?.map(item => {
+                      return {
+                        time: item.time instanceof Date ? format(item.time, 'HH:mm') : String(item.time),
+                        speed: item.windSpeed !== undefined ? item.windSpeed : 0,
+                        gust: item.windGust !== undefined ? item.windGust : 0,
+                        direction: item.windDirection !== undefined ? item.windDirection : 0
+                      };
+                    }) ?? []}
+                    forecastData={forecastData?.map(item => {
+                      return {
+                        time: item.time instanceof Date ? format(item.time, 'HH:mm') : String(item.time),
+                        speed: item.windSpeed ?? 0,
+                        gust: item.windGust ?? (item.windSpeed ? item.windSpeed * 1.5 : 0),
+                        direction: item.windDirection ?? 0
+                      };
+                    }) ?? []}
+                  />
+                ) : (
+                  <div className="p-4 text-center">Ingen vinddata tillgänglig</div>
+                )}
+              </>
+            )}
+
+            {/* Graf tab content */}
+            {activeTab === 'chart' && (
+              <div className="bg-white rounded-b-lg shadow p-4">
+                {/* Current wind info */}
+                {!loading && !error && windData && windData.length > 0 && (() => {
+                  const latestWind = windData[windData.length - 1];
+                  const windSpeed = latestWind.windSpeed || 0;
+                  const windGust = latestWind.windGust || 0;
+                  const windDirection = latestWind.windDirection || 0;
+                  const timestamp = latestWind.time;
+                  
+                   return (
+                     <div className="mb-3 text-sm text-gray-700 text-center">
+                       <div className="font-semibold text-base">
+                         Just nu: {windSpeed.toFixed(1)}({windGust.toFixed(1)}) m/s, {windDirection}° {getDirectionArrow(windDirection)}
+                       </div>
+                       <div className="text-xs text-gray-500 mt-1">
+                         Senast uppmätt: {format(timestamp, 'HH:mm:ss dd MMM', { locale: sv })}
+                       </div>
+                     </div>
+                   );
+                })()}
+                
+                <div className="h-[400px]">
+                  {loading ? (
+                    <div className="flex items-center justify-center h-full">Laddar vinddata...</div>
+                  ) : error ? (
+                    <div className="flex items-center justify-center h-full text-red-500">Kunde inte ladda vinddata</div>
+                  ) : (
+                    <WindChart
+                      windData={windData ?? []}
+                      forecastData={forecastData ?? []}
+                      title=""
+                      timeRange={24}
+                      zoomEnabled={true}
+                      variant="default"
+                      noCard
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           
           {/* Toggle forecast button */}
           {(() => {

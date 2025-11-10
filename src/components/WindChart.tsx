@@ -17,10 +17,14 @@ import {
 } from 'chart.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import annotationPlugin from 'chartjs-plugin-annotation';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay, addDays } from 'date-fns';
 import { sv } from 'date-fns/locale';
+import { getSunrise, getSunset } from 'sunrise-sunset-js';
 import 'chartjs-adapter-date-fns';
 import { WindData } from '../types/WindData';
+
+const KALLSJON_LAT = 63.4;
+const KALLSJON_LNG = 13.2;
 
 // Register Chart.js components and plugins
 ChartJS.register(
@@ -43,6 +47,7 @@ interface WindChartProps {
   timeRange: number;
   zoomEnabled?: boolean;
   variant?: 'default' | 'experiment';
+  noCard?: boolean;
 }
 
 const getGustColor = (windGust: number): string => {
@@ -76,6 +81,7 @@ export function WindChart({
   timeRange = 1,
   zoomEnabled = false,
   variant = 'default',
+  noCard = false,
 }: WindChartProps) {
   // Combine and sort the data
   const allData = useMemo(() => {
@@ -106,6 +112,45 @@ export function WindChart({
       .map((d) => d.time.getTime());
     return new Date(Math.min(...times));
   }, [forecastData]);
+
+  // Calculate night periods for shading
+  const nightPeriods = useMemo(() => {
+    if (!allData.length) return [];
+    
+    const times = allData.map(d => d.time.getTime());
+    const minTime = new Date(Math.min(...times));
+    const maxTime = new Date(Math.max(...times));
+    
+    const periods: Array<{ start: Date; end: Date }> = [];
+    let currentDay = startOfDay(minTime);
+    const lastDay = endOfDay(maxTime);
+    
+    // Generate night periods for each day in the range
+    while (currentDay <= lastDay) {
+      const sunrise = getSunrise(KALLSJON_LAT, KALLSJON_LNG, currentDay);
+      const sunset = getSunset(KALLSJON_LAT, KALLSJON_LNG, currentDay);
+      
+      // Night period before sunrise (from start of day to sunrise)
+      if (startOfDay(currentDay) < sunrise) {
+        periods.push({
+          start: new Date(Math.max(startOfDay(currentDay).getTime(), minTime.getTime())),
+          end: new Date(Math.min(sunrise.getTime(), maxTime.getTime())),
+        });
+      }
+      
+      // Night period after sunset (from sunset to end of day)
+      if (sunset < endOfDay(currentDay)) {
+        periods.push({
+          start: new Date(Math.max(sunset.getTime(), minTime.getTime())),
+          end: new Date(Math.min(endOfDay(currentDay).getTime(), maxTime.getTime())),
+        });
+      }
+      
+      currentDay = addDays(currentDay, 1);
+    }
+    
+    return periods.filter(p => p.start < p.end);
+  }, [allData]);
 
   // Add a ref for the timer
   const tooltipTimerRef = useRef<number | null>(null);
@@ -307,6 +352,14 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
     return {
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: {
+          left: 0,
+          right: 10,
+          top: 10,
+          bottom: 0,
+        },
+      },
       interaction: {
         mode: 'index',
         intersect: false,
@@ -320,34 +373,28 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
           type: 'time',
           time: {
             displayFormats: {
+              minute: 'HH:mm',
               hour: 'HH:mm',
               day: 'MMM d',
             },
-            unit: isExperiment ? 'day' : 'hour',
+            unit: timeRange <= 0.25 ? 'minute' : (isExperiment ? 'day' : 'hour'),
           },
-          ticks: isExperiment ? {
-            color: '#374151',
-            maxRotation: 0,
-            autoSkip: true,
-            source: 'auto',
-            callback: function (value) {
-              const date = new Date(value as number);
-              return format(date, 'd MMM', { locale: sv });
-            },
-          } : {
-            maxRotation: window.innerWidth < 768 ? 45 : 60,
-            minRotation: 60,
-            autoSkip: window.innerWidth < 768,
-            source: 'auto',
+          ticks: {
+            color: document.documentElement.classList.contains('dark') ? '#E5E7EB' : '#374151',
+            autoSkip: timeRange > 0.25,
+            maxTicksLimit: timeRange <= 0.25 ? 20 : (window.innerWidth < 768 ? 6 : undefined),
+            padding: 5,
             callback: function (value, index, ticks) {
               const date = new Date(value as number);
+              // Always show HH:mm for very short time ranges (like the Now page)
+              if (timeRange <= 0.25) {
+                return format(date, 'HH:mm');
+              }
               const previousTick = ticks[index - 1];
               const previousDate = previousTick ? new Date(previousTick.value as number) : null;
-
               if (!previousDate || date.getDate() !== previousDate.getDate()) {
                 return format(date, 'd MMM', { locale: sv });
               }
-
               if (timeRange === 1) {
                 if (date.getHours() % 1 === 0 && date.getMinutes() === 0) {
                   return format(date, 'HH:mm');
@@ -361,10 +408,8 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
                   return format(date, 'HH:mm');
                 }
               }
-
               return '';
             },
-            maxTicksLimit: window.innerWidth < 768 ? 6 : undefined,
           },
           grid: {
             display: true,
@@ -379,6 +424,10 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
           title: {
             display: true,
             text: 'Vindstyrka (m/s)',
+            padding: { top: 0, bottom: 5 },
+          },
+          ticks: {
+            padding: 5,
           },
           grid: isExperiment ? {
             color: 'rgba(0, 0, 0, 0.1)',
@@ -443,6 +492,20 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
         } : undefined,
         annotation: isExperiment ? undefined : {
           annotations: {
+            // Night period shading
+            ...Object.fromEntries(
+              nightPeriods.map((period, index) => [
+                `night${index}`,
+                {
+                  type: 'box',
+                  xMin: period.start.getTime(),
+                  xMax: period.end.getTime(),
+                  backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                  borderWidth: 0,
+                  drawTime: 'beforeDatasetsDraw',
+                },
+              ])
+            ),
             goodWind: {
               type: 'line',
               yMin: 10,
@@ -482,7 +545,7 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
         },
       },
     };
-  }, [customTooltip, timeRange, forecastStartTime, windData.length, window.innerWidth, zoomEnabled, variant]);
+  }, [customTooltip, timeRange, forecastStartTime, windData.length, window.innerWidth, zoomEnabled, variant, nightPeriods]);
 
   // Clean up timer on unmount
   useEffect(() => {
@@ -509,19 +572,20 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
     return <div className="p-4 text-gray-500">Ingen data tillgänglig</div>;
   }
 
-  return (
-    <div className={variant === 'experiment' ? 'bg-white rounded-lg' : 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow'}>
-      <h2 className="text-lg font-semibold mb-4 dark:text-white">{title}</h2>
-      <div className="relative h-[calc(100vh-600px)] min-h-[200px]">
+  const chartContent = (
+    <div className="h-full w-full flex flex-col">
+      {title && <h2 className="text-lg font-semibold mb-2 dark:text-white">{title}</h2>}
+      <div className="relative flex-1 min-h-0 w-full">
         {zoomEnabled && (
           <button
             onClick={handleResetZoom}
-            className="absolute top-2 right-2 px-3 py-1 bg-white text-kallsjon-green-dark rounded-md text-sm hover:bg-gray-50 border border-kallsjon-green"
+            className="absolute top-2 right-2 px-3 py-1 bg-white text-kallsjon-green-dark rounded-md text-sm hover:bg-gray-50 border border-kallsjon-green z-10"
           >
             Återställ zoom
           </button>
         )}
-        <Line ref={chartRef} data={chartData} options={{
+        <div className="h-full w-full">
+          <Line ref={chartRef} data={chartData} options={{
           ...options,
           scales: variant === 'experiment' ? options.scales : {
             ...(options?.scales ?? {}),
@@ -570,7 +634,18 @@ innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
               },
             },
           },
-        }} />
+        }} className="h-full w-full" />
+        </div>
+      </div>
+    </div>
+  );
+
+  return noCard ? (
+    chartContent
+  ) : (
+    <div className="bg-white rounded-lg shadow px-3 py-3 w-full">
+      <div className="h-[350px] w-full flex flex-col">
+        {chartContent}
       </div>
     </div>
   );

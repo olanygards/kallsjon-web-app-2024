@@ -3,6 +3,7 @@ import { useForecast } from '../hooks/useForecast';
 import { WindChart } from '../components/WindChart';
 import { PullToRefresh } from '../components/PullToRefresh';
 import { WindDataGroup } from '../components/WindDataGroup';
+import { Header } from '../components/Header';
 import { getSunrise, getSunset } from 'sunrise-sunset-js';
 import { CONFIG } from '../config/constants';
 import {
@@ -397,15 +398,9 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-kallsjon-green dark:bg-gray-900">
+      <Header onLogoClick={handleTodayClick} />
       <PullToRefresh onRefresh={handleRefresh}>
-        <header className="bg-kallsjon-green shadow mb-6">
-          <div className="max-w-7xl mx-auto py-4 px-4">
-            <h1 className="text-3xl font-bold text-white text-center">Kallifornien</h1>
-          </div>
-        </header>
-      </PullToRefresh>
-      
-      <main className="max-w-7xl mx-auto px-4">
+        <main className="max-w-7xl mx-auto px-4">
         <div className="mb-4 flex items-center gap-2 justify-center">
           <button
             onClick={() => findNextWindyDate('backward')}
@@ -578,6 +573,7 @@ function Home() {
           </>
         )}
       </main>
+      </PullToRefresh>
     </div>
   );
 }

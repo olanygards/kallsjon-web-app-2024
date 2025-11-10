@@ -350,9 +350,9 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
   }, [timeIndex]);
 
   return (
-    <div className="p-2 space-y-3 md:p-4 md:space-y-4 w-full md:max-w-2xl mx-auto">
+    <div className="bg-white shadow rounded-b-lg p-4 w-full md:max-w-2xl mx-auto">
       {/* Wind data display - updated styling */}
-      <div className="mb-2">
+      <div className="mb-3">
         <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700">
           <div className="flex items-center">
             <div className="w-[70px] text-lg p-2 font-bold text-gray-900 dark:text-white">
@@ -392,23 +392,23 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
       </div>
 
       {/* Map */}
-      <div className="relative w-full aspect-square">
+      <div className="relative w-full aspect-square overflow-hidden rounded-lg">
         <canvas
           ref={canvasRef}
           width={400}
           height={400}
-          className="absolute top-2 left-0 w-full h-full"
+          className="absolute top-0 left-0 w-full h-full"
         />
         <canvas
           ref={waveCanvasRef}
           width={400}
           height={400}
-          className="absolute top-2 left-0 w-full h-full"
+          className="absolute top-0 left-0 w-full h-full"
         />
       </div>
 
       {/* Slider */}
-      <div className="relative pt-4">
+      <div className="relative pt-6">
         <Slider
           min={0}
           max={mergedData.length > 0 ? mergedData.length - 1 : 0}
@@ -419,7 +419,7 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
           forecastStartIndex={forecastStartIndex >= 0 ? forecastStartIndex : undefined}
           className="relative z-10"
         />
-        <div className="flex justify-between text-sm text-white mt-2">
+        <div className="flex justify-between text-sm text-gray-600 mt-2">
           <span>{mergedData.length > 0 ? mergedData[0].time : "00:00"}</span>
           <span>{mergedData.length > 0 ? mergedData[Math.floor(mergedData.length / 2)].time : "12:00"}</span>
           <span>{mergedData.length > 0 ? mergedData[mergedData.length - 1].time : "23:59"}</span>

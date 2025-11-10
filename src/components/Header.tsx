@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import { Drawer, DrawerNavItem } from './ui/Drawer';
 import logoImage from '../assets/kallifornien-logo-lg-green.png';
 
 interface HeaderProps {
-  // Remove the title prop since we're not using it
+  onLogoClick?: () => void;
 }
 
 // Throttle function to limit how often the scroll handler fires
@@ -19,7 +20,7 @@ function throttle(func: Function, limit: number): (...args: any[]) => void {
   };
 }
 
-export function Header({}: HeaderProps) {
+export function Header({ onLogoClick }: HeaderProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [scrollY, setScrollY] = useState(0);
@@ -126,18 +127,39 @@ export function Header({}: HeaderProps) {
             transition: 'all 0.2s cubic-bezier(0.33, 1, 0.68, 1)'
           }}
         >
-          <div className="flex items-center will-change-transform"
-               style={{ 
-                 transform: `scale(${scale})`, 
-                 transformOrigin: 'left center',
-                 transition: 'transform 0.2s cubic-bezier(0.33, 1, 0.68, 1)'
-               }}>
-            <img 
-              src={logoImage} 
-              alt="Kall-ifornien Logo" 
-              className="h-8 w-auto"
-            />
-          </div>
+          {onLogoClick ? (
+            <button
+              onClick={onLogoClick}
+              className="flex items-center will-change-transform cursor-pointer bg-transparent border-none p-0"
+              style={{ 
+                transform: `scale(${scale})`, 
+                transformOrigin: 'left center',
+                transition: 'transform 0.2s cubic-bezier(0.33, 1, 0.68, 1)'
+              }}
+            >
+              <img 
+                src={logoImage} 
+                alt="Kall-ifornien Logo" 
+                className="h-8 w-auto"
+              />
+            </button>
+          ) : (
+            <Link 
+              to="/" 
+              className="flex items-center will-change-transform cursor-pointer"
+              style={{ 
+                transform: `scale(${scale})`, 
+                transformOrigin: 'left center',
+                transition: 'transform 0.2s cubic-bezier(0.33, 1, 0.68, 1)'
+              }}
+            >
+              <img 
+                src={logoImage} 
+                alt="Kall-ifornien Logo" 
+                className="h-8 w-auto"
+              />
+            </Link>
+          )}
           
           <button
             onClick={openDrawer}
@@ -157,6 +179,7 @@ export function Header({}: HeaderProps) {
       <Drawer isOpen={isDrawerOpen} onClose={closeDrawer}>
         <div className="py-2">
           <DrawerNavItem to="/" label="Hem" onClick={closeDrawer} />
+          <DrawerNavItem to="/now" label="Now" onClick={closeDrawer} />
           <DrawerNavItem to="/chart" label="Grafer" onClick={closeDrawer} />
           <DrawerNavItem to="/experiments" label="Statistik" onClick={closeDrawer} />
         </div>

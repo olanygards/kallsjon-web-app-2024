@@ -28,6 +28,15 @@ export const WindDataGroup = ({
     return directions[Math.round(((direction % 360) / 45)) % 8];
   };
 
+  // Function to get background color based on wind speed
+  const getBackgroundColor = (windSpeed: number): string => {
+    if (windSpeed >= 18) return 'bg-red-200 dark:bg-red-900';
+    if (windSpeed >= 15) return 'bg-orange-200 dark:bg-orange-900';
+    if (windSpeed >= 12) return 'bg-yellow-200 dark:bg-yellow-900';
+    if (windSpeed >= 10) return 'bg-green-200 dark:bg-green-900';
+    return 'bg-gray-100 dark:bg-gray-700';
+  };
+
   // Sort data by time descending (newest first)
   const sortedHourData = [...hourData].sort((a, b) => b.time.getTime() - a.time.getTime());
   
@@ -78,7 +87,8 @@ export const WindDataGroup = ({
             {sortedHourData.map((data) => (
               <div
                 key={data.time.getTime()}
-                className="flex items-center justify-between p-1 bg-white dark:bg-gray-800 rounded"
+                className={`flex items-center justify-between rounded ${getBackgroundColor(data.windSpeed)}`}
+                style={{ padding: '10px 15px 12px 10px' }}
               >
                 <div className="w-[50px] text-lg text-gray-900 dark:text-white">
                   {format(data.time, 'HH:mm')}
@@ -110,17 +120,7 @@ export const WindDataGroup = ({
       {/* Hour header - always visible */}
       <div
         onClick={() => !hideDropdown && setIsExpanded(!isExpanded)}
-        className={`p-2 rounded-lg cursor-pointer focus:outline-none ${
-          bestWind.windSpeed >= 18
-            ? 'bg-red-200 dark:bg-red-900'
-            : bestWind.windSpeed >= 15
-            ? 'bg-orange-200 dark:bg-orange-900'
-            : bestWind.windSpeed >= 12
-            ? 'bg-yellow-200 dark:bg-yellow-900'
-            : bestWind.windSpeed >= 10
-            ? 'bg-green-200 dark:bg-green-900'
-            : 'bg-gray-100 dark:bg-gray-700'
-        } hover:brightness-100`}
+        className={`p-2 rounded-lg cursor-pointer focus:outline-none ${getBackgroundColor(bestWind.windSpeed)} hover:brightness-100`}
       >
         <div className="flex items-center">
           <div className="w-[70px] text-lg p-2 font-bold text-gray-900 dark:text-white">

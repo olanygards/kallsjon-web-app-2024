@@ -359,7 +359,7 @@ interface WindOverviewProps {
 }
 
 export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number>(0); // 0 means "all years"
   const [loading, setLoading] = useState(false);
   const [windyDays, setWindyDays] = useState<BinnedWindData[]>([]);
   const chartRef = useRef<any>(null);
@@ -400,13 +400,9 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
           };
         }).filter(Boolean) as BinnedWindData[];
 
-        // Set the processed days data
+        // The second useEffect will handle filtering by year and wind speed
+        // Just set the raw processed days here
         setWindyDays(processedDays);
-        
-        // Apply year filter if a year is selected
-        if (selectedYear) {
-          applyYearFilter(selectedYear, processedDays);
-        }
       } catch (err) {
         console.error('Error processing wind data in WindOverview:', err);
       }
@@ -672,7 +668,7 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
   const annotations: Record<string, any> = {};
 
   // Monthly separators when a year is selected
-  if (selectedYear) {
+  if (selectedYear !== 0) {
     const monthsSeen = new Set<number>();
     windyDays.forEach((day, index) => {
       const month = day.date.getMonth(); // Get 0-11 for months
@@ -699,7 +695,7 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
   }
 
   // Year separators when all years are shown
-  if (!selectedYear) {
+  if (selectedYear === 0) {
     const yearsSeen = new Set<number>();
     windyDays.forEach((day, index) => {
       const year = day.date.getFullYear();
@@ -809,7 +805,7 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
       <div className="p-4 border-b">
         <h2 className="text-xl font-semibold">Översikt - dagar över 10 m/s</h2>
         <p className="text-gray-600 text-sm mt-1">
-          {selectedYear 
+          {selectedYear !== 0
             ? `Visar alla dagar med vind över 10 m/s under ${selectedYear}, sorterade efter datum.`
             : 'Visar alla dagar med vind över 10 m/s över alla år, sorterade efter datum.'} Klicka på en punkt för att se detaljerad data för den dagen.
         </p>
@@ -818,7 +814,7 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
           <button
             onClick={() => handleYearSelect(null)}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              selectedYear === null
+              selectedYear === 0
                 ? 'bg-green-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
