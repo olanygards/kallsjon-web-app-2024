@@ -28,8 +28,9 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
     const currentY = e.touches[0].clientY;
     const diff = currentY - startY;
     
-    if (diff > 0) {
-      api.start({ transform: `translateY(${diff / 2}px)` });
+    // Lägg till deadzone och minska känslighet
+    if (diff > 20) { // Deadzone: 20px innan rörelse börjar
+      api.start({ transform: `translateY(${(diff - 20) / 3}px)` }); // Mindre rörelse (diff/3 istället för diff/2)
     }
   };
 
@@ -42,7 +43,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
     const match = currentTransform.match(/translateY\((.*?)px\)/);
     const currentY = match ? parseFloat(match[1]) : 0;
     
-    if (currentY > 100) {
+    if (currentY > 80) { // Sänkt från 100 till 80px (pga deadzone)
       try {
         api.start({ transform: 'translateY(50px)' });
         await onRefresh();
@@ -64,7 +65,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
         {isDragging && (
           <div className="text-center text-gray-500 dark:text-gray-400 py-4">
             {styles.transform.get().match(/translateY\((.*?)px\)/) && 
-             parseFloat(styles.transform.get().match(/translateY\((.*?)px\)/)?.[1] || '0') > 50 
+             parseFloat(styles.transform.get().match(/translateY\((.*?)px\)/)?.[1] || '0') > 60 
               ? 'Släpp för att uppdatera' 
               : 'Dra ner för att uppdatera'}
           </div>

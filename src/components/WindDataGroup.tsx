@@ -105,7 +105,7 @@ export const WindDataGroup = ({
                     </div>
                   </div>
                   <div className="flex items-center gap-1 w-[55px]">
-                    <span className="text-lg">{data.windDirection}°</span>
+                    <span className="text-lg">{Math.round(data.windDirection)}°</span>
                     <span className="text-xl transform rotate-[270deg -90deg] inline-block">
                       {getDirectionArrow(data.windDirection)}
                     </span>
@@ -138,7 +138,7 @@ export const WindDataGroup = ({
               </div>
             </div>
             <div className="flex items-center gap-1 w-[55px]">
-              <span className="text-sm">{bestWind.windDirection}°</span>
+              <span className="text-sm">{Math.round(bestWind.windDirection)}°</span>
               <span className="font-bold text-xl transform rotate-[270deg -90deg] inline-block">
                 {getDirectionArrow(bestWind.windDirection)}
               </span>

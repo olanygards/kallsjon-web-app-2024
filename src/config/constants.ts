@@ -13,4 +13,57 @@ export const CONFIG = {
       TOO_STRONG: { min: 14, max: Infinity }
     }
   }
+};
+
+// Trunkerade koordinater (4 decimaler) enligt MET Norway rekommendationer
+export const KALLSJON = {
+  lat: 63.6275,    // Uppdaterad från 63.3 för högre precision
+  lon: 13.0565,    // Uppdaterad från 13.8 för högre precision
+  altitude: 382    // meter över havet, för MET Norway
+} as const;
+
+export const FORECAST_MODELS = {
+  SMHI: {
+    id: 'smhi' as const,
+    name: 'SMHI',
+    color: '#0b7c46',
+    url: 'https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point',
+    attribution: '© SMHI',
+    license: 'CC BY 4.0'
+  },
+  MET_NORWAY: {
+    id: 'met_norway' as const,
+    name: 'MET Norway',
+    color: '#ff8c42',
+    url: 'https://api.met.no/weatherapi/locationforecast/2.0/compact',
+    userAgent: 'KallsjonApp/1.0 (olanygards@gmail.com)',
+    attribution: '© MET Norway',
+    license: 'CC BY 4.0'
+  },
+  CONSENSUS: {
+    id: 'consensus' as const,
+    name: 'Consensus',
+    color: '#6b7280',  // neutral grå
+    attribution: 'Beräknad från SMHI och MET Norway'
+  },
+  OBSERVED: {
+    id: 'observed' as const,
+    name: 'Observerat',
+    color: '#1f2937', // mörkgrå
+    attribution: 'Observerad data'
+  }
+} as const;
+
+export const WIND_CALENDAR_COLORS = {
+  RANGE_10_11: '#49654c',
+  RANGE_12_13: '#0b7c46',
+  RANGE_14_15: '#005b2f',
+  RANGE_16_PLUS: '#ad3c1f',
+  BELOW_10: '#e5e7eb'
+} as const;
+
+export const FETCH_CONFIG = {
+  TIMEOUT_MS: 6000,
+  MAX_RETRIES: 1,
+  CACHE_DURATION_MS: 15 * 60 * 1000  // 15 min
 }; 

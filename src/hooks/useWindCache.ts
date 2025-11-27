@@ -1,10 +1,13 @@
 import { useRef } from 'react';
-import { format } from 'date-fns';
+import { format, startOfMonth, differenceInDays } from 'date-fns';
 
-interface CacheItem<T> {
+// Per-month cache entry for observations or stats
+interface MonthCacheEntry<T> {
   data: T[];
   timestamp: number;
-  expiresIn: number;
+  month: string;        // "2025-11"
+  minForce: number;     // 0 for complete data, >0 for filtered
+  permanent: boolean;   // true for data >7 days old
 }
 
 // Helper function to revive dates in objects
@@ -31,118 +34,390 @@ function reviveDates<T>(obj: any): T {
 }
 
 interface WindCacheOptions {
-  expirationTime?: number; // in milliseconds, default 7 days for historical data
-  baseKey?: string;
-  maxAge?: number; // in milliseconds, how fresh should recent data be
+  currentMonthTTL?: number;     // TTL for current month (default: 5 min)
+  previousMonthTTL?: number;    // TTL for previous month (default: 30 min)
+  permanentDataAgeDays?: number; // Days after which data becomes permanent (default: 7)
 }
 
 export function useWindCache<T>(
   options: WindCacheOptions = {}
 ) {
   const {
-    expirationTime = 7 * 24 * 60 * 60 * 1000, // 7 days
-    baseKey = 'windData',
-    maxAge = 30 * 60 * 1000 // 30 minutes
+    currentMonthTTL = 30 * 1000,            // 30 sec (for real-time Overview data)
+    previousMonthTTL = 30 * 60 * 1000,      // 30 min
+    permanentDataAgeDays = 7
   } = options;
 
-  const keyRef = useRef(baseKey);
-  const expirationTimeRef = useRef(expirationTime);
-  const maxAgeRef = useRef(maxAge);
+  const currentMonthTTLRef = useRef(currentMonthTTL);
+  const previousMonthTTLRef = useRef(previousMonthTTL);
+  const permanentDataAgeDaysRef = useRef(permanentDataAgeDays);
 
-  // Get data for a specific date from localStorage
-  const getStoredDataForDate = (date: Date): T[] => {
+  /**
+   * Generate cache key for a month
+   * Format: obs:2025-11 (observations) or stats:2025-11-minForce10 (stats)
+   */
+  const getMonthKey = (date: Date, minForce: number = 0): string => {
+    const month = format(date, 'yyyy-MM');
+    if (minForce > 0) {
+      return `stats:${month}-minForce${minForce}`;
+    }
+    return `obs:${month}`;
+  };
+
+  /**
+   * Calculate TTL for a month based on its age
+   * - Current month: 5-10 min
+   * - Previous month: 30 min
+   * - Older than 7 days: permanent (Infinity)
+   */
+  const getMonthTTL = (date: Date): number => {
+    const now = new Date();
+    const monthStart = startOfMonth(date);
+    const currentMonthStart = startOfMonth(now);
+
+    // Calculate how many days ago this month started
+    const daysDiff = differenceInDays(currentMonthStart, monthStart);
+
+    // Current month (0 days diff)
+    if (daysDiff === 0) {
+      return currentMonthTTLRef.current;
+    }
+
+    // Previous month (roughly 30 days diff, but can vary)
+    if (daysDiff <= 31) {
+      return previousMonthTTLRef.current;
+    }
+
+    // Older months: permanent cache
+    return Infinity;
+  };
+
+  /**
+   * Get stored data for a specific month from localStorage
+   */
+  const getStoredDataForMonth = (date: Date, minForce: number = 0): T[] => {
     try {
-      const dateKey = `${keyRef.current}-${format(date, 'yyyy-MM-dd')}`;
-      const storedItem = localStorage.getItem(dateKey);
-      
+      const monthKey = getMonthKey(date, minForce);
+      const storedItem = localStorage.getItem(monthKey);
+
       if (!storedItem) return [];
 
-      const cacheItem: CacheItem<T> = JSON.parse(storedItem);
-      const { data, timestamp } = cacheItem;
-      
-      // Check if this day's cache has expired
-      if (Date.now() - timestamp > expirationTimeRef.current) {
-        localStorage.removeItem(dateKey);
+      const cacheEntry: MonthCacheEntry<T> = JSON.parse(storedItem);
+      const { data, timestamp, permanent } = cacheEntry;
+
+      // If permanent cache, never expire
+      if (permanent) {
+        return reviveDates<T[]>(data);
+      }
+
+      // Check if cache has expired based on month age
+      const ttl = getMonthTTL(date);
+      if (ttl !== Infinity && Date.now() - timestamp > ttl) {
+        localStorage.removeItem(monthKey);
         return [];
       }
 
       return reviveDates<T[]>(data);
     } catch (error) {
-      console.error('Error reading from cache:', error);
+      console.error('Error reading month cache:', error);
       return [];
     }
   };
 
-  // Store data for a specific date
-  const setStoredDataForDate = (date: Date, data: T[]) => {
+  /**
+   * Store data for a specific month in localStorage
+   */
+  const setStoredDataForMonth = (date: Date, data: T[], minForce: number = 0): void => {
     try {
-      const dateKey = `${keyRef.current}-${format(date, 'yyyy-MM-dd')}`;
-      const cacheItem: CacheItem<T> = {
+      const monthKey = getMonthKey(date, minForce);
+      const monthStart = startOfMonth(date);
+      const now = new Date();
+
+      // Determine if this data should be permanent
+      const daysSinceMonthStart = differenceInDays(now, monthStart);
+      const isPermanent = daysSinceMonthStart > permanentDataAgeDaysRef.current;
+
+      const cacheEntry: MonthCacheEntry<T> = {
         data,
         timestamp: Date.now(),
-        expiresIn: expirationTimeRef.current
+        month: format(date, 'yyyy-MM'),
+        minForce,
+        permanent: isPermanent
       };
 
-      localStorage.setItem(dateKey, JSON.stringify(cacheItem, (_k, value) => {
+      localStorage.setItem(monthKey, JSON.stringify(cacheEntry, (_k, value) => {
         if (value instanceof Date) {
           return value.toISOString();
         }
         return value;
       }));
     } catch (error) {
-      console.error('Error saving to cache:', error);
+      console.error('Error saving month cache:', error);
+      // If quota exceeded, try aggressive cleanup
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        console.warn('localStorage quota exceeded, attempting aggressive cleanup');
+
+        // Strategy 1: Remove all non-permanent caches
+        clearNonPermanentCaches();
+
+        // Strategy 2: If still not enough, remove oldest permanent caches
+        // Keep only last 6 months of permanent data
+        clearOldestCaches(6);
+
+        // Retry once after cleanup
+        try {
+          const monthKey = getMonthKey(date, minForce);
+          const cacheEntry: MonthCacheEntry<T> = {
+            data,
+            timestamp: Date.now(),
+            month: format(date, 'yyyy-MM'),
+            minForce,
+            permanent: false // Don't make it permanent if we're struggling with space
+          };
+          localStorage.setItem(monthKey, JSON.stringify(cacheEntry, (_k, value) => {
+            if (value instanceof Date) {
+              return value.toISOString();
+            }
+            return value;
+          }));
+          console.log('Successfully saved after cleanup');
+        } catch (retryError) {
+          console.error('Failed to save cache even after cleanup, falling back to in-memory only');
+          // Silently fail - data will still work, just no localStorage persistence
+        }
+      }
     }
   };
 
-  // Check if data for a specific date is fresh
-  const isDataFreshForDate = (date: Date): boolean => {
+  /**
+   * Check if data for a specific month is fresh (in cache and not expired)
+   */
+  const isMonthDataFresh = (date: Date, minForce: number = 0): boolean => {
     try {
-      const dateKey = `${keyRef.current}-${format(date, 'yyyy-MM-dd')}`;
-      const storedItem = localStorage.getItem(dateKey);
-      
+      const monthKey = getMonthKey(date, minForce);
+      const storedItem = localStorage.getItem(monthKey);
+
       if (!storedItem) return false;
 
-      const cacheItem: CacheItem<T> = JSON.parse(storedItem);
-      const { timestamp } = cacheItem;
+      const cacheEntry: MonthCacheEntry<T> = JSON.parse(storedItem);
+      const { timestamp, permanent } = cacheEntry;
 
-      const dateStr = format(date, 'yyyy-MM-dd');
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const yesterday = format(new Date(Date.now() - 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
+      // Permanent cache is always fresh
+      if (permanent) return true;
 
-      // For today or yesterday, check if data is within maxAge
-      if (dateStr === today || dateStr === yesterday) {
-        return Date.now() - timestamp < maxAgeRef.current;
-      }
+      // Check TTL
+      const ttl = getMonthTTL(date);
+      if (ttl === Infinity) return true;
 
-      // For older dates, check if cache hasn't expired
-      return Date.now() - timestamp < expirationTimeRef.current;
+      return Date.now() - timestamp < ttl;
     } catch (error) {
-      console.error('Error checking cache freshness:', error);
+      console.error('Error checking month cache freshness:', error);
       return false;
     }
   };
 
-  // Clear cache for a specific date
-  const clearCacheForDate = (date: Date) => {
-    const dateKey = `${keyRef.current}-${format(date, 'yyyy-MM-dd')}`;
-    localStorage.removeItem(dateKey);
+  /**
+   * Clear cache for a specific month
+   */
+  const clearCacheForMonth = (date: Date, minForce: number = 0): void => {
+    const monthKey = getMonthKey(date, minForce);
+    localStorage.removeItem(monthKey);
   };
 
-  // Clear all cached data
-  const clearAllCache = () => {
+  /**
+   * Clear all cached data (both obs: and stats: prefixes)
+   */
+  const clearAllCache = (): void => {
+    const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key?.startsWith(keyRef.current)) {
-        localStorage.removeItem(key);
+      if (key?.startsWith('obs:') || key?.startsWith('stats:')) {
+        keysToRemove.push(key);
       }
     }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+  };
+
+  /**
+   * Clear all non-permanent caches to free up space
+   */
+  const clearNonPermanentCaches = (): void => {
+    const keysToRemove: string[] = [];
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith('obs:') && !key?.startsWith('stats:')) continue;
+
+      try {
+        const storedItem = localStorage.getItem(key);
+        if (!storedItem) continue;
+
+        const cacheEntry: MonthCacheEntry<T> = JSON.parse(storedItem);
+
+        // Remove all non-permanent caches
+        if (!cacheEntry.permanent) {
+          keysToRemove.push(key);
+        }
+      } catch (error) {
+        // If corrupted, remove it
+        if (key) keysToRemove.push(key);
+      }
+    }
+
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    console.log(`Cleared ${keysToRemove.length} non-permanent cache entries`);
+  };
+
+  /**
+   * Clear oldest caches, keeping only the most recent N months
+   * @param keepMonths - Number of most recent months to keep
+   */
+  const clearOldestCaches = (keepMonths: number = 6): void => {
+    interface CacheInfo {
+      key: string;
+      month: string;
+      timestamp: number;
+    }
+
+    const allCaches: CacheInfo[] = [];
+
+    // Collect all cache entries with their dates
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith('obs:') && !key?.startsWith('stats:')) continue;
+
+      try {
+        const storedItem = localStorage.getItem(key);
+        if (!storedItem) continue;
+
+        const cacheEntry: MonthCacheEntry<T> = JSON.parse(storedItem);
+        allCaches.push({
+          key,
+          month: cacheEntry.month,
+          timestamp: cacheEntry.timestamp
+        });
+      } catch (error) {
+        // If corrupted, add to list for removal
+        if (key) {
+          allCaches.push({
+            key,
+            month: '1970-01', // Old date to ensure it gets removed
+            timestamp: 0
+          });
+        }
+      }
+    }
+
+    // Sort by month (newest first)
+    allCaches.sort((a, b) => b.month.localeCompare(a.month));
+
+    // Remove everything except the newest N months
+    const toRemove = allCaches.slice(keepMonths);
+    toRemove.forEach(cache => localStorage.removeItem(cache.key));
+
+    console.log(`Cleared ${toRemove.length} oldest cache entries, keeping ${keepMonths} most recent months`);
+  };
+
+  /**
+   * Clear old caches to free up space
+   * Removes non-permanent caches older than 60 days
+   */
+  const clearOldCaches = (): void => {
+    const now = new Date();
+    const keysToRemove: string[] = [];
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith('obs:') && !key?.startsWith('stats:')) continue;
+
+      try {
+        const storedItem = localStorage.getItem(key);
+        if (!storedItem) continue;
+
+        const cacheEntry: MonthCacheEntry<T> = JSON.parse(storedItem);
+
+        // Don't remove permanent caches
+        if (cacheEntry.permanent) continue;
+
+        // Remove if older than 60 days
+        const daysSinceCache = (now.getTime() - cacheEntry.timestamp) / (1000 * 60 * 60 * 24);
+        if (daysSinceCache > 60) {
+          keysToRemove.push(key);
+        }
+      } catch (error) {
+        // If we can't parse it, probably corrupted - remove it
+        if (key) keysToRemove.push(key);
+      }
+    }
+
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    console.log(`Cleared ${keysToRemove.length} old cache entries`);
+  };
+
+  /**
+   * Get cache statistics
+   */
+  const getCacheStats = () => {
+    let obsMonths = 0;
+    let statsMonths = 0;
+    let totalSize = 0;
+    let permanentCount = 0;
+    const months: string[] = [];
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith('obs:') && !key?.startsWith('stats:')) continue;
+
+      try {
+        const storedItem = localStorage.getItem(key);
+        if (!storedItem) continue;
+
+        const cacheEntry: MonthCacheEntry<T> = JSON.parse(storedItem);
+
+        if (key.startsWith('obs:')) {
+          obsMonths++;
+        } else if (key.startsWith('stats:')) {
+          statsMonths++;
+        }
+
+        if (cacheEntry.permanent) {
+          permanentCount++;
+        }
+
+        totalSize += storedItem.length;
+        months.push(cacheEntry.month);
+      } catch (error) {
+        // Skip corrupted entries
+      }
+    }
+
+    const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+    const sortedMonths = months.sort();
+
+    return {
+      obsMonths,
+      statsMonths,
+      permanentCount,
+      totalSizeMB: parseFloat(totalSizeMB),
+      oldestMonth: sortedMonths[0] || null,
+      newestMonth: sortedMonths[sortedMonths.length - 1] || null
+    };
   };
 
   return {
-    getStoredDataForDate,
-    setStoredDataForDate,
-    isDataFreshForDate,
-    clearCacheForDate,
-    clearAllCache
+    // Core month-based functions
+    getMonthKey,
+    getStoredDataForMonth,
+    setStoredDataForMonth,
+    isMonthDataFresh,
+    clearCacheForMonth,
+    getMonthTTL,
+
+    // Cache management
+    clearAllCache,
+    clearOldCaches,
+    clearNonPermanentCaches,
+    clearOldestCaches,
+    getCacheStats
   };
-} 
+}
