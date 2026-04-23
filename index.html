@@ -88,10 +88,8 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    /* Ensure iOS respects scroll events */
-    body.ios * {
-      -webkit-transform: translateZ(0);
-    }
+    /* Avoid global transforms on iOS.
+       They can break position: fixed/sticky by creating new containing blocks. */
 
     @media (display-mode: standalone) {
       body {

@@ -63,7 +63,10 @@ export default function KallsurfHome() {
 
   return (
     <div className="min-h-screen bg-emerald-950 text-emerald-200 font-sans selection:bg-emerald-500 selection:text-white">
-      <header className="fixed top-0 left-0 right-0 z-20 bg-emerald-950/90 backdrop-blur-md border-b border-emerald-800 px-4 py-3">
+      <header
+        className="fixed top-0 left-0 right-0 z-20 bg-emerald-950/90 backdrop-blur-md border-b border-emerald-800 px-4 py-3"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}
+      >
         <div className="max-w-md mx-auto flex justify-between items-center">
           <button
             onClick={() => setActiveTab('overview')}
@@ -77,7 +80,10 @@ export default function KallsurfHome() {
         </div>
       </header>
 
-      <main className="pt-20 px-4 pb-24 max-w-md mx-auto min-h-screen">
+      <main
+        className="px-4 pb-24 max-w-md mx-auto min-h-screen"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 80px)' }}
+      >
         {loading ? (
           <div className="flex h-[60vh] items-center justify-center text-emerald-500">
             <div className="flex flex-col items-center gap-4">
