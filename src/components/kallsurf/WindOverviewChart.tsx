@@ -265,7 +265,7 @@ export function WindOverviewChart({ timeline, thresholds }: WindOverviewChartPro
               axisLine={false}
               domain={['dataMin - 2', 'dataMax + 2']}
             />
-            <Tooltip content={<CustomTooltip />} wrapperStyle={{ zIndex: 100 }} />
+            <Tooltip content={<CustomTooltip />} wrapperStyle={{ zIndex: 10 }} />
 
             {nightZones.map((zone, i) => (
               <ReferenceArea

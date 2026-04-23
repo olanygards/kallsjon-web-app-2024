@@ -245,7 +245,7 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
               height={40}
             />
             <YAxis stroke="#34d399" fontSize={12} domain={[0, 'auto']} orientation="right" />
-            <Tooltip content={<CustomTooltip />} wrapperStyle={{ zIndex: 100 }} />
+            <Tooltip content={<CustomTooltip />} wrapperStyle={{ zIndex: 10 }} />
 
             {nightZones.map((zone, i) => (
               <ReferenceArea

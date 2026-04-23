@@ -554,7 +554,8 @@ export function WindChart({
       tooltipEl.style.fontSize = '12px';
       tooltipEl.style.color = '#000';
       tooltipEl.style.padding = '8px';
-      tooltipEl.style.zIndex = '100';
+      // Keep tooltips below fixed nav/header layers
+      tooltipEl.style.zIndex = '10';
 
       document.body.appendChild(tooltipEl);
     }
