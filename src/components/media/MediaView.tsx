@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { collection, query, orderBy, getDocs, limit } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { Play, X, Calendar, Wind, User, ArrowRight } from 'lucide-react';
+import { Play, X, Calendar, Wind, User, ArrowRight, ChevronLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 
@@ -25,16 +25,39 @@ interface MediaItem {
 interface MediaViewProps {
     onNavigateToDate: (date: Date) => void;
     onUploadClick: () => void;
+    onBackToOverview?: () => void;
 }
 
-export const MediaView: React.FC<MediaViewProps> = ({ onNavigateToDate, onUploadClick }) => {
+export const MediaView: React.FC<MediaViewProps> = ({ onNavigateToDate, onUploadClick, onBackToOverview }) => {
     const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedItem, setSelectedItem] = useState<MediaItem | null>(null);
+    const [touchStartY, setTouchStartY] = useState<number | null>(null);
+    const [touchEndY, setTouchEndY] = useState<number | null>(null);
 
     useEffect(() => {
         fetchMedia();
     }, []);
+
+    // Close modal on Escape
+    useEffect(() => {
+        if (!selectedItem) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setSelectedItem(null);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [selectedItem]);
+
+    // Prevent background scroll while lightbox is open
+    useEffect(() => {
+        if (!selectedItem) return;
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = prev;
+        };
+    }, [selectedItem]);
 
     const fetchMedia = async () => {
         setLoading(true);
@@ -144,9 +167,30 @@ export const MediaView: React.FC<MediaViewProps> = ({ onNavigateToDate, onUpload
 
             {/* Lightbox */}
             {selectedItem && (
-                <div className="fixed inset-0 z-[60] bg-black/95 flex flex-col animate-in fade-in duration-200">
+                <div
+                    className="fixed inset-0 z-[60] bg-black/95 flex flex-col animate-in fade-in duration-200"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setSelectedItem(null);
+                    }}
+                    onTouchStart={(e) => {
+                        setTouchEndY(null);
+                        setTouchStartY(e.targetTouches[0]?.clientY ?? null);
+                    }}
+                    onTouchMove={(e) => {
+                        setTouchEndY(e.targetTouches[0]?.clientY ?? null);
+                    }}
+                    onTouchEnd={() => {
+                        if (touchStartY == null || touchEndY == null) return;
+                        const delta = touchEndY - touchStartY; // positive = swipe down
+                        if (delta > 80) setSelectedItem(null);
+                    }}
+                >
                     {/* Header */}
-                    <div className="flex justify-between items-center p-4 bg-black/40 backdrop-blur-md border-b border-white/10">
+                    <div
+                        className="flex justify-between items-center p-4 bg-black/40 backdrop-blur-md border-b border-white/10"
+                        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="flex flex-col">
                             <span className="text-white font-bold text-sm">
                                 {format(new Date(selectedItem.date), 'd MMMM yyyy', { locale: sv })}
@@ -157,25 +201,53 @@ export const MediaView: React.FC<MediaViewProps> = ({ onNavigateToDate, onUpload
                                 </span>
                             )}
                         </div>
-                        <button
-                            onClick={() => setSelectedItem(null)}
-                            className="p-2 bg-white/10 rounded-full hover:bg-white/20 text-white transition-colors"
-                        >
-                            <X className="w-6 h-6" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {onBackToOverview && (
+                                <button
+                                    onClick={() => {
+                                        setSelectedItem(null);
+                                        onBackToOverview();
+                                    }}
+                                    className="px-3 py-2 bg-white/10 rounded-xl hover:bg-white/20 text-white transition-colors text-sm font-bold flex items-center gap-2"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                    Läget
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setSelectedItem(null)}
+                                className="p-2 bg-white/10 rounded-full hover:bg-white/20 text-white transition-colors"
+                                aria-label="Stäng"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 flex items-center justify-center p-4 overflow-hidden relative">
+                    <div
+                        className="flex-1 min-h-0 flex items-center justify-center p-4 overflow-hidden relative"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         {selectedItem.type === 'video' ? (
-                            <video src={selectedItem.url} controls autoPlay className="max-h-full max-w-full rounded-lg shadow-2xl" />
+                            <video
+                                src={selectedItem.url}
+                                controls
+                                autoPlay
+                                playsInline
+                                className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
+                            />
                         ) : (
                             <img src={selectedItem.url} alt="Full view" className="max-h-full max-w-full object-contain rounded-lg shadow-2xl" />
                         )}
                     </div>
 
                     {/* Footer / Info Panel */}
-                    <div className="bg-black/80 backdrop-blur-xl border-t border-white/10 p-4 pb-8 space-y-4">
+                    <div
+                        className="bg-black/80 backdrop-blur-xl border-t border-white/10 p-4 space-y-4 overflow-auto"
+                        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 14px)', maxHeight: '40vh' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         {/* Wind Data */}
                         {selectedItem.windData && (
                             <div className="flex items-center gap-4 bg-white/5 p-3 rounded-xl border border-white/5">

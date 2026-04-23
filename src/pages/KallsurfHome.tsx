@@ -136,6 +136,7 @@ export default function KallsurfHome() {
                 <MediaView
                   onNavigateToDate={handleDayClick}
                   onUploadClick={() => setShowUploadModal(true)}
+                  onBackToOverview={() => setActiveTab('overview')}
                 />
               </div>
             )}
