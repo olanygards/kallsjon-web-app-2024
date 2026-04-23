@@ -26,7 +26,10 @@ export async function fetchSMHI(
   lon: number,
   cachedETag?: string | null
 ): Promise<{ data: WindPoint[]; etag: string | null; gridPoint: [number, number] | null }> {
-  const url = `${FORECAST_MODELS.SMHI.url}/lon/${lon}/lat/${lat}/data.json`;
+  const baseUrl = import.meta.env.DEV
+    ? '/_proxy/smhi' + new URL(FORECAST_MODELS.SMHI.url).pathname
+    : FORECAST_MODELS.SMHI.url;
+  const url = `${baseUrl}/lon/${lon}/lat/${lat}/data.json`;
 
   try {
     const response = await fetchWithTimeout(url, { etag: cachedETag }, 6000, 1);

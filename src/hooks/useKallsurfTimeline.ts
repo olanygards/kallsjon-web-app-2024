@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect } from 'react';
-import { addHours, format, startOfDay, endOfDay, startOfMonth, endOfMonth, eachDayOfInterval, subDays } from 'date-fns';
+import { addHours, format, startOfDay, endOfDay, startOfMonth, endOfMonth, eachDayOfInterval, subDays, startOfHour, subHours } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { useWindData } from './useWindData';
+import { useMonthlyStats } from './useMonthlyStats';
 import { useForecastModels } from './useForecastModels';
 import { useProcessedWindData } from './useProcessedWindData';
 import { KALLSJON } from '../config/constants';
@@ -111,9 +112,9 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
     // (så att vi kan färglägga hela kalendern samtidigt som vi visar dagen)
     if (selectedDate) {
       return {
-        historyStart: startOfMonth(selectedDate),
-        historyEnd: endOfMonth(selectedDate),
-        isCalendarView: true  // Behandla som kalendervy för att få månadesdata
+        historyStart: startOfDay(selectedDate), // Only fetch ONE day of detailed data
+        historyEnd: endOfDay(selectedDate),
+        isCalendarView: true
       };
     }
 
@@ -164,12 +165,58 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
     return 0;
   }, [selectedDate, isCalendarView]);
 
-  // Hämta observerad data
-  const { data: windData, loading: windLoading, error: windError } = useWindData({
+  // Split data fetching into Archive (stable, cached) and Live (dynamic, frequent)
+
+  // The split point is 2 hours ago. Data before this is "archive", after is "live".
+  const splitPoint = useMemo(() => {
+    return startOfHour(subHours(now, 2));
+  }, [now]);
+
+  // 1. Archive Data
+  // Range: [historyStart, min(historyEnd, splitPoint)]
+  const archiveEnd = useMemo(() => {
+    return historyEnd < splitPoint ? historyEnd : splitPoint;
+  }, [historyEnd, splitPoint]);
+
+  const {
+    data: archiveWindData,
+    loading: archiveLoading,
+    error: archiveError
+  } = useWindData({
     startDate: historyStart,
-    endDate: historyEnd,
+    endDate: archiveEnd,
     minForce
   });
+
+  // 2. Live Data
+  // Range: [max(historyStart, splitPoint), historyEnd]
+  // Only fetch if historyEnd is actually after the split point
+  const shouldFetchLive = historyEnd > splitPoint;
+  const liveStart = useMemo(() => {
+    return historyStart > splitPoint ? historyStart : splitPoint;
+  }, [historyStart, splitPoint]);
+
+  const {
+    data: liveWindData,
+    loading: liveLoading,
+    error: liveError
+  } = useWindData({
+    startDate: liveStart,
+    endDate: historyEnd,
+    minForce: shouldFetchLive ? minForce : 999 // Hack: use high minForce to effectively skip query if not needed, or handle in useWindData
+  });
+
+  // Merge data
+  const windData = useMemo(() => {
+    // If we shouldn't fetch live data, just use archive
+    if (!shouldFetchLive) {
+      return archiveWindData;
+    }
+    return [...archiveWindData, ...liveWindData].sort((a, b) => a.time.getTime() - b.time.getTime());
+  }, [archiveWindData, liveWindData, shouldFetchLive]);
+
+  const windLoading = archiveLoading || (shouldFetchLive && liveLoading);
+  const windError = archiveError || (shouldFetchLive && liveError);
 
   // Hämta prognosdata (6h framåt)
   const {
@@ -179,7 +226,7 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
   } = useForecastModels({
     lat: KALLSJON.lat,
     lon: KALLSJON.lon,
-    startDate: now,
+    startDate: startOfHour(now), // Stable start time (updates hourly) to prevent re-fetching every 30s
     endDate: forecastEnd,
     enabledModels: [ForecastModel.SMHI]
   });
@@ -303,7 +350,20 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
   }, [timeline]);
 
   // Månads-aggregat för kalendern
+  // För historiska månader: använd useMonthlyStats (från dailyStats collection)
+  // För nuvarande månad: beräkna från timeline (som vi ändå har)
+
+  const { stats: monthlyStats } = useMonthlyStats(
+    isCalendarView ? (viewDate || now) : new Date(0) // Only fetch if in calendar view
+  );
+
   const dailySummary = useMemo<DailySummary[]>(() => {
+    // Om vi är i kalendervy (historik), använd data från dailyStats
+    if (isCalendarView && monthlyStats.length > 0) {
+      return monthlyStats;
+    }
+
+    // Annars (live/översikt), beräkna från timeline som vanligt
     const targetDate = viewDate || now;
     const monthStart = startOfMonth(targetDate);
     const monthEnd = endOfMonth(targetDate);
@@ -387,8 +447,10 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
   const loading = windLoading || (Object.values(loadingByModel).some(l => l) && timeline.length === 0);
   // Endast kritiskt fel om vi inte kan hämta observerad vinddata
   const error = windError;
-  // Varning om någon prognosmodell fallerar
-  const warning = Object.values(modelErrors).find(e => e !== null) || null;
+  // Varning endast om prognos verkligen saknas (inte bara "en modell failade" men vi har fallback-data)
+  const warning = forecastDataRaw.length === 0
+    ? (Object.values(modelErrors).find(e => e !== null) || null)
+    : null;
 
   return {
     timeline,

@@ -15,6 +15,9 @@ import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { getDirectionLabel } from '../../utils/windDataConverter';
 
+import { MediaUpload } from '../media/MediaUpload';
+import { DailyGallery } from '../media/DailyGallery';
+
 // ... (keep getNightZones and CustomTooltip as is)
 
 const getNightZones = (data: TimelinePoint[]) => {
@@ -102,6 +105,7 @@ interface HistoryTabsProps {
 
 export function HistoryTabs({ timeline, selectedDate, onClearSelection }: HistoryTabsProps) {
   const [historyRange, setHistoryRange] = useState<'24h' | '3d' | '7d' | 'Kalender'>('24h');
+  const [showUpload, setShowUpload] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
@@ -111,7 +115,13 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
     const resizeObserver = new ResizeObserver((entries) => {
       if (!entries || entries.length === 0) return;
       const { width, height } = entries[0].contentRect;
-      setDimensions({ width, height });
+      // Only update if dimensions are valid and different
+      if (width > 0 && height > 0) {
+        setDimensions(prev => {
+          if (prev.width === width && prev.height === height) return prev;
+          return { width, height };
+        });
+      }
     });
 
     resizeObserver.observe(containerRef.current);
@@ -198,7 +208,7 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
       </div>
 
       <div ref={containerRef} className="bg-emerald-800/50 border border-emerald-700 rounded-2xl p-2 pb-8 shadow-lg relative h-[320px] w-full">
-        {dimensions.width > 0 && (
+        {dimensions.width > 0 && dimensions.height > 0 ? (
           <AreaChart
             width={dimensions.width}
             height={dimensions.height}
@@ -277,6 +287,10 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
               activeDot={{ r: 4, strokeWidth: 0, fill: '#fff' }}
             />
           </AreaChart>
+        ) : (
+          <div className="flex items-center justify-center h-full text-emerald-500/50 text-sm">
+            Laddar graf...
+          </div>
         )}
       </div>
 
@@ -303,6 +317,31 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
           </span>
         </div>
       </div>
-    </div >
+
+      {selectedDate && (
+        <div className="mt-8 border-t border-emerald-800/50 pt-8">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold text-white">Media</h3>
+            <button
+              onClick={() => setShowUpload(!showUpload)}
+              className="text-xs bg-emerald-800 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg transition-colors"
+            >
+              {showUpload ? 'Dölj uppladdning' : 'Ladda upp bild/film'}
+            </button>
+          </div>
+
+          {showUpload && (
+            <div className="mb-8">
+              <MediaUpload
+                preselectedDate={format(selectedDate, 'yyyy-MM-dd')}
+                onUploadComplete={() => setShowUpload(false)}
+              />
+            </div>
+          )}
+
+          <DailyGallery date={format(selectedDate, 'yyyy-MM-dd')} />
+        </div>
+      )}
+    </div>
   );
 }

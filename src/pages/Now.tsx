@@ -1,7 +1,7 @@
 import { useWindData } from '../hooks/useWindData';
 import { WindChart } from '../components/WindChart';
 import { Header } from '../components/Header';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { format, subHours } from 'date-fns';
 import { sv } from 'date-fns/locale';
 
@@ -17,14 +17,25 @@ function getDirectionArrow(direction: number): string {
 }
 
 export default function Now() {
-  // Fetch last 24h of wind data for the 'Just nu' card
-  const endDate = new Date();
+  // Store endDate in state to trigger re-renders
+  const [endDate, setEndDate] = useState(new Date());
+
+  // Update time every 60 seconds to keep "now" fresh
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setEndDate(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Fetch last 24h once, derive last 1h from it to avoid a second query
   const startDate24h = subHours(endDate, 24);
   const { data: windData24h, loading, error } = useWindData({ startDate: startDate24h, endDate });
 
-  // Fetch last 1h of wind data for the chart
-  const startDate1h = subHours(endDate, 1);
-  const { data: windData1h } = useWindData({ startDate: startDate1h, endDate });
+  const windData1h = useMemo(() => {
+    const start1h = subHours(endDate, 1).getTime();
+    return (windData24h || []).filter(p => p.time.getTime() >= start1h);
+  }, [windData24h, endDate]);
 
   // Find the latest observed data point from 24h data
   const latest = useMemo(() => {

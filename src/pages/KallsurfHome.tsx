@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Wind, History, TrendingUp, Zap } from 'lucide-react';
+import { Wind, History, TrendingUp, Zap, Image as ImageIcon, X } from 'lucide-react';
 import { useKallsurfTimeline } from '../hooks/useKallsurfTimeline';
 import { HeroStats } from '../components/kallsurf/HeroStats';
 import { WindOverviewChart } from '../components/kallsurf/WindOverviewChart';
@@ -8,11 +8,14 @@ import { HistoryTabs } from '../components/kallsurf/HistoryTabs';
 import { HamburgerMenu } from '../components/kallsurf/HamburgerMenu';
 import { CalendarGrid } from '../components/kallsurf/CalendarGrid';
 import { StatsView } from '../components/kallsurf/StatsView';
+import { MediaView } from '../components/media/MediaView';
+import { MediaUpload } from '../components/media/MediaUpload';
 
 export default function KallsurfHome() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'stats'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'stats' | 'media'>('overview');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [viewDate, setViewDate] = useState(new Date());
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   const { timeline, hourlyBuckets, dailySummary, currentWind, loading, error, warning, thresholds } = useKallsurfTimeline(viewDate, selectedDate);
 
@@ -121,9 +124,35 @@ export default function KallsurfHome() {
                 <StatsView onDayClick={handleDayClick} />
               </div>
             )}
+
+            {activeTab === 'media' && (
+              <div className="animate-in slide-in-from-right-8 duration-300">
+                <MediaView
+                  onNavigateToDate={handleDayClick}
+                  onUploadClick={() => setShowUploadModal(true)}
+                />
+              </div>
+            )}
           </>
         )}
       </main>
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-emerald-950 border border-emerald-800 rounded-2xl overflow-hidden shadow-2xl relative">
+            <button
+              onClick={() => setShowUploadModal(false)}
+              className="absolute top-4 right-4 text-emerald-400 hover:text-white z-10"
+            >
+              <X size={24} />
+            </button>
+            <div className="p-1">
+              <MediaUpload onUploadComplete={() => setShowUploadModal(false)} />
+            </div>
+          </div>
+        </div>
+      )}
 
       <nav
         className="fixed bottom-0 left-0 right-0 z-20 bg-emerald-950/90 backdrop-blur-xl border-t border-emerald-800"
@@ -166,6 +195,17 @@ export default function KallsurfHome() {
           >
             <TrendingUp size={22} strokeWidth={activeTab === 'stats' ? 2.5 : 2} />
             <span className="text-[10px] font-medium">Stats</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('media')}
+            className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all duration-300 w-20 ${activeTab === 'media'
+              ? 'bg-white text-emerald-900 shadow-lg shadow-emerald-900/20 scale-105'
+              : 'bg-emerald-900 text-emerald-400 hover:text-emerald-200 hover:bg-emerald-800'
+              }`}
+          >
+            <ImageIcon size={22} strokeWidth={activeTab === 'media' ? 2.5 : 2} />
+            <span className="text-[10px] font-medium">Media</span>
           </button>
         </div>
       </nav>

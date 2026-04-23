@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { format, startOfMonth, differenceInDays } from 'date-fns';
+import LZString from 'lz-string';
 
 // Per-month cache entry for observations or stats
 interface MonthCacheEntry<T> {
@@ -93,16 +94,40 @@ export function useWindCache<T>(
   };
 
   /**
+   * Helper to read and parse a cache entry (handling compression)
+   */
+  const readCacheEntry = (key: string): MonthCacheEntry<T> | null => {
+    try {
+      const storedItem = localStorage.getItem(key);
+      if (!storedItem) return null;
+
+      // Try to decompress first
+      if (!storedItem.trim().startsWith('{')) {
+        const decompressed = LZString.decompressFromUTF16(storedItem);
+        if (decompressed) {
+          return JSON.parse(decompressed);
+        }
+        // Fallback: try parsing directly (maybe legacy uncompressed)
+        return JSON.parse(storedItem);
+      }
+
+      // Legacy uncompressed data
+      return JSON.parse(storedItem);
+    } catch (error) {
+      return null;
+    }
+  };
+
+  /**
    * Get stored data for a specific month from localStorage
    */
   const getStoredDataForMonth = (date: Date, minForce: number = 0): T[] => {
     try {
       const monthKey = getMonthKey(date, minForce);
-      const storedItem = localStorage.getItem(monthKey);
+      const cacheEntry = readCacheEntry(monthKey);
 
-      if (!storedItem) return [];
+      if (!cacheEntry) return [];
 
-      const cacheEntry: MonthCacheEntry<T> = JSON.parse(storedItem);
       const { data, timestamp, permanent } = cacheEntry;
 
       // If permanent cache, never expire
@@ -120,6 +145,9 @@ export function useWindCache<T>(
       return reviveDates<T[]>(data);
     } catch (error) {
       console.error('Error reading month cache:', error);
+      // If error reading, clear it
+      const monthKey = getMonthKey(date, minForce);
+      localStorage.removeItem(monthKey);
       return [];
     }
   };
@@ -134,8 +162,12 @@ export function useWindCache<T>(
       const now = new Date();
 
       // Determine if this data should be permanent
+      // It should only be permanent if it's NOT the current month AND it's old enough
+      const currentMonthStart = startOfMonth(now);
+      const isCurrentMonth = currentMonthStart.getTime() === monthStart.getTime();
       const daysSinceMonthStart = differenceInDays(now, monthStart);
-      const isPermanent = daysSinceMonthStart > permanentDataAgeDaysRef.current;
+
+      const isPermanent = !isCurrentMonth && daysSinceMonthStart > permanentDataAgeDaysRef.current;
 
       const cacheEntry: MonthCacheEntry<T> = {
         data,
@@ -145,12 +177,17 @@ export function useWindCache<T>(
         permanent: isPermanent
       };
 
-      localStorage.setItem(monthKey, JSON.stringify(cacheEntry, (_k, value) => {
+      const jsonString = JSON.stringify(cacheEntry, (_k, value) => {
         if (value instanceof Date) {
           return value.toISOString();
         }
         return value;
-      }));
+      });
+
+      // Compress the data
+      const compressed = LZString.compressToUTF16(jsonString);
+
+      localStorage.setItem(monthKey, compressed);
     } catch (error) {
       console.error('Error saving month cache:', error);
       // If quota exceeded, try aggressive cleanup
@@ -174,12 +211,17 @@ export function useWindCache<T>(
             minForce,
             permanent: false // Don't make it permanent if we're struggling with space
           };
-          localStorage.setItem(monthKey, JSON.stringify(cacheEntry, (_k, value) => {
+
+          const jsonString = JSON.stringify(cacheEntry, (_k, value) => {
             if (value instanceof Date) {
               return value.toISOString();
             }
             return value;
-          }));
+          });
+
+          const compressed = LZString.compressToUTF16(jsonString);
+
+          localStorage.setItem(monthKey, compressed);
           console.log('Successfully saved after cleanup');
         } catch (retryError) {
           console.error('Failed to save cache even after cleanup, falling back to in-memory only');
@@ -195,15 +237,19 @@ export function useWindCache<T>(
   const isMonthDataFresh = (date: Date, minForce: number = 0): boolean => {
     try {
       const monthKey = getMonthKey(date, minForce);
-      const storedItem = localStorage.getItem(monthKey);
+      const cacheEntry = readCacheEntry(monthKey);
 
-      if (!storedItem) return false;
+      if (!cacheEntry) return false;
 
-      const cacheEntry: MonthCacheEntry<T> = JSON.parse(storedItem);
       const { timestamp, permanent } = cacheEntry;
 
       // Permanent cache is always fresh
-      if (permanent) return true;
+      // BUT: If it's the current month, it should NEVER be treated as permanent (fix for bug where current month got marked permanent)
+      const currentMonthStart = startOfMonth(new Date());
+      const entryMonthStart = startOfMonth(date);
+      const isCurrentMonth = currentMonthStart.getTime() === entryMonthStart.getTime();
+
+      if (permanent && !isCurrentMonth) return true;
 
       // Check TTL
       const ttl = getMonthTTL(date);
@@ -248,19 +294,12 @@ export function useWindCache<T>(
       const key = localStorage.key(i);
       if (!key?.startsWith('obs:') && !key?.startsWith('stats:')) continue;
 
-      try {
-        const storedItem = localStorage.getItem(key);
-        if (!storedItem) continue;
+      const cacheEntry = readCacheEntry(key);
+      if (!cacheEntry) continue;
 
-        const cacheEntry: MonthCacheEntry<T> = JSON.parse(storedItem);
-
-        // Remove all non-permanent caches
-        if (!cacheEntry.permanent) {
-          keysToRemove.push(key);
-        }
-      } catch (error) {
-        // If corrupted, remove it
-        if (key) keysToRemove.push(key);
+      // Remove all non-permanent caches
+      if (!cacheEntry.permanent) {
+        keysToRemove.push(key);
       }
     }
 
@@ -286,26 +325,22 @@ export function useWindCache<T>(
       const key = localStorage.key(i);
       if (!key?.startsWith('obs:') && !key?.startsWith('stats:')) continue;
 
-      try {
-        const storedItem = localStorage.getItem(key);
-        if (!storedItem) continue;
-
-        const cacheEntry: MonthCacheEntry<T> = JSON.parse(storedItem);
+      const cacheEntry = readCacheEntry(key);
+      if (!cacheEntry) {
+        // If corrupted, add to list for removal
         allCaches.push({
           key,
-          month: cacheEntry.month,
-          timestamp: cacheEntry.timestamp
+          month: '1970-01', // Old date to ensure it gets removed
+          timestamp: 0
         });
-      } catch (error) {
-        // If corrupted, add to list for removal
-        if (key) {
-          allCaches.push({
-            key,
-            month: '1970-01', // Old date to ensure it gets removed
-            timestamp: 0
-          });
-        }
+        continue;
       }
+
+      allCaches.push({
+        key,
+        month: cacheEntry.month,
+        timestamp: cacheEntry.timestamp
+      });
     }
 
     // Sort by month (newest first)
@@ -330,23 +365,16 @@ export function useWindCache<T>(
       const key = localStorage.key(i);
       if (!key?.startsWith('obs:') && !key?.startsWith('stats:')) continue;
 
-      try {
-        const storedItem = localStorage.getItem(key);
-        if (!storedItem) continue;
+      const cacheEntry = readCacheEntry(key);
+      if (!cacheEntry) continue;
 
-        const cacheEntry: MonthCacheEntry<T> = JSON.parse(storedItem);
+      // Don't remove permanent caches
+      if (cacheEntry.permanent) continue;
 
-        // Don't remove permanent caches
-        if (cacheEntry.permanent) continue;
-
-        // Remove if older than 60 days
-        const daysSinceCache = (now.getTime() - cacheEntry.timestamp) / (1000 * 60 * 60 * 24);
-        if (daysSinceCache > 60) {
-          keysToRemove.push(key);
-        }
-      } catch (error) {
-        // If we can't parse it, probably corrupted - remove it
-        if (key) keysToRemove.push(key);
+      // Remove if older than 60 days
+      const daysSinceCache = (now.getTime() - cacheEntry.timestamp) / (1000 * 60 * 60 * 24);
+      if (daysSinceCache > 60) {
+        keysToRemove.push(key);
       }
     }
 
@@ -368,27 +396,24 @@ export function useWindCache<T>(
       const key = localStorage.key(i);
       if (!key?.startsWith('obs:') && !key?.startsWith('stats:')) continue;
 
-      try {
-        const storedItem = localStorage.getItem(key);
-        if (!storedItem) continue;
+      const storedItem = localStorage.getItem(key);
+      if (!storedItem) continue;
 
-        const cacheEntry: MonthCacheEntry<T> = JSON.parse(storedItem);
+      const cacheEntry = readCacheEntry(key);
+      if (!cacheEntry) continue;
 
-        if (key.startsWith('obs:')) {
-          obsMonths++;
-        } else if (key.startsWith('stats:')) {
-          statsMonths++;
-        }
-
-        if (cacheEntry.permanent) {
-          permanentCount++;
-        }
-
-        totalSize += storedItem.length;
-        months.push(cacheEntry.month);
-      } catch (error) {
-        // Skip corrupted entries
+      if (key.startsWith('obs:')) {
+        obsMonths++;
+      } else if (key.startsWith('stats:')) {
+        statsMonths++;
       }
+
+      if (cacheEntry.permanent) {
+        permanentCount++;
+      }
+
+      totalSize += storedItem.length;
+      months.push(cacheEntry.month);
     }
 
     const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);

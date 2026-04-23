@@ -1,11 +1,23 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
-import { useEffect } from "react";
-import DailyView from "./pages/DailyView";
-import Home from "./pages/Home";
-import ChartView from "./pages/ChartView";
-import Experiments from "./pages/Experiments";
-import Now from "./pages/Now";
-import KallsurfHome from "./pages/KallsurfHome";
+import { Suspense, lazy, useEffect } from "react";
+
+const KallsurfHome = lazy(() => import("./pages/KallsurfHome"));
+const DailyView = lazy(() => import("./pages/DailyView"));
+const Home = lazy(() => import("./pages/Home"));
+const Now = lazy(() => import("./pages/Now"));
+const ChartView = lazy(() => import("./pages/ChartView"));
+const Experiments = lazy(() => import("./pages/Experiments"));
+
+function RouteFallback() {
+  return (
+    <div className="min-h-screen bg-kallsjon-green flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3 text-kallsjon-green-dark">
+        <div className="w-8 h-8 border-2 border-kallsjon-green-dark border-t-transparent rounded-full animate-spin" />
+        <div className="text-xs uppercase tracking-widest font-medium">Laddar</div>
+      </div>
+    </div>
+  );
+}
 
 // Component to handle route changes and app styling
 function AppContent() {
@@ -39,14 +51,16 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-kallsjon-green">
-      <Routes>
-        <Route path="/" element={<KallsurfHome />} />
-        <Route path="/classic" element={<DailyView />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/now" element={<Now />} />
-        <Route path="/chart" element={<ChartView />} />
-        <Route path="/experiments" element={<Experiments />} />
-      </Routes>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route path="/" element={<KallsurfHome />} />
+          <Route path="/classic" element={<DailyView />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/now" element={<Now />} />
+          <Route path="/chart" element={<ChartView />} />
+          <Route path="/experiments" element={<Experiments />} />
+        </Routes>
+      </Suspense>
     </div>
   );
 }

@@ -138,9 +138,7 @@ function insertThresholdCrossings<T extends {
   // Lägg till sista punkten
   out.push(arr[arr.length - 1]);
 
-  // Håll tidsordning
-  out.sort((p, q) => p.time.getTime() - q.time.getTime());
-
+  // out är redan i tidsordning eftersom x alltid ligger mellan a och b
   return out;
 }
 
@@ -544,7 +542,10 @@ export function WindChart({
       tooltipEl = document.createElement('div');
       tooltipEl.id = 'chartjs-tooltip';
       tooltipEl.style.position = 'absolute';
-      tooltipEl.style.background = 'rgba(255, 255, 255, 0.9)';
+      tooltipEl.style.background = 'rgba(255, 255, 255, 0.4)';
+      tooltipEl.style.backdropFilter = 'blur(4px)';
+      // @ts-ignore
+      tooltipEl.style.WebkitBackdropFilter = 'blur(4px)';
       tooltipEl.style.border = '1px solid rgba(0, 0, 0, 0.2)';
       tooltipEl.style.borderRadius = '3px';
       tooltipEl.style.pointerEvents = 'none';

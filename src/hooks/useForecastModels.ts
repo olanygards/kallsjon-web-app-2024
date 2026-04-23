@@ -310,9 +310,6 @@ export function useForecastModels({
     return () => {
       mounted = false;
     };
-    return () => {
-      mounted = false;
-    };
     // Use primitive values for dependencies to avoid infinite loops from unstable object references
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon, startDate.getTime(), endDate.getTime(), enabledModels.sort().join(','), refetchTrigger]);

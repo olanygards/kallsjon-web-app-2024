@@ -1,5 +1,8 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 
 // Validate Firebase config
 const requiredEnvVars = [
@@ -49,6 +52,42 @@ const testConnection = async () => {
   }
 };
 
+// App Check
+// IMPORTANT: In dev, App Check debug tokens must be allowlisted in Firebase Console if enforcement is enabled.
+// To avoid blocking local development, App Check is opt-in in DEV via VITE_ENABLE_FIREBASE_APPCHECK="true".
+const enableAppCheck =
+  import.meta.env.PROD || String(import.meta.env.VITE_ENABLE_FIREBASE_APPCHECK).toLowerCase() === 'true';
+
+// Initialize Storage with explicit bucket URL to avoid default bucket issues
+const storageBucket = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET;
+const storage = getStorage(app, `gs://${storageBucket}`);
+
+// Initialize Auth
+const auth = getAuth(app);
+
+if (enableAppCheck) {
+  // DEV: generate debug token and print it (must be allowlisted if enforcement is on)
+  if (import.meta.env.DEV) {
+    // @ts-ignore
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  }
+
+  try {
+    const recaptchaKey =
+      import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
+      '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'; // Google's public test key
+
+    initializeAppCheck(app, {
+      provider: new ReCaptchaEnterpriseProvider(recaptchaKey),
+      isTokenAutoRefreshEnabled: true
+    });
+  } catch (e) {
+    console.warn('App Check initialization warning:', e);
+  }
+} else if (import.meta.env.DEV) {
+  console.info('Firebase App Check is disabled in DEV. Set VITE_ENABLE_FIREBASE_APPCHECK="true" to enable it.');
+}
+
 testConnection();
 
-export { db }; 
+export { db, storage, auth }; 

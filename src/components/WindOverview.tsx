@@ -57,7 +57,7 @@ interface StatCardProps {
 
 function StatCard({ title, value, subtitle, children, onClick }: StatCardProps) {
   return (
-    <div 
+    <div
       className={`bg-kallsjon-green rounded-lg border p-4 flex flex-col justify-between ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
@@ -110,8 +110,8 @@ function WindStats({ bestDay, totalDays, topDays, bestYear, bestYearDays, fetch2
         <StatCard title="Topp 5 blåsigaste dagar">
           <ul className="mt-2 space-y-2">
             {topDays.map((day, index) => (
-              <li 
-                key={index} 
+              <li
+                key={index}
                 className="flex justify-between text-sm cursor-pointer p-2 rounded transition-colors"
                 onClick={async () => {
                   const fullDayData = await fetch24HourData(day.date);
@@ -136,10 +136,10 @@ function WindStats({ bestDay, totalDays, topDays, bestYear, bestYearDays, fetch2
       {/* Third row - Best Year & Total Days in that Year */}
       {bestYear && bestYearDays && (
         <>
-          <StatCard 
-            title="Bästa året" 
-            value={bestYear} 
-            subtitle="Året med mest vind" 
+          <StatCard
+            title="Bästa året"
+            value={bestYear}
+            subtitle="Året med mest vind"
           />
           <StatCard
             title="Blåsiga dagar det året"
@@ -179,7 +179,7 @@ function AdvancedWindStats({ windyDays, fetch24HourData, onDaySelect }: Advanced
   }, {} as Record<number, { totalWind: number; count: number }>);
 
   // Find year with highest average wind speed
-  const bestWindYear = Object.entries(windSpeedByYear).length > 0 
+  const bestWindYear = Object.entries(windSpeedByYear).length > 0
     ? Object.entries(windSpeedByYear)
       .map(([year, data]) => ({
         year: parseInt(year),
@@ -189,7 +189,7 @@ function AdvancedWindStats({ windyDays, fetch24HourData, onDaySelect }: Advanced
     : null;
 
   // Find day with highest gust
-  const highestGustDay = windyDays.length > 0 
+  const highestGustDay = windyDays.length > 0
     ? [...windyDays].sort((a, b) => b.maxGust - a.maxGust)[0]
     : null;
 
@@ -262,7 +262,7 @@ function AdvancedWindStats({ windyDays, fetch24HourData, onDaySelect }: Advanced
   const handleDateChange = useCallback(async (direction: 'prev' | 'next') => {
     if (!selectedDay) return;
 
-    const currentIndex = windyDays.findIndex(day => 
+    const currentIndex = windyDays.findIndex(day =>
       day.date.getTime() === selectedDay.date.getTime()
     );
 
@@ -300,7 +300,7 @@ function AdvancedWindStats({ windyDays, fetch24HourData, onDaySelect }: Advanced
         </div>
         <div onClick={async () => {
           if (streaks.longest.length > 0) {
-            const startDay = windyDays.find(day => 
+            const startDay = windyDays.find(day =>
               day.date.getTime() === streaks.longest.start.getTime()
             );
             if (startDay) {
@@ -321,7 +321,7 @@ function AdvancedWindStats({ windyDays, fetch24HourData, onDaySelect }: Advanced
         <StatCard
           title="Vanligaste vindriktning"
           value={mostCommonDirection[0]}
-          subtitle={mostCommonDirection[1] === 0 
+          subtitle={mostCommonDirection[1] === 0
             ? 'Ingen riktningsdata tillgänglig'
             : `${((mostCommonDirection[1] / Object.values(windDirections).reduce((a, b) => a + b, 0)) * 100).toFixed(0)}% av dagarna`}
         />
@@ -417,22 +417,22 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
     if (windData && windData.length > 0) {
       try {
         console.log('Processing wind data for year filter. Selected year:', selectedYear);
-        
-        
+
+
         // Get the processed days again
         const processedDays: BinnedWindData[] = windData.map(day => {
           if (!day.time) return null;
-          
+
           // Create date object
           const date = day.time instanceof Date ? day.time : new Date(day.time);
-          
-          
+
+
           // Determine wind bin
           let windBin: '2-5' | '5-7' | '7-10' | '10+' = '2-5';
           if (day.windSpeed >= 10) windBin = '10+';
           else if (day.windSpeed >= 7) windBin = '7-10';
           else if (day.windSpeed >= 5) windBin = '5-7';
-          
+
           return {
             date,
             maxWindSpeed: day.windSpeed,
@@ -442,7 +442,7 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
             hourlyData: []
           };
         }).filter(Boolean) as BinnedWindData[];
-        
+
         applyYearFilter(selectedYear, processedDays);
       } catch (err) {
         console.error('Error filtering by year:', err);
@@ -450,38 +450,38 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
       }
     }
   }, [selectedYear, windData]);
-  
+
   // Function to apply year filter
   const applyYearFilter = (year: number, allDays: BinnedWindData[]) => {
     try {
-      
+
       // Count by year before filtering
       const yearCounts = allDays.reduce((acc, day) => {
         const year = day.date.getFullYear();
         acc[year] = (acc[year] || 0) + 1;
         return acc;
       }, {} as Record<number, number>);
-      
+
       console.log('Year distribution before filtering:', yearCounts);
-      
+
       // Filter by year
       let filteredDays = allDays;
       if (year !== 0) {
         // Check date validity first
-        const invalidDates = allDays.filter(day => 
-          isNaN(day.date.getTime()) || 
+        const invalidDates = allDays.filter(day =>
+          isNaN(day.date.getTime()) ||
           !isFinite(day.date.getTime())
         ).length;
-        
+
         if (invalidDates > 0) {
           console.warn(`Found ${invalidDates} invalid dates in the dataset`);
         }
-        
+
         // Apply year filter with extra logging
         filteredDays = allDays.filter(day => {
           const dayYear = day.date.getFullYear();
           const matches = dayYear === year;
-          
+
           // Log any potential issues with years not matching expected format
           if (dayYear < 2000 || dayYear > 2100) {
             console.warn('Suspicious year value:', {
@@ -490,26 +490,26 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
               originalDate: day.date
             });
           }
-          
+
           return matches;
         });
-        
+
       } else {
         console.log(`Showing all ${filteredDays.length} days across all years`);
       }
-      
+
       // Count by year after filtering
       const filteredYearCounts = filteredDays.reduce((acc, day) => {
         const year = day.date.getFullYear();
         acc[year] = (acc[year] || 0) + 1;
         return acc;
       }, {} as Record<number, number>);
-      
+
       console.log('Year distribution after filtering:', filteredYearCounts);
-      
+
       // Filter for days with wind >= 10 m/s
       const strongWindDays = filteredDays.filter(day => day.maxWindSpeed >= 10);
-      
+
       // Update state with filtered days
       setWindyDays(strongWindDays);
       setLoading(false);
@@ -550,7 +550,7 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
 
   const handleYearSelect = (year: number | null) => {
     console.log('Year selected:', year);
-    
+
     // Check if we have any data for this year before filtering
     if (windData && windData.length > 0) {
       const yearCounts = windData.reduce((acc, item) => {
@@ -560,12 +560,12 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
         acc[itemYear] = (acc[itemYear] || 0) + 1;
         return acc;
       }, {} as Record<number, number>);
-      
+
       if (year !== null && year !== 0 && !yearCounts[year]) {
         console.warn(`No data available for selected year ${year}. Available years:`, Object.keys(yearCounts));
       }
     }
-    
+
     // For "Alla dagar", use 0 as a special value
     const newYear = year === null ? 0 : year;
     setSelectedYear(newYear);
@@ -593,7 +593,7 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
   const handleDateChange = useCallback(async (direction: 'prev' | 'next') => {
     if (!selectedDay) return;
 
-    const currentIndex = windyDays.findIndex(day => 
+    const currentIndex = windyDays.findIndex(day =>
       day.date.getTime() === selectedDay.date.getTime()
     );
 
@@ -605,6 +605,111 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
     const newDay = windyDays[newIndex];
     await handleDaySelect(newDay);
   }, [selectedDay, windyDays, handleDaySelect]);
+
+
+  const tooltipTimerRef = useRef<number | null>(null);
+
+  const hideTooltip = useCallback(() => {
+    const tooltipEl = document.getElementById('chartjs-tooltip');
+    if (tooltipEl) {
+      tooltipEl.style.opacity = '0';
+    }
+  }, []);
+
+  const customTooltip = useCallback((args: { chart: any; tooltip: any }) => {
+    const { chart, tooltip } = args;
+
+    if (tooltipTimerRef.current !== null) {
+      window.clearTimeout(tooltipTimerRef.current);
+      tooltipTimerRef.current = null;
+    }
+
+    let tooltipEl = document.getElementById('chartjs-tooltip');
+
+    if (!tooltipEl) {
+      tooltipEl = document.createElement('div');
+      tooltipEl.id = 'chartjs-tooltip';
+      tooltipEl.style.position = 'absolute';
+      tooltipEl.style.background = 'rgba(255, 255, 255, 0.4)';
+      tooltipEl.style.backdropFilter = 'blur(4px)';
+      // @ts-ignore
+      tooltipEl.style.WebkitBackdropFilter = 'blur(4px)';
+      tooltipEl.style.border = '1px solid rgba(0, 0, 0, 0.2)';
+      tooltipEl.style.borderRadius = '3px';
+      tooltipEl.style.pointerEvents = 'none';
+      tooltipEl.style.transition = 'all .1s ease';
+      tooltipEl.style.fontFamily = 'Arial, sans-serif';
+      tooltipEl.style.fontSize = '12px';
+      tooltipEl.style.color = '#000';
+      tooltipEl.style.padding = '8px';
+      tooltipEl.style.zIndex = '100';
+      document.body.appendChild(tooltipEl);
+    }
+
+    if (tooltip.opacity === 0) {
+      tooltipEl.style.opacity = '0';
+      return;
+    }
+
+    if (tooltip.body) {
+      const dataIndex = tooltip.dataPoints[0].dataIndex;
+      const day = windyDays[dataIndex];
+      const dateFormatted = format(day.date, 'EEEE, d MMM yyyy', { locale: sv });
+
+      let innerHtml = `<div><strong>${dateFormatted}</strong></div>`;
+
+      // Wind direction
+      if (day.windDirection) {
+        const windDir = day.windDirection;
+        const windDirText = `${windDir.toFixed(0)}°`;
+        const arrowRotation = windDir + 180;
+        const arrowSvg = `
+          <svg width="16" height="16" style="transform: rotate(${arrowRotation}deg);">
+            <line x1="8" y1="2" x2="8" y2="14" stroke="black" stroke-width="2"/>
+            <line x1="8" y1="2" x2="4" y2="6" stroke="black" stroke-width="2"/>
+            <line x1="8" y1="2" x2="12" y2="6" stroke="black" stroke-width="2"/>
+          </svg>
+        `;
+        innerHtml += `<div style="margin-top: 4px; display: flex; align-items: center;">`;
+        innerHtml += `<span>Riktning: ${windDirText}</span>`;
+        innerHtml += `<span style="margin-left: 4px;">${arrowSvg}</span></div>`;
+      }
+
+
+      tooltip.dataPoints.forEach((dataPoint: any) => {
+        const datasetLabel = dataPoint.dataset.label;
+        const value = dataPoint.raw.toFixed(1);
+        // Actually in WindOverview borderColor is a function. We might need to handle this.
+        // For simplicity, let's just use a representative color or evaluate it?
+        // The borderColor function in chartData depends on context.
+        // Let's just use static colors matching the logic for the marker.
+
+        let markerColor = '#999';
+        if (datasetLabel === 'Byvind') {
+          if (dataPoint.raw >= 15) markerColor = '#ad3c1f';
+          else if (dataPoint.raw >= 12) markerColor = '#a55c3b';
+          else markerColor = '#49654c96';
+        } else {
+          if (dataPoint.raw >= 10) markerColor = '#005b2f';
+          else if (dataPoint.raw >= 7) markerColor = '#0b7c46';
+          else if (dataPoint.raw >= 5) markerColor = '#388957';
+          else markerColor = '#49654c96';
+        }
+
+        const marker = `<span style="display:inline-block;width:10px;height:10px;background-color:${markerColor};margin-right:5px;border-radius:50%;"></span>`;
+        innerHtml += `<div>${marker}${datasetLabel}: ${value} m/s</div>`;
+      });
+
+      tooltipEl.innerHTML = innerHtml;
+    }
+
+    const position = chart.canvas.getBoundingClientRect();
+    tooltipEl.style.opacity = '1';
+    tooltipEl.style.left = position.left + window.pageXOffset + tooltip.caretX - tooltipEl.offsetWidth / 2 + 'px';
+    tooltipEl.style.top = position.top + window.pageYOffset + tooltip.caretY - tooltipEl.offsetHeight - 10 + 'px';
+
+    tooltipTimerRef.current = window.setTimeout(hideTooltip, 3000);
+  }, [windyDays, hideTooltip]);
 
   const chartData = {
     labels: windyDays.map(day => format(day.date, 'd MMM yyyy', { locale: sv })),
@@ -786,16 +891,8 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
         },
       },
       tooltip: {
-        callbacks: {
-          title: (items: any[]) => {
-            if (items.length > 0) {
-              const index = items[0].dataIndex;
-              const day = windyDays[index];
-              return format(day.date, 'EEEE d MMMM yyyy', { locale: sv });
-            }
-            return '';
-          },
-        },
+        enabled: false,
+        external: customTooltip,
       },
     },
   };
@@ -813,11 +910,10 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
         <div className="flex gap-2 mt-4 flex-wrap">
           <button
             onClick={() => handleYearSelect(null)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              selectedYear === 0
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${selectedYear === 0
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
           >
             Alla år
           </button>
@@ -825,11 +921,10 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
             <button
               key={year}
               onClick={() => handleYearSelect(year)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                selectedYear === year
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${selectedYear === year
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               {year}
             </button>
@@ -857,10 +952,10 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
 
           {/* Add stats section */}
           <WindStats
-            bestDay={windyDays.length > 0 ? 
-              { 
-                date: [...windyDays].sort((a, b) => b.maxWindSpeed - a.maxWindSpeed)[0].date, 
-                maxWindSpeed: [...windyDays].sort((a, b) => b.maxWindSpeed - a.maxWindSpeed)[0].maxWindSpeed 
+            bestDay={windyDays.length > 0 ?
+              {
+                date: [...windyDays].sort((a, b) => b.maxWindSpeed - a.maxWindSpeed)[0].date,
+                maxWindSpeed: [...windyDays].sort((a, b) => b.maxWindSpeed - a.maxWindSpeed)[0].maxWindSpeed
               } : null}
             totalDays={windyDays.length}
             topDays={[...windyDays]
@@ -883,11 +978,11 @@ export function WindOverview({ onDateSelect, windData }: WindOverviewProps) {
               onDateSelect(day.date);
             }}
           />
-          
+
           {/* Add Advanced Stats */}
           <h3 className="text-xl font-semibold mt-8 mb-4">Mer statistik</h3>
-          <AdvancedWindStats 
-            windyDays={windyDays} 
+          <AdvancedWindStats
+            windyDays={windyDays}
             fetch24HourData={fetch24HourData}
             onDaySelect={(day: BinnedWindData) => {
               setSelectedDay(day);
