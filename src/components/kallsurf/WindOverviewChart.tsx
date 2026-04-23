@@ -212,6 +212,14 @@ export function WindOverviewChart({ timeline, thresholds }: WindOverviewChartPro
     });
   }, [timeline]);
 
+  if (chartData.length === 0) {
+    return (
+      <div className="bg-emerald-900 border border-emerald-800 rounded-2xl p-4">
+        <div className="text-emerald-500 text-sm">Ingen data</div>
+      </div>
+    );
+  }
+
   const nightZones = useMemo(() => getNightZones(timeline), [timeline]);
   const nowLineTime = useMemo(() => {
     const nowPoint = timeline.find(p => p.isNow);
@@ -225,8 +233,8 @@ export function WindOverviewChart({ timeline, thresholds }: WindOverviewChartPro
           Trend senaste 6h
         </h3>
       </div>
-      <div className="h-56 w-full">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
+      <div className="h-56 min-h-56 w-full">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={50}>
           <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 20, bottom: 0 }}>
             <defs>
               <linearGradient id="pastGradient" x1="0" y1="0" x2="0" y2="1">

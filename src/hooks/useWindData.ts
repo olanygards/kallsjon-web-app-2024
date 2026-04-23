@@ -193,7 +193,7 @@ export function useWindData({
           }
         } else {
           // Skip L2 for live data - fetch directly from Firebase
-          console.log('Skipping L2 cache for live data - fetching from Firebase');
+          console.debug('Skipping L2 cache for live data - fetching from Firebase');
           await fetchFromFirebase();
         }
       } catch (err) {

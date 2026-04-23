@@ -228,7 +228,10 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
     lon: KALLSJON.lon,
     startDate: startOfHour(now), // Stable start time (updates hourly) to prevent re-fetching every 30s
     endDate: forecastEnd,
-    enabledModels: [ForecastModel.SMHI]
+    // SMHI does not allow direct browser CORS in production; use MET Norway in PROD.
+    enabledModels: import.meta.env.PROD
+      ? [ForecastModel.MET_NORWAY]
+      : [ForecastModel.SMHI, ForecastModel.MET_NORWAY]
   });
 
   // Konvertera prognosdata till WindData format
@@ -237,7 +240,9 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
     if (consensus.length > 0) {
       return windPointsToWindData(consensus);
     }
-    // Fallback till SMHI om consensus saknas
+    // Fallback till MET Norway (och SMHI i dev) om consensus saknas
+    const met = dataByModel[ForecastModel.MET_NORWAY] || [];
+    if (met.length > 0) return windPointsToWindData(met);
     const smhi = dataByModel[ForecastModel.SMHI] || [];
     return windPointsToWindData(smhi);
   }, [dataByModel]);
