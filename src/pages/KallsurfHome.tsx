@@ -163,13 +163,14 @@ export default function KallsurfHome() {
       <nav
         className="fixed bottom-0 left-0 right-0 z-20 bg-emerald-950/90 backdrop-blur-xl border-t border-emerald-800"
         style={{
-          paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
+          // Safe area + a small base padding (avoid double padding from inner container)
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 6px)',
           position: 'fixed',
           WebkitTransform: 'translateZ(0)',
           transform: 'translateZ(0)'
         }}
       >
-        <div className="max-w-md mx-auto flex justify-around items-center px-2 pt-2 pb-2">
+        <div className="max-w-md mx-auto flex justify-around items-center px-2 pt-2 pb-0">
           <button
             onClick={() => setActiveTab('overview')}
             className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all duration-300 w-20 ${activeTab === 'overview'
