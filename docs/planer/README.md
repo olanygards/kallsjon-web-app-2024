@@ -5,7 +5,7 @@ Den här mappen samlar **audit-verifiering** och **åtgärdsplaner** för vidare
 | Dokument | Innehåll |
 |----------|----------|
 | [AUDIT-VERIFIERING.md](./AUDIT-VERIFIERING.md) | Granskning av extern audit – vad som stämmer/ej |
-| [ATGARDPLAN.md](./ATGARDPLAN.md) | Prioriterad plan för bekräftade buggar |
+| [ATGARDPLAN.md](./ATGARDPLAN.md) | Aktuell åtgärdsplan (Kallsurf Home) |
 | [PLAN-MEDIA-AUTH.md](./PLAN-MEDIA-AUTH.md) | Implementationsplan – autentisering för mediauppladdning |
 
 **Projektöversikt:** [docs/OVERSIKT.md](../OVERSIKT.md) – samlad produkt- och teknikdokumentation.

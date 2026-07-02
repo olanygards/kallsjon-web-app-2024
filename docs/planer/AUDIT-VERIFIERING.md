@@ -1,8 +1,10 @@
 # Audit-verifiering (juli 2026)
 
-Granskning av extern kodaudit mot **aktuell** kodbas (`kallsjon-web-app-2024`). Ingen kod ändrad – endast verifiering.
+Granskning av extern kodaudit mot kodbasen **före legacy-städning**. Ingen kod ändrad i själva granskningen – endast verifiering.
 
-**Sammanfattning:** Auditen träffar många verkliga problem, men flera punkter refererar till **äldre kod** som redan refaktorerats. Nedan: ✅ bekräftad, ⚠️ delvis, ❌ föråldrad/ej reproducerbar.
+> **Uppdatering 2026-07-02:** Legacy-vyer och de flesta audit-objekt (`WindMap`, `Home`, `ChartView`, `WindChart`, `useForecast` m.fl.) är **borttagna** i commit `4eb8817`. Denna fil är **historisk referens**. Aktuell åtgärdsplan: [ATGARDPLAN.md](./ATGARDPLAN.md).
+
+**Sammanfattning:** Auditen träffade många verkliga problem i legacy-koden. Nedan: ✅ bekräftad, ⚠️ delvis, ❌ föråldrad/ej reproducerbar.
 
 ---
 
