@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, addDays, subDays, startOfDay, endOfDay} from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { getSunrise, getSunset } from 'sunrise-sunset-js';
+import { getSunrise, getSunset } from '../utils/solarTimes';
 import WindMap from '../components/WindMap';
 import { WindChart } from '../components/WindChart';
 import { useWindData } from '../hooks/useWindData';

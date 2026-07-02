@@ -6,7 +6,7 @@ import { PullToRefresh } from '../components/PullToRefresh';
 import { WindDataGroup } from '../components/WindDataGroup';
 import { WindCalendar } from '../components/WindCalendar';
 import { Header } from '../components/Header';
-import { getSunrise, getSunset } from 'sunrise-sunset-js';
+import { getSunrise, getSunset } from '../utils/solarTimes';
 import { KALLSJON, FORECAST_MODELS } from '../config/constants';
 import {
   format,

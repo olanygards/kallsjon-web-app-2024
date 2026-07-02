@@ -9,6 +9,8 @@ interface WindData {
   direction: number;
 }
 
+type MergedWindPoint = WindData & { isForecast: boolean };
+
 interface HighlightArea {
   x: number;
   y: number;
@@ -59,6 +61,10 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
   const timeRef = useRef<number>(0);
   const latestWindSpeedRef = useRef<number>(0);
   const latestWindDirectionRef = useRef<number>(0);
+  const timeIndexRef = useRef(timeIndex);
+  const mergedDataRef = useRef<MergedWindPoint[]>([]);
+
+  timeIndexRef.current = timeIndex;
 
   // Define highlight areas - these are surf spots that work with specific wind conditions
   const highlightAreas: HighlightArea[] = [
@@ -97,6 +103,15 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
     
     return allData;
   }, [windData, forecastData]);
+
+  mergedDataRef.current = mergedData;
+
+  useEffect(() => {
+    setTimeIndex((prev) => {
+      if (mergedData.length === 0) return 0;
+      return Math.min(prev, mergedData.length - 1);
+    });
+  }, [mergedData.length]);
 
   // Calculate the index where forecast data starts
   const forecastStartIndex = useMemo(() => {
@@ -297,8 +312,11 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(baseMapImg.current, 0, 0, canvas.width, canvas.height);
 
-    const { speed, direction } = mergedData[timeIndex];
-    
+    const point = mergedDataRef.current[timeIndexRef.current];
+    if (!point) return;
+
+    const { speed, direction } = point;
+
     // Update wind references for highlights
     latestWindSpeedRef.current = speed;
     latestWindDirectionRef.current = direction;
@@ -324,6 +342,8 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadImage = (img: HTMLImageElement, src: string) =>
       new Promise<void>((resolve) => {
         img.onload = () => resolve();
@@ -334,6 +354,7 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
       loadImage(baseMapImg.current, "/lake-map-kall-back.svg"),
       loadImage(maskImg.current, "/lake-map-kall-mask.svg"),
     ]).then(() => {
+      if (cancelled) return;
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -343,6 +364,7 @@ export default function WindMap({ windData, forecastData = [] }: WindMapProps) {
     });
 
     return () => {
+      cancelled = true;
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }

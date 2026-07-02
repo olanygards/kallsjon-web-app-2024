@@ -20,7 +20,7 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import { format, startOfDay, endOfDay, addDays } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { getSunrise, getSunset } from 'sunrise-sunset-js';
+import { getSunrise, getSunset } from '../utils/solarTimes';
 import 'chartjs-adapter-date-fns';
 import { WindData, ForecastDataset } from '../types/WindData';
 
