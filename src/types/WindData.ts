@@ -24,11 +24,3 @@ export enum ForecastModel {
     CONSENSUS = 'consensus',
     OBSERVED = 'observed'
 }
-
-export interface ForecastDataset {
-    modelId: ForecastModel;
-    modelName: string;
-    color: string;
-    data: WindPoint[];
-    lastUpdated?: string;
-}

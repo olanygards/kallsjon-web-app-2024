@@ -1,50 +1,34 @@
-# React + TypeScript + Vite
+# Kallifornien – webbapp
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Mobilvänlig PWA för vågsurf i Kallsjön. **En app, en route:** `/` → `KallsurfHome`.
 
-Currently, two official plugins are available:
+**Live:** [kallsjon.web.app](https://kallsjon.web.app)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Dokumentation
 
-## Expanding the ESLint configuration
+- [docs/OVERSIKT.md](docs/OVERSIKT.md) – produkt, teknik, datakällor
+- [docs/planer/ATGARDPLAN.md](docs/planer/ATGARDPLAN.md) – aktuell åtgärdsplan
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## Utveckling
 
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+npm install
+npm run dev      # http://localhost:5173
+npm run build
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+## Deploy
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+Hosting deployas från **föräldermappen** `kallsjon-web-app/` (inte från detta repo isolerat):
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+```bash
+cd ../..   # till kallsjon-web-app/
+npm run build --prefix kallsjon-web-app-2024
+firebase deploy --only hosting
 ```
+
+Firebase-projekt: `kallsjon`.
+
+## Git-historik
+
+Legacy-vyer (`/classic`, `/home`, m.fl.) togs bort juli 2026. Äldre kod finns kvar i git om den behövs: commit `35570f5`.

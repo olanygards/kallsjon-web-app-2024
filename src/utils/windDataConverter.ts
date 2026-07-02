@@ -2,8 +2,7 @@ import { parseISO } from 'date-fns';
 import { WindData, WindPoint } from '../types/WindData';
 
 /**
- * Konverterar WindPoint (prognosdata) till WindData (legacy format)
- * För bakåtkompatibilitet med befintliga komponenter
+ * Konverterar WindPoint (prognosdata) till WindData (appens interna format).
  */
 export function windPointToWindData(point: WindPoint): WindData {
   return {

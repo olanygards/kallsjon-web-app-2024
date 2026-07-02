@@ -388,7 +388,7 @@ src/
 scripts/
 └── aggregateDailyStats.ts   # Batch: wind → dailyStats
 
-public/            # PWA-ikoner, sjökarta (SVG-lager), manifest
+public/            # PWA-ikoner, manifest, 404-sida
 
 docs/
 ├── OVERSIKT.md    # Denna fil
@@ -400,7 +400,7 @@ docs/
 
 ## Deployment
 
-Webbappen byggs med `npm run build` (triggas av `firebase deploy`).
+Webbappen byggs med `npm run build`. **Deploy sker från föräldermappen** `kallsjon-web-app/` (se [README.md](../README.md)).
 
 ```bash
 # Hela stacken (hosting + functions) från kallsjon-web-app/
@@ -421,11 +421,8 @@ Firebase-projekt: **`kallsjon`**.
 | | |
 |---|---|
 | **Repo** | [github.com/olanygards/kallsjon-web-app-2024](https://github.com/olanygards/kallsjon-web-app-2024) |
-| **Aktiv branch** | `new-kall` (legacy borttagen, enbart Kallsurf Home) |
-| **Checkpoint före städning** | commit `35570f5` – legacy + Fas 0/1 finns kvar |
-| **Nuvarande app** | commit `4eb8817` och senare |
-
-`main` kan ligga efter tills `new-kall` mergas.
+| **Branch** | `main` – enbart Kallsurf Home |
+| **Legacy-kod** | Finns i git-historik: commit `35570f5` |
 
 ---
 
@@ -454,11 +451,11 @@ Firebase-projekt: **`kallsjon`**.
 
 | Dokument | Innehåll |
 |----------|----------|
-| [planer/ATGARDPLAN.md](planer/ATGARDPLAN.md) | Aktuell åtgärdsplan (Kallsurf Home) |
-| [planer/AUDIT-VERIFIERING.md](planer/AUDIT-VERIFIERING.md) | Historisk granskning av extern audit (legacy) |
+| [planer/ATGARDPLAN.md](planer/ATGARDPLAN.md) | Aktuell åtgärdsplan |
 | [planer/PLAN-MEDIA-AUTH.md](planer/PLAN-MEDIA-AUTH.md) | Implementationsplan – media-auth |
+| [planer/arkiv/](planer/arkiv/) | Historiska dokument (audit före legacy-städning) |
 | `2024-kallsjon-functions/docs/OVERSIKT.md` | Vindinsamling (Cloud Function) |
 
 ---
 
-*Senast uppdaterad: 2026-07-02 (legacy borttagen; docs synkade med enbart Kallsurf Home)*
+*Senast uppdaterad: 2026-07-02 (städning: borttagen död kod och legacy-assets)*

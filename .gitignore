@@ -25,6 +25,9 @@ vite.config.js
 *.sln
 *.sw?
 
+# Firebase local cache
+.firebase/
+
 # Environment variables
 .env
 .env.local

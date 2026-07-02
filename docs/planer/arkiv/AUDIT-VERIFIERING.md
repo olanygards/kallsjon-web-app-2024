@@ -2,7 +2,7 @@
 
 Granskning av extern kodaudit mot kodbasen **före legacy-städning**. Ingen kod ändrad i själva granskningen – endast verifiering.
 
-> **Uppdatering 2026-07-02:** Legacy-vyer och de flesta audit-objekt (`WindMap`, `Home`, `ChartView`, `WindChart`, `useForecast` m.fl.) är **borttagna** i commit `4eb8817`. Denna fil är **historisk referens**. Aktuell åtgärdsplan: [ATGARDPLAN.md](./ATGARDPLAN.md).
+> **Arkiverad 2026-07-02.** Legacy-vyer och de flesta audit-objekt är borttagna från kodbasen. Aktuell plan: [../ATGARDPLAN.md](../ATGARDPLAN.md).
 
 **Sammanfattning:** Auditen träffade många verkliga problem i legacy-koden. Nedan: ✅ bekräftad, ⚠️ delvis, ❌ föråldrad/ej reproducerbar.
 
