@@ -11,15 +11,9 @@
     "aggregate:historical": "tsx scripts/aggregateDailyStats.ts"
   },
   "dependencies": {
-    "@heroicons/react": "^2.1.5",
     "@react-spring/web": "^10.0.3",
-    "@types/react-datepicker": "^7.0.0",
     "@types/react-router-dom": "^5.3.3",
     "@types/suncalc": "^1.9.2",
-    "chart.js": "^4.4.6",
-    "chartjs-adapter-date-fns": "^3.0.0",
-    "chartjs-plugin-annotation": "^3.1.0",
-    "chartjs-plugin-zoom": "^2.2.0",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "exifreader": "^4.32.0",
@@ -27,10 +21,7 @@
     "lucide-react": "^0.555.0",
     "lz-string": "^1.5.0",
     "react": "^19.2.3",
-    "react-chartjs-2": "^5.3.1",
-    "react-datepicker": "^8.1.0",
     "react-dom": "^19.2.3",
-    "react-icons": "^5.7.0",
     "react-router-dom": "^7.2.0",
     "recharts": "^3.5.0",
     "suncalc": "^1.9.0"

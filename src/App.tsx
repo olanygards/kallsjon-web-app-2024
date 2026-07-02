@@ -2,11 +2,6 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from "react-route
 import { Suspense, lazy, useEffect } from "react";
 
 const KallsurfHome = lazy(() => import("./pages/KallsurfHome"));
-const DailyView = lazy(() => import("./pages/DailyView"));
-const Home = lazy(() => import("./pages/Home"));
-const Now = lazy(() => import("./pages/Now"));
-const ChartView = lazy(() => import("./pages/ChartView"));
-const Experiments = lazy(() => import("./pages/Experiments"));
 
 function RouteFallback() {
   return (
@@ -19,21 +14,17 @@ function RouteFallback() {
   );
 }
 
-// Component to handle route changes and app styling
 function AppContent() {
   const location = useLocation();
 
   useEffect(() => {
-    // Check if app is running in standalone mode (added to home screen)
     const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches
       || (window.navigator as any).standalone
       || document.referrer.includes('android-app://');
 
     if (isInStandaloneMode) {
-      // Apply background color to entire document in standalone mode
       document.documentElement.style.backgroundColor = '#96b9a3';
 
-      // Listen for display-mode changes
       const mediaQueryList = window.matchMedia('(display-mode: standalone)');
       const handleChange = (e: MediaQueryListEvent) => {
         document.documentElement.style.backgroundColor = e.matches ? '#96b9a3' : '';
@@ -44,7 +35,6 @@ function AppContent() {
     }
   }, []);
 
-  // When route changes, scroll to top
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
@@ -54,11 +44,7 @@ function AppContent() {
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<KallsurfHome />} />
-          <Route path="/classic" element={<DailyView />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/now" element={<Now />} />
-          <Route path="/chart" element={<ChartView />} />
-          <Route path="/experiments" element={<Experiments />} />
+          <Route path="*" element={<KallsurfHome />} />
         </Routes>
       </Suspense>
     </div>

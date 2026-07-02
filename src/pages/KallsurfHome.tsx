@@ -5,7 +5,6 @@ import { HeroStats } from '../components/kallsurf/HeroStats';
 import { WindOverviewChart } from '../components/kallsurf/WindOverviewChart';
 import { DailyForecast } from '../components/kallsurf/DailyForecast';
 import { HistoryTabs } from '../components/kallsurf/HistoryTabs';
-import { HamburgerMenu } from '../components/kallsurf/HamburgerMenu';
 import { CalendarGrid } from '../components/kallsurf/CalendarGrid';
 import { StatsView } from '../components/kallsurf/StatsView';
 import { MediaView } from '../components/media/MediaView';
@@ -76,7 +75,6 @@ export default function KallsurfHome() {
               Kall<span className="text-emerald-400">ifornia</span>
             </h1>
           </button>
-          <HamburgerMenu />
         </div>
       </header>
 
