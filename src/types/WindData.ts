@@ -21,6 +21,9 @@ export interface WindPoint {
 export enum ForecastModel {
     SMHI = 'smhi',
     MET_NORWAY = 'met_norway',
+    ECMWF = 'ecmwf',
+    GFS = 'gfs',
+    ICON = 'icon',
     CONSENSUS = 'consensus',
     OBSERVED = 'observed'
 }

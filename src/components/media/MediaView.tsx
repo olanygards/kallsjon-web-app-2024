@@ -104,11 +104,11 @@ export const MediaView: React.FC<MediaViewProps> = ({ onNavigateToDate, onUpload
 
     return (
         <div className="animate-in fade-in duration-500 pb-24">
-            <div className="flex justify-between items-center mb-6 sticky top-20 z-10 bg-emerald-950/90 backdrop-blur-md py-4 -mx-4 px-4 border-b border-emerald-800/50">
-                <h2 className="text-xl font-bold text-white">Mediaflöde</h2>
+            <div className="flex justify-between items-center mb-6 sticky top-20 z-10 bg-app-bg/90 backdrop-blur-md py-4 -mx-4 px-4 border-b border-app-border/50">
+                <h2 className="text-xl font-bold text-app-text">Mediaflöde</h2>
                 <button
                     onClick={onUploadClick}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-emerald-900/20 transition-all hover:scale-105"
+                    className="bg-app-accent hover:bg-app-accent/90 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-black/20 transition-all hover:scale-105"
                 >
                     Ladda upp
                 </button>
@@ -116,13 +116,13 @@ export const MediaView: React.FC<MediaViewProps> = ({ onNavigateToDate, onUpload
 
             {loading ? (
                 <div className="flex justify-center py-12">
-                    <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-8 h-8 border-2 border-app-accent border-t-transparent rounded-full animate-spin"></div>
                 </div>
             ) : (
                 <div className="space-y-8">
                     {Object.entries(groupedItems).map(([month, items]) => (
                         <div key={month}>
-                            <h3 className="text-emerald-400 text-sm font-bold uppercase tracking-wider mb-3 sticky top-[4.5rem] z-0 bg-emerald-950/80 backdrop-blur-sm py-2 w-fit px-3 rounded-full border border-emerald-800/30">
+                            <h3 className="text-app-muted text-sm font-bold uppercase tracking-wider mb-3 sticky top-[4.5rem] z-0 bg-app-bg/80 backdrop-blur-sm py-2 w-fit px-3 rounded-full border border-app-border/30">
                                 {month}
                             </h3>
                             <div className="grid grid-cols-3 gap-1">
@@ -130,7 +130,7 @@ export const MediaView: React.FC<MediaViewProps> = ({ onNavigateToDate, onUpload
                                     <div
                                         key={item.id}
                                         onClick={() => setSelectedItem(item)}
-                                        className="relative aspect-square bg-emerald-900/20 overflow-hidden cursor-pointer group"
+                                        className="relative aspect-square bg-app-surface/20 overflow-hidden cursor-pointer group"
                                     >
                                         {item.type === 'video' ? (
                                             <>
@@ -146,7 +146,7 @@ export const MediaView: React.FC<MediaViewProps> = ({ onNavigateToDate, onUpload
                                         {/* Wind Badge (Mini) */}
                                         {item.windData && (
                                             <div className="absolute top-1 right-1 bg-black/40 backdrop-blur-sm rounded px-1 py-0.5 flex items-center gap-0.5">
-                                                <Wind className="w-2 h-2 text-emerald-400" />
+                                                <Wind className="w-2 h-2 text-app-muted" />
                                                 <span className="text-[8px] text-white font-bold">{item.windData.avg.toFixed(0)}</span>
                                             </div>
                                         )}
@@ -157,7 +157,7 @@ export const MediaView: React.FC<MediaViewProps> = ({ onNavigateToDate, onUpload
                     ))}
 
                     {mediaItems.length === 0 && (
-                        <div className="text-center py-12 text-emerald-500/50">
+                        <div className="text-center py-12 text-app-subtle/50">
                             <p>Inga bilder uppladdade än.</p>
                             <p className="text-sm mt-2">Bli den första!</p>
                         </div>
@@ -251,13 +251,13 @@ export const MediaView: React.FC<MediaViewProps> = ({ onNavigateToDate, onUpload
                         {/* Wind Data */}
                         {selectedItem.windData && (
                             <div className="flex items-center gap-4 bg-white/5 p-3 rounded-xl border border-white/5">
-                                <div className="p-2 bg-emerald-500/20 rounded-lg">
-                                    <Wind className="w-5 h-5 text-emerald-400" />
+                                <div className="p-2 bg-app-accent-green/20 rounded-lg">
+                                    <Wind className="w-5 h-5 text-app-muted" />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] text-emerald-400 uppercase tracking-wider font-bold">Vind vid tillfället</p>
+                                    <p className="text-[10px] text-app-muted uppercase tracking-wider font-bold">Vind vid tillfället</p>
                                     <div className="flex items-baseline gap-2">
-                                        <span className="text-xl font-bold text-white">{selectedItem.windData.avg.toFixed(1)}</span>
+                                        <span className="text-xl font-bold text-app-text">{selectedItem.windData.avg.toFixed(1)}</span>
                                         <span className="text-sm text-yellow-400 font-bold">({selectedItem.windData.gust.toFixed(1)})</span>
                                         <span className="text-xs text-white/50">m/s</span>
                                     </div>
@@ -288,7 +288,7 @@ export const MediaView: React.FC<MediaViewProps> = ({ onNavigateToDate, onUpload
                                 onNavigateToDate(new Date(selectedItem.date));
                                 setSelectedItem(null);
                             }}
-                            className="w-full bg-emerald-800 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+                            className="w-full bg-app-surface-elevated hover:bg-app-surface-elevated text-app-text py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors"
                         >
                             <Calendar className="w-4 h-4" />
                             Gå till denna dag <ArrowRight className="w-4 h-4" />

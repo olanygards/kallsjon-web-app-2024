@@ -3,6 +3,7 @@ import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { DailySummary } from './useKallsurfTimeline';
+import { getEffectiveLevelIndex } from '../config/windScale';
 
 export function useMonthlyStats(monthDate: Date) {
     const [stats, setStats] = useState<DailySummary[]>([]);
@@ -43,18 +44,16 @@ export function useMonthlyStats(monthDate: Date) {
                     // Note: dailyStats might not have exactly the same fields as calculated from raw data
                     // but we map what we have.
 
-                    let bestSurfability: 'none' | 'watching' | 'ok' | 'good' = 'none';
-                    if (data.maxForce >= 10 || data.maxGust >= 15) bestSurfability = 'good';
-                    else if (data.maxForce >= 8) bestSurfability = 'ok';
-                    else if (data.maxForce >= 6) bestSurfability = 'watching';
+                    const maxAvg = data.maxForce || 0;
+                    const maxGust = data.maxGust || 0;
 
                     return {
-                        date: new Date(data.date), // Assuming date string YYYY-MM-DD works for new Date() or we parse it
+                        date: new Date(data.date),
                         dateStr: data.date,
-                        maxAvg: data.maxForce || 0,
+                        maxAvg,
                         avgAvg: data.avgForce || 0,
-                        maxGust: data.maxGust || 0,
-                        bestSurfability
+                        maxGust,
+                        bestWindLevelIndex: getEffectiveLevelIndex(maxAvg, maxGust),
                     };
                 });
 

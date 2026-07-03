@@ -136,7 +136,7 @@ export const DailyGallery: React.FC<DailyGalleryProps> = ({ date }) => {
                         )}
                         {item.windData && (
                             <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded backdrop-blur-sm flex items-center gap-1">
-                                <Wind className="w-3 h-3 text-emerald-400" />
+                                <Wind className="w-3 h-3 text-app-muted" />
                                 <span>{item.windData.avg.toFixed(0)}</span>
                             </div>
                         )}
@@ -221,11 +221,11 @@ export const DailyGallery: React.FC<DailyGalleryProps> = ({ date }) => {
                         {/* Wind Data */}
                         {selectedItem.windData && (
                             <div className="flex items-center gap-4 bg-white/5 p-3 rounded-xl border border-white/5">
-                                <div className="p-2 bg-emerald-500/20 rounded-lg">
-                                    <Wind className="w-5 h-5 text-emerald-400" />
+                                <div className="p-2 bg-app-accent-green/20 rounded-lg">
+                                    <Wind className="w-5 h-5 text-app-muted" />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] text-emerald-400 uppercase tracking-wider font-bold">Vind vid tillfället</p>
+                                    <p className="text-[10px] text-app-muted uppercase tracking-wider font-bold">Vind vid tillfället</p>
                                     <div className="flex items-baseline gap-2">
                                         <span className="text-xl font-bold text-white">{selectedItem.windData.avg.toFixed(1)}</span>
                                         <span className="text-sm text-yellow-400 font-bold">({selectedItem.windData.gust.toFixed(1)})</span>
