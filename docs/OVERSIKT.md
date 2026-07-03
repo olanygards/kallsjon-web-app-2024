@@ -258,7 +258,7 @@ Appen har **en enda vy**. Alla paths leder till samma sida.
 
 **Legacy borttaget (juli 2026):** `/classic`, `/home`, `/now`, `/chart`, `/experiments` och tillhörande Chart.js-komponenter (`WindMap`, `WindChart`, m.fl.) finns kvar i git-historik (checkpoint `35570f5` på branchen `new-kall`) men inte i nuvarande kod.
 
-**Pull-to-refresh:** Finns **inte** idag. Planerat i [planer/ATGARDPLAN.md](planer/ATGARDPLAN.md) Fas A.
+**Manuell uppdatering:** Ingen pull-to-refresh. Live-vind uppdateras automatiskt (~30 s). Refresh-knappar kan läggas till per vy vid behov (se [planer/ATGARDPLAN.md](planer/ATGARDPLAN.md) Fas A).
 
 ### Kallsurf Home – flikar
 
@@ -355,7 +355,7 @@ Appen cachar aggressivt för snabb mobilupplevelse.
 | **L2 localStorage** | Per månad; hoppar över L2 för live-data om L1 är utgången |
 | **Firestore** | Källa vid cache miss |
 
-`useWindData` exponerar `clearCache()` och `IgnoreCacheProvider` – används inte ännu från UI (planerat via pull-to-refresh, se åtgärdsplan).
+`useWindData` exponerar `clearCache()` och `IgnoreCacheProvider` – redo för framtida refresh-knappar (se åtgärdsplan Fas A).
 
 ### Prognos
 
@@ -431,7 +431,7 @@ Firebase-projekt: **`kallsjon`**.
 | Område | Beskrivning |
 |--------|-------------|
 | SMHI i prod | CORS blockerar direktanrop; consensus kräver proxy eller server-side fetch (Fas B i åtgärdsplan) |
-| Pull-to-refresh | Saknas i huvudvyn – cache kan ge data upp till TTL utan sidladdning |
+| Manuell uppdatering | Ingen refresh-knapp än; live-vind auto-uppdateras. Knappar vid behov per vy (Fas A) |
 | Media-auth | Delad uppladdningskod hårdkodad i klienten – ska ersättas med Firebase Auth + roller (Fas C) |
 | Bundle-storlek | `KallsurfHome`-chunk >500 kB – ev. code-splitting |
 
