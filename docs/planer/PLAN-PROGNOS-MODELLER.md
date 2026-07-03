@@ -343,13 +343,15 @@ Håller `ForecastView` tunn och testbar. Delad **dagremsa**-komponent med Läget
 
 ## Efter v1 (roadmap)
 
-| Steg | Innehåll |
-|------|----------|
-| **v1.1** | MET Norway-rad (befintlig adapter) |
-| **v1.2** | SMHI-rad när Fas B (proxy) är klar |
-| **v1.3** | Consensus-rad + visuell markering när spread > X m/s |
-| **D.3** | *Kommande 7 dagar* i Läget — bästa vind per dag ([BESLUT 01](../ux/BESLUT.md)) |
-| **Senare** | 7-dagars översiktsmatris (om behov); refresh-knapp (Fas A) |
+| Steg | Innehåll | Status |
+|------|----------|--------|
+| **D.3** | *Kommande 7 dagar* i Läget — bästa vind per dag ([BESLUT 01](../ux/BESLUT.md)) | ✅ UX-1 (2026-07-03) |
+| **UX-2** | Läget tight — nivåmätare, Nästa surfchans, grafpolish | ✅ (2026-07-03) |
+| **v1.1** | MET Norway-rad (befintlig adapter) | 📋 |
+| **v1.2** | SMHI-rad när Fas B (proxy) är klar | 📋 |
+| **v1.3** | Consensus-rad + visuell markering när spread > X m/s | 📋 |
+| **Fas E** | Detaljer-dagvyn — dagsammanfattning, mediamarkörer | 📋 Nästa |
+| **Senare** | 7-dagars översiktsmatris (om behov); refresh-knapp (Fas A) | 📋 |
 
 ---
 
@@ -366,8 +368,8 @@ Håller `ForecastView` tunn och testbar. Delad **dagremsa**-komponent med Läget
 | 7 | *Kommande 7 dagar*: **bästa vind per dag** | 2026-07-03 |
 | 8 | Open-Meteo icke-kommersiell tier | juli 2026 |
 
-**Status:** ✅ **Implementerad (v1)** — 2026-07-03. Kvarstår: SMHI i prod (Fas B), lokal verifiering på mobil, ev. polish.
+**Status:** ✅ **Implementerad (v1)** — deployad 2026-07-03 ([kallsjon.web.app](https://kallsjon.web.app)). Kvarstår: SMHI i prod (Fas B), MET/consensus-rader i prod, Detaljer-dagvyn (Fas E), uppdaterade skärmdumpar.
 
 ---
 
-*Senast uppdaterad: 2026-07-03 (prognos en dag i taget, Jämtlandspalett, vindskala)*
+*Senast uppdaterad: 2026-07-03 (v1 live; UX-2 Läget tight; Fas E nästa)*

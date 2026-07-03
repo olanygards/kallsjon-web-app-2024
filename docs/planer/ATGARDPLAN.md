@@ -11,10 +11,15 @@ Prioriterad plan för vidare arbete i **Kallsurf Home** – appens enda vy.
 | Fas | Område | Status |
 |-----|--------|--------|
 | **0** | Build & reproducerbarhet | ✅ Klart |
+| **UX-1** | Vindskala, Jämtlandspalett, Kommande 7 dagar, Prognos-flik (PR #1) | ✅ **Live** (2026-07-03) |
+| **UX-2** | Läget enligt skiss v1.4 — nivåmätare, Nästa surfchans, grafpolish (PR #2) | ✅ **Live** (2026-07-03) |
+| **D** | Prognos – modellmatris (Open-Meteo) | ✅ **Implementerad v1** (2026-07-03) – [PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md) |
+| **E** | Detaljer-dagvyn (dagsammanfattning, mediamarkörer i graf) | 📋 **Nästa** |
 | **A** | Manuell uppdatering (refresh-knappar) | 💤 Valfritt – vid behov per vy |
 | **B** | SMHI / consensus i produktion | 📋 Öppen |
-| **D** | Prognos – modellmatris (Open-Meteo) | ✅ **Implementerad v1** (2026-07-03) – [PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md) |
 | **C** | Media-auth | 📋 Planerad (uppskjuten) |
+
+**Deploy:** [kallsjon.web.app](https://kallsjon.web.app) — `main` synkad med prod efter PR #1–#2 och bugfix `goToOverview` (2026-07-03).
 
 ---
 
@@ -72,28 +77,48 @@ npm install && npm run build
 
 ---
 
-## Fas D – Prognos: modellmatris
+## UX-1 & UX-2 – Design enligt skiss v1.4 ✅
+
+**Klart och deployat** (PR #1 + PR #2, juli 2026). Se [docs/ux/BESLUT.md](../ux/BESLUT.md) och [docs/ux/VINDSKALA.md](../ux/VINDSKALA.md).
+
+| Del | Innehåll |
+|-----|----------|
+| **UX-1** | `windScale.ts`, Jämtlandspalett, ljus chrome, *Kommande 7 dagar* (bästa vind/dag), ny flik **Prognos** |
+| **UX-2** | `WindScaleMeter`, `NextSurfChance`, tight NU-kort, graf med fönsterväxlare (−3+6 / −6+12 / −12+24), fast avläsning, stationsstatus i header |
+| **Bugfix** | `goToOverview()` — rensar dagval vid återgång till Läget (fixade 0,0 i NU-kort efter Nästa surfchans → Detaljer) |
+
+**Kvar i Läget (ej blockerande):** tröskelskuggning i grafen (fylld zon över 10 m/s), PWA-splash-bilder (`public/apple-splash-*.jpg`) i gamla mörkgröna temat.
+
+---
+
+## Fas D – Prognos: modellmatris ✅
 
 **Full specifikation:** [PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md)
 
-**Beslut (juli 2026):**
+**Implementerat (juli 2026):**
 
 1. **v1-data:** Open-Meteo – ECMWF, GFS, ICON
-2. **v1-ui:** Ny flik **Prognos** — **en dag i taget** (dagremsa + 8×6 grid), Jämtlandspalett
+2. **v1-ui:** Flik **Prognos** — **en dag i taget** (dagremsa + 8×6 grid), Jämtlandspalett
 3. **UX:** Passerade tidslots gråade; delad dagremsa med Läget; *Kommande 7 dagar* = bästa vind per dag
 4. **Drift:** Internt bruk – Open-Meteo icke-kommersiell tier
-5. **Senare:** MET/SMHI-rader, full consensus-rad
 
-Se [PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md) och [docs/ux/BESLUT.md](../ux/BESLUT.md) – **plan klar för implementation**.
-
-| Del | Insats |
-|-----|--------|
-| D.1 Data (Open-Meteo) | ~1 dag |
-| D.2 UI (matris + flik) | ~1–1,5 dag |
-| D.3 Polish + docs | ~0,5 dag |
-| **Totalt v1** | **~3 dagar** |
+**Kvarstår:** MET/SMHI-rader och full consensus-rad i prod (kräver Fas B för SMHI).
 
 SMHI-proxy (Fas B) och MET-rad kan läggas till i v1.1 utan att ändra grundlayout.
+
+---
+
+## Fas E – Detaljer-dagvyn 📋
+
+**Nästa större UX-bit** enligt skiss v1.4.
+
+| Del | Innehåll |
+|-----|----------|
+| Dagsammanfattning | T.ex. *"Över tröskeln 11:20–19:40"* för vald dag |
+| Mediamarkörer | Markörer i dagsgrafen när media finns för tidpunkten |
+| Ev. polish | Uppdaterade skärmdumpar i `docs/images/` |
+
+**Berörda filer:** `HistoryTabs.tsx`, `CalendarGrid.tsx`, ev. `DailyGallery.tsx`
 
 ---
 
@@ -109,9 +134,12 @@ Full specifikation: [PLAN-MEDIA-AUTH.md](./PLAN-MEDIA-AUTH.md).
 
 ## Valfritt (låg prioritet)
 
+- PWA-splash och ikoner — byt `public/apple-splash-*.jpg` till ljus/neutral palett (manifest redan uppdaterat)
+- Tröskelskuggning i Lägets trendgraf (zon över 10 m/s)
+- Städning: `WIND_CALENDAR_COLORS` i `constants.ts` (oanvänd efter skala-refaktorering)
 - Refresh-knappar per vy (Fas A) – när behov uppstår
 - Is/säsong utöver Stats-filtret (`surfableDays.ts`)
-- Code-splitting av stor `KallsurfHome`-chunk
+- Code-splitting av stor `KallsurfHome`-chunk (~1,1 MB)
 - PWA-cache-strategi vid deploy
 
 ---
@@ -119,21 +147,22 @@ Full specifikation: [PLAN-MEDIA-AUTH.md](./PLAN-MEDIA-AUTH.md).
 ## Rekommenderad ordning
 
 ```
-Fas 0 (klart) → Fas D v1 ([PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md)) → Fas B → Fas C
+Fas 0, UX-1, UX-2, Fas D (klart) → Fas E (Detaljer) → Fas B (SMHI) → Fas C (media-auth)
+Valfritt: splash-bilder, tröskelskuggning, code-splitting
 Fas A (refresh-knappar) – endast vid behov, per vy
 ```
-
-**Fas D v1:** Open-Meteo (ECMWF/GFS/ICON) + ny flik Prognos (**en dag i taget**) + sjustegsskala/Jämtlandspalett (`windScale.ts`).
 
 ## Testplan
 
 - [x] `npm run build` på ren `node_modules`
-- [ ] Alla flikar: Läget, Detaljer, Stats, Media
-- [ ] Prognosvarning vid API-fel – observation ska fungera
-- [ ] Prognos-flik – en dag, modellgrid 8×N, dagremsa (Fas D)
+- [x] Alla flikar: Läget, Detaljer, Prognos, Stats, Media (manuellt verifierat juli 2026)
+- [x] Prognos-flik – en dag, modellgrid 8×N, dagremsa (Fas D)
+- [x] Läget – nivåmätare, Nästa surfchans, graf fönster + scrubb (UX-2)
+- [x] Återgång Läget efter dagval — NU-kort visar observation, inte 0,0 (`goToOverview`)
+- [ ] Prognosvarning vid API-fel – observation ska fungera (känd, fungerar)
 - [ ] Media-uppladdning (tills Fas C)
 - [ ] Refresh-knapp (när implementerad) – verifiera cache bypass
 
 ---
 
-*Senast uppdaterad: 2026-07-03 (Fas D: en dag i taget, Jämtlandspalett)*
+*Senast uppdaterad: 2026-07-03 (UX-1/UX-2 live, Fas E nästa)*
