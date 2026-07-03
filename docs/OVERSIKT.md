@@ -432,6 +432,7 @@ Firebase-projekt: **`kallsjon`**.
 |--------|-------------|
 | SMHI i prod | CORS blockerar direktanrop; consensus kräver proxy eller server-side fetch (Fas B i åtgärdsplan) |
 | Manuell uppdatering | Ingen refresh-knapp än; live-vind auto-uppdateras. Knappar vid behov per vy (Fas A) |
+| Prognosvy *Kommande dagar* | Enkel max-medel-lista på Läget; modellmatris planeras som ny flik – se [PLAN-PROGNOS-MODELLER.md](planer/PLAN-PROGNOS-MODELLER.md) |
 | Media-auth | Delad uppladdningskod hårdkodad i klienten – ska ersättas med Firebase Auth + roller (Fas C) |
 | Bundle-storlek | `KallsurfHome`-chunk >500 kB – ev. code-splitting |
 
@@ -451,7 +452,8 @@ Firebase-projekt: **`kallsjon`**.
 
 | Dokument | Innehåll |
 |----------|----------|
-| [planer/ATGARDPLAN.md](planer/ATGARDPLAN.md) | Aktuell åtgärdsplan |
+| [planer/ATGARDPLAN.md](planer/ATGARDPLAN.md) | Aktuell åtgärdsplan (inkl. Fas D – prognosvy) |
+| [planer/PLAN-PROGNOS-MODELLER.md](planer/PLAN-PROGNOS-MODELLER.md) | Implementationsplan – modellmatris (Open-Meteo) |
 | [planer/PLAN-MEDIA-AUTH.md](planer/PLAN-MEDIA-AUTH.md) | Implementationsplan – media-auth |
 | [planer/arkiv/](planer/arkiv/) | Historiska dokument (audit före legacy-städning) |
 | `2024-kallsjon-functions/docs/OVERSIKT.md` | Vindinsamling (Cloud Function) |

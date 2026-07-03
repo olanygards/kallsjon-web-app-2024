@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en" class="dark:bg-gray-900">
+<html lang="sv">
 
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <meta name="color-scheme" content="light dark">
+  <meta name="color-scheme" content="dark">
   <title>Surf i Kallsjön</title>
   <meta name="description" content="Aktuell vinddata och prognoser för Kallsjön">
   <meta name="theme-color" content="#022c22">
@@ -17,18 +17,6 @@
   <link rel="apple-touch-icon" href="/icon-192x192.png">
   <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="apple-touch-startup-image" href="/apple-splash-2048-2732.png"
-    media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
-  <link rel="apple-touch-startup-image" href="/apple-splash-1668-2388.png"
-    media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
-  <link rel="apple-touch-startup-image" href="/apple-splash-1536-2048.png"
-    media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
-  <link rel="apple-touch-startup-image" href="/apple-splash-1125-2436.png"
-    media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
-  <link rel="apple-touch-startup-image" href="/apple-splash-828-1792.png"
-    media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
-  <link rel="apple-touch-startup-image" href="/apple-splash-750-1334.png"
-    media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
   <style>
     /* Define CSS variables for safe area insets */
     :root {
@@ -39,12 +27,9 @@
       scroll-behavior: smooth;
     }
 
-    /* iOS status bar styling */
-    @supports (padding-top: env(safe-area-inset-top)) {
-      html {
-        /* Remove padding-top to prevent double padding */
-        background-color: #022c22;
-      }
+    html,
+    body {
+      background-color: #022c22;
     }
 
     /* Enhanced scroll styling for iOS */

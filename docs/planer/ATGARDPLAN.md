@@ -13,6 +13,7 @@ Prioriterad plan för vidare arbete i **Kallsurf Home** – appens enda vy.
 | **0** | Build & reproducerbarhet | ✅ Klart |
 | **A** | Manuell uppdatering (refresh-knappar) | 💤 Valfritt – vid behov per vy |
 | **B** | SMHI / consensus i produktion | 📋 Öppen |
+| **D** | Prognos – modellmatris (Open-Meteo) | ✅ Plan klar – [PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md) |
 | **C** | Media-auth | 📋 Planerad (uppskjuten) |
 
 ---
@@ -67,6 +68,33 @@ npm install && npm run build
 
 **Berörda filer:** `vite.config.ts` (dev-proxy finns), ev. `2024-kallsjon-functions`, `useForecastModels.ts`
 
+**Koppling till Fas D:** SMHI-proxy behövs fortfarande för SMHI-raden i modellmatrisen. Övriga modeller (Open-Meteo) fungerar direkt från webbläsaren.
+
+---
+
+## Fas D – Prognos: modellmatris
+
+**Full specifikation:** [PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md)
+
+**Beslut (juli 2026):**
+
+1. **v1-data:** Open-Meteo – ECMWF, GFS, ICON
+2. **v1-ui:** Ny flik **Prognos** – 7 dagar, sidledes scroll, emerald-design
+3. **UX:** Passerade tidslots gråade; inga modell-accents i vänsterkolumn
+4. **Drift:** Internt bruk – Open-Meteo icke-kommersiell tier
+5. **Senare:** MET/SMHI-rader, consensus, förbättrad *Kommande dagar*
+
+Se [PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md) – **plan klar för implementation**.
+
+| Del | Insats |
+|-----|--------|
+| D.1 Data (Open-Meteo) | ~1 dag |
+| D.2 UI (matris + flik) | ~1–1,5 dag |
+| D.3 Polish + docs | ~0,5 dag |
+| **Totalt v1** | **~3 dagar** |
+
+SMHI-proxy (Fas B) och MET-rad kan läggas till i v1.1 utan att ändra grundlayout.
+
 ---
 
 ## Fas C – Media-auth (uppskjuten)
@@ -91,18 +119,21 @@ Full specifikation: [PLAN-MEDIA-AUTH.md](./PLAN-MEDIA-AUTH.md).
 ## Rekommenderad ordning
 
 ```
-Fas 0 (klart) → Fas B → Fas C
+Fas 0 (klart) → Fas D v1 ([PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md)) → Fas B → Fas C
 Fas A (refresh-knappar) – endast vid behov, per vy
 ```
+
+**Fas D v1:** Open-Meteo (ECMWF/GFS/ICON) + ny flik Prognos med sidledes scroll – ingen MET/SMHI-rad ännu.
 
 ## Testplan
 
 - [x] `npm run build` på ren `node_modules`
 - [ ] Alla flikar: Läget, Detaljer, Stats, Media
 - [ ] Prognosvarning vid API-fel – observation ska fungera
+- [ ] Prognos-flik – modellmatris, sidledes scroll, tre Open-Meteo-modeller (Fas D)
 - [ ] Media-uppladdning (tills Fas C)
 - [ ] Refresh-knapp (när implementerad) – verifiera cache bypass
 
 ---
 
-*Senast uppdaterad: 2026-07-03*
+*Senast uppdaterad: 2026-07-03 (Fas D → PLAN-PROGNOS-MODELLER.md)*
