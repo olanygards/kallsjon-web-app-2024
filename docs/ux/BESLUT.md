@@ -2,7 +2,7 @@
 
 Logg över produkt- och UX-beslut utifrån UX-skiss v1.4 och genomgång juli 2026.
 
-Relaterat: UX-skiss (HTML, v1.4), [OVERSIKT.md](../OVERSIKT.md), [planer/PLAN-PROGNOS-MODELLER.md](../planer/PLAN-PROGNOS-MODELLER.md).
+Relaterat: UX-skiss (HTML, v1.4), [VINDSKALA.md](./VINDSKALA.md), [OVERSIKT.md](../OVERSIKT.md), [planer/PLAN-PROGNOS-MODELLER.md](../planer/PLAN-PROGNOS-MODELLER.md).
 
 ---
 
@@ -10,62 +10,86 @@ Relaterat: UX-skiss (HTML, v1.4), [OVERSIKT.md](../OVERSIKT.md), [planer/PLAN-PR
 
 **Status:** Godkänt (2026-07-03)
 
-**Kontext:** I UX-skissen v1.4 stod det *"Max medelvind per dag (consensus)"* under dagchipsen i Läget. Det ger en missvisande bild — en dag med kort men stark vind kan se medioker ut om man bara tittar på dagens medel.
-
 **Beslut:** Sektionen **Kommande 7 dagar** i Läget ska visa **bästa vindtillfället per dag**, inte dagens max-medel eller dagsmedel.
 
 ### Definition: "bästa vind"
 
 För varje kommande dag (7 st):
 
-1. Titta på alla prognostidsluckor den dagen (timvis eller timbuckets).
-2. Välj luckan med **högst surfbarhetsnivå** (enligt appskalan).
-3. Vid lika nivå: välj luckan med **högst medelvind**.
-4. Vid fortsatt lika: välj **högst byvind**.
+1. Titta på alla prognostidsluckor den dagen.
+2. Välj luckan med **högst surfbarhetsnivå** (enligt sjustegsskalan).
+3. Vid lika nivå: **högst medelvind**.
+4. Vid lika: **högst byvind**.
 
-Det innebär att en dag med kort surffönster (t.ex. 2 h på 11 m/s och by 17) lyfts fram även om resten av dagen är svag — så att användaren **inte missar en chans**.
-
-### Vad som visas i chipet
+### Chip
 
 | Element | Innehåll |
 |---------|----------|
 | Veckodag | Fre, Lör, … |
-| Färg/nivå | Surfbarhetsnivå för **bästa luckan** |
-| Siffra | Medelvind för bästa luckan (primärt) |
-| Vid behov | Liten markör om byvinden är det som gör dagen surfbar (medel &lt; 10, by ≥ 15) |
+| Färg/nivå | Nivå för **bästa luckan** |
+| Siffra | Medelvind för bästa luckan |
+| Vid behov | Markör om by ≥ 15 gör dagen surfbar trots medel &lt; 10 |
 
-**Visa inte** dagens max-medel, dagsmedel eller enbart consensus-max utan tidskontext.
+Fotnot: *Bästa vindtillfälle per dag · tryck för detaljer.*
 
-### Detaljer vid klick
-
-Tryck på en dag → **Detaljer** med den dagen förvald (dagvy: kurva, nivå, media, ev. länk till Prognos).
-
-Chipet är en **signal**, inte hela svaret. Fördjupning sker alltid i Detaljer (eller Prognos om man vill jämföra modeller).
-
-### UX-skiss v1.4 – ändring
-
-Ersätt fotnoten under dagchips:
-
-- ~~Max medelvind per dag (consensus) · tryck på en dag för detaljer~~
-- **Bästa vindtillfälle per dag · tryck för detaljer**
-
-Valfritt tillägg i chip-layout (v1.1): visa klockslag för bästa luckan (t.ex. *Ons · 14* ) om plats finns — idag gör `DailyForecast` detta som listkort med *kl HH:mm*.
-
-### Implementation (referens)
-
-Nuvarande `DailyForecast` väljer redan bästa timme per dag, men enbart på **max medelvind** och visar upp till **5 dagar**. Vid implementation:
-
-- Uppdatera urval till surfbarhetsnivå + medel + by (enligt ovan).
-- Visa **7 dagar**.
-- Behåll klick → Detaljer.
+Klick → **Detaljer** med dagen förvald.
 
 ---
 
-## Öppna beslut (ej klara)
+## Beslut 02 · Sjustegsskala (inkl. fluorpink)
+
+**Status:** Godkänt (2026-07-03)
+
+**Beslut:** Appen använder **sju nivåer** (Lugnt → Sällsynt) enligt UX-skiss v1.4. Fluorpink för ≥ 18 m/s behålls.
+
+**Konfiguration:** Trösklar och färger ska vara **inställbara centralt** — inte hårdkodade per komponent.
+
+| Plats | Innehåll |
+|-------|----------|
+| `src/config/windScale.ts` | Trösklar (`minAvgMs`), färger, by-regel |
+| `docs/ux/VINDSKALA.md` | Spec och tabell |
+| `src/utils/windColors.ts` | *(vid implementation)* UI-hjälpare som läser config |
+
+Nya färger eller brytpunkter = ändra `WIND_SCALE_LEVELS` (och ev. `GUST_SURFABLE_MS`), deploy — inget jakt i `HeroStats`, kalender, prognos m.m.
+
+---
+
+## Beslut 03 · Prognos: en dag i taget
+
+**Status:** Godkänt (2026-07-03)
+
+**Beslut:** Prognos-fliken visar **en dag åt gången** med modelljämförelse lodrätt — inte 7 dagars horisontell matris.
+
+| Aspekt | Val |
+|--------|-----|
+| Dagval | Dagremsa (samma komponent som *Kommande 7 dagar* i Läget) |
+| Grid | 8 tidskolumner (3 h) × 6 rader (consensus + 5 modeller) |
+| Byta dag | Tryck i dagremsan; ev. svep på gridden |
+| Data | Fortfarande 7 dagars prognos hämtas — bara en dag visas |
+| Passerade luckor idag | Nedtonade, inte dolda |
+
+**Motivering:** Lodrät modelljämförelse på 375 px kräver få kolumner. Överblick över veckan sker via dagremsan; detaljer via Detaljer.
+
+Uppdaterad spec: [PLAN-PROGNOS-MODELLER.md](../planer/PLAN-PROGNOS-MODELLER.md).
+
+---
+
+## Beslut 04 · Jämtlandspalett ersätter emerald
+
+**Status:** Godkänt (2026-07-03)
+
+**Beslut:** Visuell omstart från emerald-tema till **Jämtlandspalett** (ur flaggan) för vindnivåer; neutral chrome i övrigt.
+
+- Vindfärger: se [VINDSKALA.md](./VINDSKALA.md)
+- Flaggrand: diskret accent under logotyp och i sidfot
+- Modellnamn i prognos: neutral typografi, inga färgaccents per modell
+
+Implementation sker stegvis vid tema-/skala-refaktorering; emerald tas bort när nya tokens används konsekvent.
+
+---
+
+## Öppna beslut
 
 | # | Fråga |
 |---|-------|
-| 02 | Sjustegsskala vs fyra surfbarhetsnivåer (UX-skiss v1.4) |
-| 03 | Prognos: en dag i taget vs 7 dagars sidscroll |
-| 04 | Jämtlandspalett vs nuvarande emerald-tema |
-| 05 | Push-notiser kopplade till potential-banner |
+| 05 | Push-notiser kopplade till potential-banner (PWA) |

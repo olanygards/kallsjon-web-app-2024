@@ -1,24 +1,26 @@
 # Implementationsplan – Prognosmodeller (modellmatris)
 
-Plan för **Fas D** i [ATGARDPLAN.md](./ATGARDPLAN.md): fler öppna prognoskällor och en ny vy med **modelljämförelse** – horisontell scroll per dag, i Kallifornias grafiska stil.
+Plan för **Fas D** i [ATGARDPLAN.md](./ATGARDPLAN.md): fler öppna prognoskällor och en ny vy med **modelljämförelse** — **en dag i taget**, lodrätt per modell, i Kallifornias grafiska stil.
 
-Relaterat: [OVERSIKT.md – Prognoser](../OVERSIKT.md#2-prognoser-externa-apier)
+Relaterat: [OVERSIKT.md – Prognoser](../OVERSIKT.md#2-prognoser-externa-apier) · [docs/ux/BESLUT.md](../ux/BESLUT.md) · [docs/ux/VINDSKALA.md](../ux/VINDSKALA.md)
 
 **Beslut (juli 2026):**
 
 - Börja med **öppna modeller som är enkla** (Open-Meteo).
-- **Matcha appens grafik och färger** – emerald-tema, samma vindfärgskala som grafer/kalender.
-- **En ruta som scrollar i sidled** – 7 dagar prognos.
-- Förbättring av *Kommande dagar* på Läget kommer **efter** modellvyn.
+- **Jämtlandspalett** och **sjustegsskala** — se `src/config/windScale.ts`.
+- **En dag i taget** i UI: dagremsa (7 dagar) + grid 8×6 för vald dag — inte 7-dagars sidscroll i matrisen.
+- *Kommande 7 dagar* i Läget: **bästa vindtillfälle per dag** (beslut 01 i BESLUT.md).
 
 ### UX- och produktbeslut (fastställda)
 
 | Beslut | Val |
 |--------|-----|
 | **Fliknamn** | Prognos |
-| **Modellnamn (vänsterkolumn)** | Enbart emerald – inga färgaccents per modell |
-| **Antal dagar** | 7 (`forecast_days=7`) |
-| **Passerade tidslots (idag)** | Visas **gråade** – få celler, behåller kontext |
+| **Layout** | **En dag i taget** — dagremsa + 8 tidskolumner × 6 modellrader |
+| **Modellnamn (vänsterkolumn)** | Neutral typografi — inga färgaccents per modell |
+| **Antal dagar (data)** | 7 (`forecast_days=7`) |
+| **Dagval** | Samma dagremsa-komponent som i Läget |
+| **Passerade tidslots (idag)** | Visas **gråade** – behåller kontext |
 | **Open-Meteo / drift** | Appen är **internt bruk** – icke-kommersiell Open-Meteo-licens OK; attribution kvar i UI |
 
 ---
@@ -29,13 +31,13 @@ Relaterat: [OVERSIKT.md – Prognoser](../OVERSIKT.md#2-prognoser-externa-apier)
 |-----|-------------|
 | **Transparens** | Surfaren ser flera modeller sida vid sida – inte bara ett sammanslaget värde |
 | **Jämförbarhet** | Samma tidsaxel, samma cellformat (riktning, medel, by) för varje modell |
-| **Mobil först** | Horisontell scroll i en avgränsad ruta; modellnamn syns medan man scrollar |
-| **Visuell enhet** | Samma emerald-tema, typografi och vindfärger som övriga vyer |
+| **Mobil först** | En dag i taget — 8 kolumner ryms på 375 px; lodrät modelljämförelse |
+| **Visuell enhet** | Jämtlandspalett + sjustegsskala (`windScale.ts`) i alla vyer |
 | **Utbyggbart** | Arkitektur som senare kan ta in MET Norway, SMHI och consensus utan omskrivning av UI |
 
 **I scope (v1):** Open-Meteo-modeller ECMWF, GFS, ICON + modellmatris-vy + data-adapter.
 
-**Utanför scope (v1):** MET Norway/SMHI-rader, consensus-rad, klick till Detaljer, observerad rad, växlare 1 h / 3 h, förbättrad *Kommande dagar*.
+**Utanför scope (v1):** MET Norway/SMHI-rader, consensus-rad som full rad (kan finnas i v1.1), observerad rad, växlare 1 h / 3 h. *Kommande 7 dagar* i Läget uppdateras separat enligt [BESLUT.md](../ux/BESLUT.md).
 
 ---
 
@@ -47,7 +49,7 @@ Relaterat: [OVERSIKT.md – Prognoser](../OVERSIKT.md#2-prognoser-externa-apier)
 | Data-hook | `useForecastModels` – parallell fetch, `WindPoint[]` per modell, cache |
 | Adapters | `smhiAdapter.ts`, `metNorwayAdapter.ts` |
 | Modellmatris | Finns inte |
-| Vindfärger | `getWindColor()` duplicerad i flera komponenter; `WIND_CALENDAR_COLORS` i `constants.ts` |
+| Vindfärger | Duplicerad `getWindColor()` + emerald; ska centraliseras till `windScale.ts` / `windColors.ts` |
 
 ---
 
@@ -114,7 +116,7 @@ Open-Meteo är gratis för **icke-kommersiell** användning. Kallifornien är **
 
 ---
 
-## v1 – Vy: modellmatris med sidledes scroll
+## v1 – Vy: modelljämförelse — en dag i taget
 
 ### Placering
 
@@ -124,42 +126,58 @@ Open-Meteo är gratis för **icke-kommersiell** användning. Kallifornien är **
 |------|----------------|-------|
 | Prognos | `Layers` eller `Cloud` (lucide) | Prognos |
 
-**Navigationsanpassning:** Fem flikar på `max-w-md` kräver smalare knappar (`w-16` eller liknande) eller kortare etikett. Testa i implementation – alternativ: ikon + label endast på aktiv flik.
+**Navigationsanpassning:** Fem flikar på `max-w-md` kräver smalare knappar eller kortare etikett. Testa i implementation.
 
-Läget och övriga flikar **orörda** i v1.
+Läget och övriga flikar **orörda** i v1 (utom *Kommande 7 dagar* enligt BESLUT 01).
 
 ### Layout (wireframe)
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  PROGNOSMODELLER                    [↻] (senare)        │  ← sektionsrubrik (som DailyForecast)
-│  Jämför ECMWF, GFS och ICON · 7 dagar                   │  ← underrad, text-emerald-500
-├─────────────────────────────────────────────────────────┤
-│ ┌ fixed ───┐ ┌──────── scroll-x ───────────────────────►│
-│ │ ECMWF    │ │ fre 3    │ lör 4    │ sön 5    │ ...     │  ← dag-header (sticky top i scroll)
-│ │ GFS      │ │02 05 08..│02 05 08..│02 05 08..│         │  ← tim-header per dag
-│ │ ICON     │ │ celler   │ celler   │ celler   │         │
-│ └──────────┘ └─────────────────────────────────────────│
-├─────────────────────────────────────────────────────────┤
-│  Förklaring färger · Open-Meteo attribution             │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────┐
+│  PROGNOS · Kallsjön · 7 dygn             │
+├──────────────────────────────────────────┤
+│  [Idag][Lör][Sön][Mån][Tis][Ons][Tor]    │  ← dagremsa (delad komponent med Läget)
+├──────────────────────────────────────────┤
+│  Fre 3 juli · medel/by m/s                 │
+│ ┌ fixed ─┐ ┌ 8 tidskolumner ─────────────┐│
+│ │ CONS.  │ │ 00 03 06 09 12▾ 15 18 21   ││
+│ │ MET    │ │ celler per 3 h              ││
+│ │ SMHI   │ │                             ││
+│ │ ECMWF  │ │  lodrätt: jämför modeller   ││
+│ │ GFS    │ │  horisontellt: tid på dagen ││
+│ │ ICON   │ │                             ││
+│ └────────┘ └─────────────────────────────┘│
+├──────────────────────────────────────────┤
+│  Vindskala (expanderbar) · Open-Meteo     │
+└──────────────────────────────────────────┘
 ```
 
-### Scrollbeteende
+### Interaktion
 
-| Zon | Scroll | Innehåll |
-|-----|--------|----------|
-| **Vänsterkolumn** | Fast (sticky) | Modellnamn – ca 72–88 px bred |
-| **Höger yta** | `overflow-x: auto` | Alla dagar + tidskolumner |
-| **Hela kortet** | Ingen vertikal scroll i matrisen | Vertikal scroll = hela sidan (som övriga flikar) |
+| Handling | Resultat |
+|----------|----------|
+| Tryck dag i remsan | Grid visar den dagen |
+| Svep på grid (ev.) | Föregående/nästa dag |
+| Tryck tidskolumn | Detaljer med dagen + timme markerad |
+| ▾ på tidsaxeln | Nu-position (idag) |
 
-**Dagar:** **7 dagar** (`forecast_days=7`). Sista dagen kan ha färre tidskolumner – visa bara tillgängliga slots, inga tomma placeholders.
+**Ingen** horisontell scroll genom 7 dagar i gridden — det offrar lodrät modelljämförelse på 375 px.
 
-**Tidsgrid:** **3 timmar** – 02, 05, 08, 11, 14, 17, 20, 23.
+### Grid-dimensioner
 
-**Passerade tider (idag):** Tidslots **före nu** visas kvar men **gråade** – reducerad opacitet på cellbakgrund och text (`opacity-40` / `bg-emerald-950/60`), så de skiljer sig från kommande slots utan att döljas.
+| Dimension | Värde |
+|-----------|--------|
+| **Dagar (data)** | 7 (`forecast_days=7`) |
+| **Dagar (synliga)** | 1 åt gången |
+| **Tidskolumner** | 8 st, **3 h** — 00, 03, 06, 09, 12, 15, 18, 21 |
+| **Rader (v1.1)** | Consensus + MET + SMHI + ECMWF + GFS + ICON (6 rader) |
+| **Rader (v1 data)** | Consensus + ECMWF + GFS + ICON (4 rader) — MET/SMHI i v1.1 |
 
-**"Nu"-markör:** Vertikal linje eller markerad kolumn vid närmaste tidslot ≥ nu (rekommenderas i v1 om enkel).
+Sista dagen kan ha färre kolumner — visa bara tillgängliga slots.
+
+**Passerade tider (idag):** Nedtonade (`opacity ~0.4`), inte dolda — jämför modell mot vad som hände.
+
+**"Nu"-markör:** Markerad kolumn vid närmaste tidslot ≥ nu.
 
 ### Cellinnehåll
 
@@ -167,14 +185,14 @@ Varje cell (`ForecastModelCell`):
 
 | Element | Stil |
 |---------|------|
-| Vindpil | `WindDirectionArrow` – `text-emerald-400`, storlek ~12–14 px |
-| Medelvind | Fet, t.ex. `text-sm font-bold` – färg från vindskala |
-| Byvind | `(12.4)` – `text-[10px] text-emerald-500/80` |
-| Bakgrund | Heatmap enligt vindstyrka (se design) |
-| Natt | Ev. tunn `border` eller `☽` – samma logik som `isDaylight` i timeline |
-| **Passerad** | `opacity-40`, dämpad bakgrund – vindvärden kvar synliga |
+| Vindpil | `WindDirectionArrow`, ~12–14 px |
+| Medelvind | Fet — färg från `windScale.ts` |
+| Byvind | `(12.4)` — sekundär text |
+| Bakgrund | Cellfyllnad enligt sjustegsskala |
+| Natt | Ev. `☽` — samma logik som `isDaylight` |
+| **Passerad** | Nedtonad — värden kvar synliga |
 
-Tom cell (saknad data): `bg-emerald-950/20`, `–` som text.
+Tom cell (saknad data): neutral bakgrund, `–` som text.
 
 ### Laddning
 
@@ -188,54 +206,29 @@ Tom cell (saknad data): `bg-emerald-950/20`, `–` som text.
 
 ### Yttre skal (container)
 
-Återanvänd mönster från `DailyForecast`, `HeroStats`, `StatsView`:
+Neutral chrome enligt `APP_THEME` i `windScale.ts`. Sektionskort med diskret ram — inte fullbredds vit tabell.
 
-| Token | Värde |
-|-------|-------|
-| Sektionskort | `bg-emerald-900/40 border border-emerald-800/50 rounded-2xl p-4` |
-| Rubrik | `text-emerald-400 text-xs font-bold uppercase tracking-wider` |
-| Brödtext | `text-emerald-200` / `text-emerald-500` för sekundär |
-| Sidbakgrund | Oförändrad `bg-emerald-950` (via `KallsurfHome`) |
+Matrisen bor **inuti ett kort** på sidan.
 
-Matrisen bor **inuti ett sådant kort** – inte fullbredds vit tabell som Windfinder.
+### Vindfärger – sjustegsskala
 
-### Vindfärger – en gemensam skala
+**Godkänt:** Sju nivåer med **konfigurerbara** trösklar och färger.
 
-Idag finns **tre** varianter av färgtänk:
+| Plats | Roll |
+|-------|------|
+| `src/config/windScale.ts` | Trösklar + hex (single source of truth) |
+| `src/utils/windColors.ts` | `getWindStrengthColor()`, textkontrast |
+| [VINDSKALA.md](../ux/VINDSKALA.md) | Dokumentation |
 
-1. `WIND_CALENDAR_COLORS` – grönt fokus 10–16+ m/s (kalender/Stats)
-2. `getWindColor()` – regnbågsskala från 11 m/s (graf, DailyForecast, CalendarGrid)
-3. Surfbarhetsbadges – emerald/amber i `HeroStats`
+Ersätter emerald-tema, `WIND_CALENDAR_COLORS` och duplicerad `getWindColor()`.
 
-**Rekommendation för modellmatrisen:**
+### Legend (expanderbar)
 
-1. Skapa **`src/utils/windColors.ts`** – en export `getWindStrengthColor(speed: number): { bg: string; text: string }`
-2. v1-implementering: **portera befintlig `getWindColor`-skala** (samma som `WindOverviewChart` / kalender) så matrisen matchar det surfare redan ser i grafer
-3. Textkontrast: återanvänd `getTextColor`-logik från `CalendarGrid` (mörk text på ljusa celler, vit på stark vind)
-
-Detta ger visuell kontinuitet direkt. **Refaktorering** av duplicerad `getWindColor` i andra filer kan göras i samma PR eller direkt efter – notera i PR att det minskar drift.
-
-**Alternativ (diskutera innan kod):** Enbart `WIND_CALENDAR_COLORS` under 10 m/s = neutral `#e5e7eb` / `emerald-950/30`, gröna steg däröver – enklare legend men avviker från trendgrafen. **Standard i planen: chart/kalender-skala.**
-
-### Legend (under matrisen)
-
-Kompakt rad:
-
-```
-■ <10  ■ 10–12  ■ 12–14  ■ 14–16  ■ 16+   (m/s medel)
-```
-
-Små färgprover + `text-[10px] text-emerald-500`. Surfnivåer kan markeras med vertikala streck vid 10 och 15 m/s i legendtexten.
+Sjustegsskalan från [VINDSKALA.md](../ux/VINDSKALA.md) — kompakt rad med färgprover och trösklar (6 / 8 / 10 / 12 / 15 / 18 m/s). Not om by ≥ 15 → Surfbart.
 
 ### Modellnamn (vänsterkolumn)
 
-| Modell | Visningsnamn | Stil |
-|--------|--------------|------|
-| ECMWF | ECMWF | `text-emerald-300 text-xs font-bold` |
-| GFS | GFS | samma |
-| ICON | ICON | samma |
-
-Inga färgaccents per modell i v1 – enhetlig emerald-typografi.
+Neutral typografi — **inga färgaccents per modell**. Consensus-raden kan ha kraftigare ram som förstahandssvar.
 
 ---
 
@@ -261,9 +254,9 @@ Ansvar:
 
 - Anropar `useForecastModels` med `[ECMWF, GFS, ICON]`
 - Bygger gemensam tidsaxel (3 h-steg, `Europe/Stockholm`)
-- Returnerar `{ models, timeSlots, days, loading, errors, refetch }`
+- Returnerar `{ models, timeSlots, days, selectedDay, loading, errors, refetch }`
 
-Håller `ForecastView` tunn och testbar.
+Håller `ForecastView` tunn och testbar. Delad **dagremsa**-komponent med Läget.
 
 ---
 
@@ -286,14 +279,15 @@ Håller `ForecastView` tunn och testbar.
 
 | # | Uppgift | Filer |
 |---|---------|-------|
-| 2.1 | `windColors.ts` – centraliserad skala | `src/utils/` |
-| 2.2 | `ForecastModelCell.tsx` | `src/components/kallsurf/` |
-| 2.3 | `ModelComparisonGrid.tsx` – sticky label + scroll | samma |
-| 2.4 | `ForecastView.tsx` – sektion + legend + attribution | samma |
-| 2.5 | Ny flik i `KallsurfHome.tsx` | `pages/` |
-| 2.6 | `useForecastMatrix.ts` | `src/hooks/` |
+| 2.1 | `windScale.ts` + `windColors.ts` | `src/config/`, `src/utils/` |
+| 2.2 | `DayStrip.tsx` – delad dagremsa (Läget + Prognos) | `src/components/kallsurf/` |
+| 2.3 | `ForecastModelCell.tsx` | samma |
+| 2.4 | `ModelComparisonGrid.tsx` – en dag, sticky modellkolumn | samma |
+| 2.5 | `ForecastView.tsx` – dagremsa + grid + legend | samma |
+| 2.6 | Ny flik i `KallsurfHome.tsx` | `pages/` |
+| 2.7 | `useForecastMatrix.ts` | `src/hooks/` |
 
-**Acceptans:** Flik Prognos visar matris med riktig data; horisontell scroll fungerar på mobil (iOS Safari + Chrome); färger matchar trendgraf.
+**Acceptans:** Flik Prognos visar en dag med 8×N-grid; dagremsa byter dag; färger från `windScale.ts`.
 
 ### Fas 3 – Polish (≈ 0,5 dag)
 
@@ -314,15 +308,15 @@ Håller `ForecastView` tunn och testbar.
 ### Funktion
 
 - [ ] ECMWF, GFS, ICON returnerar alla vindvärden (inte NaN) för kommande 7 dagar
-- [ ] Antal dagkolumner = faktisk prognoslängd (sista dagen kan vara kortare)
-- [ ] 3 h-intervall alignar mellan modeller (samma kolumn = samma tid)
+- [ ] Dagremsa visar 7 dagar; grid visar vald dag
+- [ ] 8 tidskolumner (3 h) alignar mellan modeller
 - [ ] Cache: andra besök inom 15 min använder cache (nätverkstabb)
 - [ ] En modell nere: övriga rader fungerar
 
 ### UI
 
-- [ ] Vänsterkolumn (modellnamn) stannar kvar vid horisontell scroll
-- [ ] Scroll känns naturlig på telefon (ingen accidental vertikal scroll i grid)
+- [ ] Vänsterkolumn (modellnamn) sticky vid behov
+- [ ] Grid ryms på 375 px utan horisontell scroll (8 kolumner)
 - [ ] Cellfärger och textkontrast läsbara i sol ljus / mörkt tema
 - [ ] Fem flikar i bottennav – inget klippt på smal skärm (375 px)
 - [ ] Passerade tidslots idag visas gråade; kommande med full färg
@@ -354,26 +348,26 @@ Håller `ForecastView` tunn och testbar.
 | **v1.1** | MET Norway-rad (befintlig adapter) |
 | **v1.2** | SMHI-rad när Fas B (proxy) är klar |
 | **v1.3** | Consensus-rad + visuell markering när spread > X m/s |
-| **D.3** | Förbättra *Kommande dagar* baserat på modellöverens |
-| **Senare** | Klick cell → Detaljer-flik; refresh-knapp (Fas A) |
+| **D.3** | *Kommande 7 dagar* i Läget — bästa vind per dag ([BESLUT 01](../ux/BESLUT.md)) |
+| **Senare** | 7-dagars översiktsmatris (om behov); refresh-knapp (Fas A) |
 
 ---
 
 ## Beslut logg
 
-Alla öppna frågor är besvarade (juli 2026):
-
-| # | Beslut |
-|---|--------|
-| 1 | Flik **Prognos** |
-| 2 | Vänsterkolumn: **enbart emerald**, inga modell-accents |
-| 3 | **7 dagar** prognos |
-| 4 | Passerade tidslots: **gråade**, inte dolda |
-| 5 | **Internt bruk** – Open-Meteo gratis-tier |
-| 6 | `getWindColor` centraliseras i `windColors.ts` om tid finns i samma PR |
+| # | Beslut | Datum |
+|---|--------|-------|
+| 1 | Flik **Prognos** | juli 2026 |
+| 2 | **En dag i taget** — dagremsa + 8×6 grid, inte 7-dagars sidscroll | 2026-07-03 |
+| 3 | **7 dagar** prognosdata | juli 2026 |
+| 4 | Passerade tidslots: **gråade** | juli 2026 |
+| 5 | **Jämtlandspalett** + sjustegsskala (`windScale.ts`) | 2026-07-03 |
+| 6 | Trösklar och färger **konfigurerbara** centralt | 2026-07-03 |
+| 7 | *Kommande 7 dagar*: **bästa vind per dag** | 2026-07-03 |
+| 8 | Open-Meteo icke-kommersiell tier | juli 2026 |
 
 **Status:** Plan klar för implementation (Fas 1 – data).
 
 ---
 
-*Senast uppdaterad: 2026-07-03 (UX-beslut fastställda)*
+*Senast uppdaterad: 2026-07-03 (prognos en dag i taget, Jämtlandspalett, vindskala)*

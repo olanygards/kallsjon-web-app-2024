@@ -432,7 +432,7 @@ Firebase-projekt: **`kallsjon`**.
 |--------|-------------|
 | SMHI i prod | CORS blockerar direktanrop; consensus kräver proxy eller server-side fetch (Fas B i åtgärdsplan) |
 | Manuell uppdatering | Ingen refresh-knapp än; live-vind auto-uppdateras. Knappar vid behov per vy (Fas A) |
-| Prognosvy *Kommande dagar* | Enkel max-medel-lista på Läget; modellmatris planeras som ny flik – se [PLAN-PROGNOS-MODELLER.md](planer/PLAN-PROGNOS-MODELLER.md) |
+| **Prognosvy** | Planerad flik **Prognos** — en dag i taget, modelljämförelse lodrätt — se [PLAN-PROGNOS-MODELLER.md](planer/PLAN-PROGNOS-MODELLER.md) |
 | Media-auth | Delad uppladdningskod hårdkodad i klienten – ska ersättas med Firebase Auth + roller (Fas C) |
 | Bundle-storlek | `KallsurfHome`-chunk >500 kB – ev. code-splitting |
 
@@ -452,6 +452,8 @@ Firebase-projekt: **`kallsjon`**.
 
 | Dokument | Innehåll |
 |----------|----------|
+| [docs/ux/BESLUT.md](ux/BESLUT.md) | UX- och designbeslut |
+| [docs/ux/VINDSKALA.md](ux/VINDSKALA.md) | Sjustegsskala, trösklar, färger (`windScale.ts`) |
 | [planer/ATGARDPLAN.md](planer/ATGARDPLAN.md) | Aktuell åtgärdsplan (inkl. Fas D – prognosvy) |
 | [planer/PLAN-PROGNOS-MODELLER.md](planer/PLAN-PROGNOS-MODELLER.md) | Implementationsplan – modellmatris (Open-Meteo) |
 | [planer/PLAN-MEDIA-AUTH.md](planer/PLAN-MEDIA-AUTH.md) | Implementationsplan – media-auth |
@@ -460,4 +462,4 @@ Firebase-projekt: **`kallsjon`**.
 
 ---
 
-*Senast uppdaterad: 2026-07-02 (städning: borttagen död kod och legacy-assets)*
+*Senast uppdaterad: 2026-07-03 (UX-beslut: vindskala, prognos-layout, tema)*

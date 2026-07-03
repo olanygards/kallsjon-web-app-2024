@@ -79,12 +79,12 @@ npm install && npm run build
 **Beslut (juli 2026):**
 
 1. **v1-data:** Open-Meteo – ECMWF, GFS, ICON
-2. **v1-ui:** Ny flik **Prognos** – 7 dagar, sidledes scroll, emerald-design
-3. **UX:** Passerade tidslots gråade; inga modell-accents i vänsterkolumn
+2. **v1-ui:** Ny flik **Prognos** — **en dag i taget** (dagremsa + 8×6 grid), Jämtlandspalett
+3. **UX:** Passerade tidslots gråade; delad dagremsa med Läget; *Kommande 7 dagar* = bästa vind per dag
 4. **Drift:** Internt bruk – Open-Meteo icke-kommersiell tier
-5. **Senare:** MET/SMHI-rader, consensus, förbättrad *Kommande dagar*
+5. **Senare:** MET/SMHI-rader, full consensus-rad
 
-Se [PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md) – **plan klar för implementation**.
+Se [PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md) och [docs/ux/BESLUT.md](../ux/BESLUT.md) – **plan klar för implementation**.
 
 | Del | Insats |
 |-----|--------|
@@ -123,17 +123,17 @@ Fas 0 (klart) → Fas D v1 ([PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.m
 Fas A (refresh-knappar) – endast vid behov, per vy
 ```
 
-**Fas D v1:** Open-Meteo (ECMWF/GFS/ICON) + ny flik Prognos med sidledes scroll – ingen MET/SMHI-rad ännu.
+**Fas D v1:** Open-Meteo (ECMWF/GFS/ICON) + ny flik Prognos (**en dag i taget**) + sjustegsskala/Jämtlandspalett (`windScale.ts`).
 
 ## Testplan
 
 - [x] `npm run build` på ren `node_modules`
 - [ ] Alla flikar: Läget, Detaljer, Stats, Media
 - [ ] Prognosvarning vid API-fel – observation ska fungera
-- [ ] Prognos-flik – modellmatris, sidledes scroll, tre Open-Meteo-modeller (Fas D)
+- [ ] Prognos-flik – en dag, modellgrid 8×N, dagremsa (Fas D)
 - [ ] Media-uppladdning (tills Fas C)
 - [ ] Refresh-knapp (när implementerad) – verifiera cache bypass
 
 ---
 
-*Senast uppdaterad: 2026-07-03 (Fas D → PLAN-PROGNOS-MODELLER.md)*
+*Senast uppdaterad: 2026-07-03 (Fas D: en dag i taget, Jämtlandspalett)*
