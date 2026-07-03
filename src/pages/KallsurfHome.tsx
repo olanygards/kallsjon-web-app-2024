@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Wind, History, TrendingUp, Zap, Image as ImageIcon, X, Layers } from 'lucide-react';
 import { useKallsurfTimeline } from '../hooks/useKallsurfTimeline';
 import { HeroStats } from '../components/kallsurf/HeroStats';
+import { NextSurfChance } from '../components/kallsurf/NextSurfChance';
 import { WindOverviewChart } from '../components/kallsurf/WindOverviewChart';
 import { DailyForecast } from '../components/kallsurf/DailyForecast';
 import { HistoryTabs } from '../components/kallsurf/HistoryTabs';
@@ -34,19 +35,30 @@ export default function KallsurfHome() {
     return next12Hours.some(h => h.avg > 9);
   }, [hourlyBuckets]);
 
+  const stationFresh = Date.now() - currentWind.time.getTime() < 15 * 60 * 1000;
+
   const renderOverview = () => (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <HeroStats currentWind={currentWind} isActive />
-
       {showPotentialInfo && (
-        <div className="bg-app-surface border border-app-border rounded-2xl p-4 shadow-sm flex items-center gap-3">
-          <Zap size={18} className="text-app-accent flex-shrink-0" />
-          <p className="text-xs text-app-text leading-tight">
-            <span className="font-bold block mb-0.5">Potential just nu</span>
-            Vinden ligger på runt surfnivå. Håll koll på topparna kommande timmar.
+        <div
+          className="rounded-xl p-3 text-white flex items-center gap-3"
+          style={{ backgroundColor: APP_THEME.accentFlag.blue }}
+        >
+          <Zap size={16} className="flex-shrink-0" />
+          <p className="text-xs leading-tight">
+            <span className="font-bold uppercase tracking-wide block mb-0.5">Hög potential</span>
+            Vind runt surfnivå väntas inom 12 timmar — håll koll på topparna.
           </p>
         </div>
       )}
+
+      <HeroStats currentWind={currentWind} isActive />
+
+      <NextSurfChance
+        hourlyBuckets={hourlyBuckets}
+        currentWind={currentWind}
+        onClick={handleDayClick}
+      />
 
       <WindOverviewChart timeline={timeline} />
 
@@ -60,7 +72,7 @@ export default function KallsurfHome() {
         className="fixed top-0 left-0 right-0 z-20 bg-app-bg/95 backdrop-blur-md border-b border-app-border px-4 py-3"
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}
       >
-        <div className="max-w-md mx-auto flex justify-between items-start">
+        <div className="max-w-md mx-auto flex justify-between items-center">
           <button
             onClick={() => setActiveTab('overview')}
             className="flex flex-col items-start bg-transparent border-none cursor-pointer p-0"
@@ -75,6 +87,19 @@ export default function KallsurfHome() {
               <div className="flex-1" style={{ backgroundColor: APP_THEME.accentFlag.red }} />
             </div>
           </button>
+
+          {/* Stationsstatus: fylld punkt = färsk data (< 15 min) */}
+          {!loading && !error && (
+            <span className="flex items-center gap-1.5 text-[11px] text-app-muted">
+              <span
+                className={`w-2 h-2 rounded-full ${stationFresh
+                  ? 'bg-app-text'
+                  : 'bg-transparent border-[1.5px] border-app-text'
+                  }`}
+              />
+              Vassnäs · {currentWind.time.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
         </div>
       </header>
 
@@ -97,9 +122,9 @@ export default function KallsurfHome() {
         ) : (
           <>
             {warning && (
-              <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-amber-900 mb-4 text-sm flex items-center gap-2">
-                <span className="block w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                Viss prognosdata kunde inte hämtas. Visar tillgänglig data.
+              <div className="bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg text-amber-900 mb-3 text-xs flex items-center gap-2">
+                <span className="block w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                Viss prognosdata kunde inte hämtas — visar tillgänglig data.
               </div>
             )}
             {activeTab === 'overview' && renderOverview()}
