@@ -40,11 +40,32 @@ export const FORECAST_MODELS = {
     attribution: '© MET Norway',
     license: 'CC BY 4.0'
   },
+  ECMWF: {
+    id: 'ecmwf' as const,
+    name: 'ECMWF',
+    openMeteoId: 'ecmwf_ifs025',
+    attribution: 'Weather data by Open-Meteo.com',
+    license: 'CC BY 4.0'
+  },
+  GFS: {
+    id: 'gfs' as const,
+    name: 'GFS',
+    openMeteoId: 'gfs_seamless',
+    attribution: 'Weather data by Open-Meteo.com',
+    license: 'CC BY 4.0'
+  },
+  ICON: {
+    id: 'icon' as const,
+    name: 'ICON',
+    openMeteoId: 'icon_seamless',
+    attribution: 'Weather data by Open-Meteo.com',
+    license: 'CC BY 4.0'
+  },
   CONSENSUS: {
     id: 'consensus' as const,
     name: 'Consensus',
     color: '#6b7280',  // neutral grå
-    attribution: 'Beräknad från SMHI och MET Norway'
+    attribution: 'Beräknad från tillgängliga modeller'
   },
   OBSERVED: {
     id: 'observed' as const,
@@ -61,6 +82,8 @@ export const WIND_CALENDAR_COLORS = {
   RANGE_16_PLUS: '#ad3c1f',
   BELOW_10: '#e5e7eb'
 } as const;
+
+export const OPEN_METEO_URL = 'https://api.open-meteo.com/v1/forecast';
 
 export const FETCH_CONFIG = {
   TIMEOUT_MS: 6000,

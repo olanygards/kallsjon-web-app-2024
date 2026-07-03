@@ -13,24 +13,7 @@ import {
 import { Clock, Moon, Compass, ArrowUp } from 'lucide-react';
 import { TimelinePoint } from '../../hooks/useKallsurfTimeline';
 import { getDirectionLabel } from '../../utils/windDataConverter';
-
-const getWindColor = (adjustedWind: number): string => {
-  if (!adjustedWind || adjustedWind < 11.0) return '#ECEFF1';
-  if (adjustedWind >= 19.0) return '#5E35B1';
-  if (adjustedWind >= 18.5) return '#8E24AA';
-  if (adjustedWind >= 17.0) return '#D81B60';
-  if (adjustedWind >= 16.5) return '#E53935';
-  if (adjustedWind >= 16.0) return '#F4511E';
-  if (adjustedWind >= 15.5) return '#FB8C00';
-  if (adjustedWind >= 15.0) return '#FFB300';
-  if (adjustedWind >= 14.5) return '#FDD835';
-  if (adjustedWind >= 13.0) return '#43A047';
-  if (adjustedWind >= 12.5) return '#66BB6A';
-  if (adjustedWind >= 12.0) return '#81C784';
-  if (adjustedWind >= 11.5) return '#A5D6A7';
-  if (adjustedWind >= 11.0) return '#C8E6C9';
-  return '#ECEFF1';
-};
+import { getWindAccentColor } from '../../utils/windColors';
 
 
 
@@ -133,7 +116,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
               <span className="text-xs text-emerald-400">Medel</span>
               <span
                 className="text-sm font-bold"
-                style={{ color: avgData.value >= 11 ? getWindColor(avgData.value) : '#34d399' }}
+                style={{ color: getWindAccentColor(avgData.value) }}
               >
                 {avgData.value} m/s
               </span>

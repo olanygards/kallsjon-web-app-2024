@@ -366,7 +366,7 @@ Håller `ForecastView` tunn och testbar. Delad **dagremsa**-komponent med Läget
 | 7 | *Kommande 7 dagar*: **bästa vind per dag** | 2026-07-03 |
 | 8 | Open-Meteo icke-kommersiell tier | juli 2026 |
 
-**Status:** Plan klar för implementation (Fas 1 – data).
+**Status:** ✅ **Implementerad (v1)** — 2026-07-03. Kvarstår: SMHI i prod (Fas B), lokal verifiering på mobil, ev. polish.
 
 ---
 

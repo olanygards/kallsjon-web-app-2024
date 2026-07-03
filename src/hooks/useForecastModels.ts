@@ -3,9 +3,22 @@ import { isWithinInterval, parseISO } from 'date-fns';
 import { WindPoint, ForecastModel } from '../types/WindData';
 import { fetchSMHI } from '../api/smhiAdapter';
 import { fetchMetNorway } from '../api/metNorwayAdapter';
+import { fetchOpenMeteo, OpenMeteoModel } from '../api/openMeteoAdapter';
 import { cacheStorage } from '../utils/cacheStorage';
 import { getCacheKey, get15MinBucket, circularMean } from '../utils/timeUtils';
 import { KALLSJON, FETCH_CONFIG } from '../config/constants';
+
+const ALL_MODELS = Object.values(ForecastModel);
+
+function emptyRecord<T>(value: T): Record<ForecastModel, T> {
+  return Object.fromEntries(ALL_MODELS.map(m => [m, value])) as Record<ForecastModel, T>;
+}
+
+const OPEN_METEO_MODELS: OpenMeteoModel[] = [
+  ForecastModel.ECMWF,
+  ForecastModel.GFS,
+  ForecastModel.ICON
+];
 
 interface UseForecastModelsParams {
   lat: number;
@@ -112,33 +125,10 @@ export function useForecastModels({
   endDate,
   enabledModels
 }: UseForecastModelsParams): UseForecastModelsReturn {
-  const [dataByModel, setDataByModel] = useState<Record<ForecastModel, WindPoint[]>>({
-    [ForecastModel.SMHI]: [],
-    [ForecastModel.MET_NORWAY]: [],
-    [ForecastModel.CONSENSUS]: [],
-    [ForecastModel.OBSERVED]: []
-  });
-
-  const [loadingByModel, setLoadingByModel] = useState<Record<ForecastModel, boolean>>({
-    [ForecastModel.SMHI]: false,
-    [ForecastModel.MET_NORWAY]: false,
-    [ForecastModel.CONSENSUS]: false,
-    [ForecastModel.OBSERVED]: false
-  });
-
-  const [errors, setErrors] = useState<Record<ForecastModel, Error | null>>({
-    [ForecastModel.SMHI]: null,
-    [ForecastModel.MET_NORWAY]: null,
-    [ForecastModel.CONSENSUS]: null,
-    [ForecastModel.OBSERVED]: null
-  });
-
-  const [lastUpdatedByModel, setLastUpdatedByModel] = useState<Record<ForecastModel, string | null>>({
-    [ForecastModel.SMHI]: null,
-    [ForecastModel.MET_NORWAY]: null,
-    [ForecastModel.CONSENSUS]: null,
-    [ForecastModel.OBSERVED]: null
-  });
+  const [dataByModel, setDataByModel] = useState<Record<ForecastModel, WindPoint[]>>(() => emptyRecord<WindPoint[]>([]));
+  const [loadingByModel, setLoadingByModel] = useState<Record<ForecastModel, boolean>>(() => emptyRecord(false));
+  const [errors, setErrors] = useState<Record<ForecastModel, Error | null>>(() => emptyRecord<Error | null>(null));
+  const [lastUpdatedByModel, setLastUpdatedByModel] = useState<Record<ForecastModel, string | null>>(() => emptyRecord<string | null>(null));
 
   const [modelSpread, setModelSpread] = useState<Record<string, number>>({});
   const [refetchTrigger, setRefetchTrigger] = useState(0);
@@ -153,6 +143,9 @@ export function useForecastModels({
     const fetchData = async () => {
       const bucket = get15MinBucket();
       const fetchPromises: Array<Promise<{ model: ForecastModel; data: WindPoint[] }>> = [];
+      // Håller reda på vilken modell varje promise gäller (ordningen i
+      // fetchPromises följer inte nödvändigtvis enabledModels)
+      const promiseModels: ForecastModel[] = [];
 
       // Filtrera bort CONSENSUS från enabled models (den beräknas senare)
       const modelsToFetch = enabledModels.filter(m => m !== ForecastModel.CONSENSUS);
@@ -166,6 +159,7 @@ export function useForecastModels({
         const cacheKey = `forecast_cache_${getCacheKey('smhi', lat, lon, undefined, bucket)}`;
         const cachedETag = cacheStorage.getETag(cacheKey);
 
+        promiseModels.push(ForecastModel.SMHI);
         fetchPromises.push(
           fetchSMHI(lat, lon, cachedETag)
             .then(({ data, etag }) => {
@@ -202,6 +196,7 @@ export function useForecastModels({
         const cacheKey = `forecast_cache_${getCacheKey('met_norway', lat, lon, undefined, bucket)}`;
         const cachedETag = cacheStorage.getETag(cacheKey);
 
+        promiseModels.push(ForecastModel.MET_NORWAY);
         fetchPromises.push(
           fetchMetNorway(lat, lon, KALLSJON.altitude, cachedETag)
             .then(({ data, etag }) => {
@@ -233,35 +228,45 @@ export function useForecastModels({
         );
       }
 
+      // Open-Meteo (ECMWF / GFS / ICON)
+      OPEN_METEO_MODELS.filter(m => modelsToFetch.includes(m)).forEach(model => {
+        const cacheKey = `forecast_cache_${getCacheKey(model, lat, lon, undefined, bucket)}`;
+
+        promiseModels.push(model);
+        fetchPromises.push(
+          fetchOpenMeteo(lat, lon, model)
+            .then(({ data }) => {
+              if (data.length > 0) {
+                cacheStorage.set(cacheKey, data, FETCH_CONFIG.CACHE_DURATION_MS);
+              }
+              return { model, data };
+            })
+            .catch(err => {
+              if (cacheStorage.has(cacheKey)) {
+                console.warn(`Open-Meteo ${model} fetch failed, using cache`);
+                const cached = cacheStorage.get(cacheKey);
+                if (mounted) {
+                  setErrors(prev => ({ ...prev, [model]: err }));
+                }
+                return { model, data: (cached || []) as WindPoint[] };
+              }
+              throw err;
+            })
+        );
+      });
+
       // Hämta alla parallellt
       const results = await Promise.allSettled(fetchPromises);
 
       if (!mounted) return;
 
-      const newData: Record<ForecastModel, WindPoint[]> = {
-        [ForecastModel.SMHI]: [],
-        [ForecastModel.MET_NORWAY]: [],
-        [ForecastModel.CONSENSUS]: [],
-        [ForecastModel.OBSERVED]: []
-      };
-
-      const newErrors: Record<ForecastModel, Error | null> = {
-        [ForecastModel.SMHI]: null,
-        [ForecastModel.MET_NORWAY]: null,
-        [ForecastModel.CONSENSUS]: null,
-        [ForecastModel.OBSERVED]: null
-      };
-
-      const newLastUpdated: Record<ForecastModel, string | null> = {
-        [ForecastModel.SMHI]: null,
-        [ForecastModel.MET_NORWAY]: null,
-        [ForecastModel.CONSENSUS]: null,
-        [ForecastModel.OBSERVED]: null
-      };
+      const newData = emptyRecord<WindPoint[]>([]);
+      const newErrors = emptyRecord<Error | null>(null);
+      const newLastUpdated = emptyRecord<string | null>(null);
 
       // Bearbeta resultat
       results.forEach((result, index) => {
-        const model = modelsToFetch[index];
+        const model = promiseModels[index];
 
         if (result.status === 'fulfilled') {
           const { data } = result.value;

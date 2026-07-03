@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Wind, History, TrendingUp, Zap, Image as ImageIcon, X } from 'lucide-react';
+import { Wind, History, TrendingUp, Zap, Image as ImageIcon, X, Layers } from 'lucide-react';
 import { useKallsurfTimeline } from '../hooks/useKallsurfTimeline';
 import { HeroStats } from '../components/kallsurf/HeroStats';
 import { WindOverviewChart } from '../components/kallsurf/WindOverviewChart';
@@ -7,11 +7,14 @@ import { DailyForecast } from '../components/kallsurf/DailyForecast';
 import { HistoryTabs } from '../components/kallsurf/HistoryTabs';
 import { CalendarGrid } from '../components/kallsurf/CalendarGrid';
 import { StatsView } from '../components/kallsurf/StatsView';
+import { ForecastView } from '../components/kallsurf/ForecastView';
 import { MediaView } from '../components/media/MediaView';
 import { MediaUpload } from '../components/media/MediaUpload';
 
+type TabId = 'overview' | 'history' | 'forecast' | 'stats' | 'media';
+
 export default function KallsurfHome() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'stats' | 'media'>('overview');
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [viewDate, setViewDate] = useState(new Date());
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -104,6 +107,12 @@ export default function KallsurfHome() {
             )}
             {activeTab === 'overview' && renderOverview()}
 
+            {activeTab === 'forecast' && (
+              <div className="animate-in slide-in-from-right-8 duration-300">
+                <ForecastView onDayDetailsClick={handleDayClick} />
+              </div>
+            )}
+
             {activeTab === 'history' && (
               <div>
                 <HistoryTabs
@@ -169,50 +178,26 @@ export default function KallsurfHome() {
           transform: 'translateZ(0)'
         }}
       >
-        <div className="max-w-md mx-auto flex justify-around items-center px-2 pt-2 pb-0">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all duration-300 w-20 ${activeTab === 'overview'
-              ? 'bg-white text-emerald-900 shadow-lg shadow-emerald-900/20 scale-105'
-              : 'bg-emerald-900 text-emerald-400 hover:text-emerald-200 hover:bg-emerald-800'
-              }`}
-          >
-            <Wind size={22} strokeWidth={activeTab === 'overview' ? 2.5 : 2} />
-            <span className="text-[10px] font-medium">Läget</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all duration-300 w-20 ${activeTab === 'history'
-              ? 'bg-white text-emerald-900 shadow-lg shadow-emerald-900/20 scale-105'
-              : 'bg-emerald-900 text-emerald-400 hover:text-emerald-200 hover:bg-emerald-800'
-              }`}
-          >
-            <History size={22} strokeWidth={activeTab === 'history' ? 2.5 : 2} />
-            <span className="text-[10px] font-medium">Detaljer</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('stats')}
-            className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all duration-300 w-20 ${activeTab === 'stats'
-              ? 'bg-white text-emerald-900 shadow-lg shadow-emerald-900/20 scale-105'
-              : 'bg-emerald-900 text-emerald-400 hover:text-emerald-200 hover:bg-emerald-800'
-              }`}
-          >
-            <TrendingUp size={22} strokeWidth={activeTab === 'stats' ? 2.5 : 2} />
-            <span className="text-[10px] font-medium">Stats</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('media')}
-            className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all duration-300 w-20 ${activeTab === 'media'
-              ? 'bg-white text-emerald-900 shadow-lg shadow-emerald-900/20 scale-105'
-              : 'bg-emerald-900 text-emerald-400 hover:text-emerald-200 hover:bg-emerald-800'
-              }`}
-          >
-            <ImageIcon size={22} strokeWidth={activeTab === 'media' ? 2.5 : 2} />
-            <span className="text-[10px] font-medium">Media</span>
-          </button>
+        <div className="max-w-md mx-auto flex justify-around items-center px-1 pt-2 pb-0">
+          {([
+            { id: 'overview' as TabId, label: 'Läget', Icon: Wind },
+            { id: 'history' as TabId, label: 'Detaljer', Icon: History },
+            { id: 'forecast' as TabId, label: 'Prognos', Icon: Layers },
+            { id: 'stats' as TabId, label: 'Stats', Icon: TrendingUp },
+            { id: 'media' as TabId, label: 'Media', Icon: ImageIcon },
+          ]).map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`flex flex-col items-center gap-1 py-3 px-1 rounded-2xl transition-all duration-300 w-16 ${activeTab === id
+                ? 'bg-white text-emerald-900 shadow-lg shadow-emerald-900/20 scale-105'
+                : 'bg-emerald-900 text-emerald-400 hover:text-emerald-200 hover:bg-emerald-800'
+                }`}
+            >
+              <Icon size={20} strokeWidth={activeTab === id ? 2.5 : 2} />
+              <span className="text-[10px] font-medium">{label}</span>
+            </button>
+          ))}
         </div>
       </nav>
     </div>

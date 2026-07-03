@@ -13,7 +13,7 @@ Prioriterad plan för vidare arbete i **Kallsurf Home** – appens enda vy.
 | **0** | Build & reproducerbarhet | ✅ Klart |
 | **A** | Manuell uppdatering (refresh-knappar) | 💤 Valfritt – vid behov per vy |
 | **B** | SMHI / consensus i produktion | 📋 Öppen |
-| **D** | Prognos – modellmatris (Open-Meteo) | ✅ Plan klar – [PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md) |
+| **D** | Prognos – modellmatris (Open-Meteo) | ✅ **Implementerad v1** (2026-07-03) – [PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md) |
 | **C** | Media-auth | 📋 Planerad (uppskjuten) |
 
 ---

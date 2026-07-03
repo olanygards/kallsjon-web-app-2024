@@ -23,7 +23,7 @@ type Surfability = 'none' | 'watching' | 'ok' | 'good';
 // Konfiguration
 const CONFIG = {
   ACTIVE_HISTORY_HOURS: 6,
-  ACTIVE_FORECAST_HOURS: 72,
+  ACTIVE_FORECAST_HOURS: 168, // 7 dygn — krävs för "Kommande 7 dagar" (bästa vind per dag)
   POINTS_PER_HOUR: 12 // 5-minuters upplösning = 12 punkter per timme
 };
 

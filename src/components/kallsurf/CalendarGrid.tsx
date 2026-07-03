@@ -3,30 +3,7 @@ import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, addMonths, subMonths, isSameMonth } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { DailySummary } from '../../hooks/useKallsurfTimeline';
-
-const getWindColor = (adjustedWind: number): string => {
-  if (!adjustedWind || adjustedWind < 11.0) return '#ECEFF1';
-  if (adjustedWind >= 19.0) return '#5E35B1';
-  if (adjustedWind >= 18.5) return '#8E24AA';
-  if (adjustedWind >= 17.0) return '#D81B60';
-  if (adjustedWind >= 16.5) return '#E53935';
-  if (adjustedWind >= 16.0) return '#F4511E';
-  if (adjustedWind >= 15.5) return '#FB8C00';
-  if (adjustedWind >= 15.0) return '#FFB300';
-  if (adjustedWind >= 14.5) return '#FDD835';
-  if (adjustedWind >= 13.0) return '#43A047';
-  if (adjustedWind >= 12.5) return '#66BB6A';
-  if (adjustedWind >= 12.0) return '#81C784';
-  if (adjustedWind >= 11.5) return '#A5D6A7';
-  if (adjustedWind >= 11.0) return '#C8E6C9';
-  return '#ECEFF1';
-};
-
-const getTextColor = (wind: number): string => {
-  if (!wind || wind < 13.0) return '#1e293b';
-  if (wind >= 14.5 && wind < 16.0) return '#1e293b';
-  return '#ffffff';
-};
+import { getWindColor, getWindTextColor, getScaleGradient } from '../../utils/windColors';
 
 interface CalendarGridProps {
   dailySummary: DailySummary[];
@@ -211,7 +188,7 @@ export function CalendarGrid({ dailySummary, onDayClick, viewDate = new Date(), 
               const isToday = isSameMonth(currentDate, new Date()) && day.day === new Date().getDate() && year === new Date().getFullYear();
               const maxAvg = day.summary?.maxAvg || 0;
               const bgColor = getWindColor(maxAvg);
-              const textColor = getTextColor(maxAvg);
+              const textColor = getWindTextColor(maxAvg);
 
               return (
                 <div
@@ -236,16 +213,14 @@ export function CalendarGrid({ dailySummary, onDayClick, viewDate = new Date(), 
           <div className="mt-6 px-4">
             <div
               className="h-2 w-full rounded-full mb-1"
-              style={{
-                background: 'linear-gradient(to right, #ECEFF1, #C8E6C9, #A5D6A7, #81C784, #66BB6A, #43A047, #FDD835, #FFB300, #FB8C00, #F4511E, #E53935, #D81B60, #8E24AA, #5E35B1)'
-              }}
+              style={{ background: getScaleGradient() }}
             ></div>
             <div className="flex justify-between text-[10px] text-emerald-400 font-medium">
-              <span>Stilla</span>
-              <span>Kanske</span>
-              <span>Funkar!</span>
-              <span>Sov i bilen</span>
-              <span>Ring TV Åre!</span>
+              <span>Lugnt</span>
+              <span>Håll koll</span>
+              <span>Surfbart</span>
+              <span>Riktigt bra</span>
+              <span>Sällsynt</span>
             </div>
           </div>
         </>
