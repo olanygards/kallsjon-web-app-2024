@@ -6,23 +6,37 @@
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color-scheme: dark;
-  color: #a7f3d0;
-  background-color: #022c22;
+  color-scheme: light;
+  color: #1c1c1c;
+  background-color: #fbfbf9;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Ljus chrome — UX-skiss v1.4 */
+  --app-bg: #fbfbf9;
+  --app-surface: #ffffff;
+  --app-surface-elevated: #f3f3f1;
+  --app-border: #e0e0dc;
+  --app-text: #1c1c1c;
+  --app-muted: #6b6b6b;
+  --app-subtle: #9a9a9a;
+  --app-accent: #0F3D9E;
+  --app-accent-green: #00813E;
+  --app-nav-bg: #1c1c1c;
+  --app-nav-muted: #9a9a9a;
+  --app-nav-active: #000000;
 }
 
 a {
   font-weight: 500;
-  color: #34d399;
+  color: var(--app-accent);
   text-decoration: inherit;
 }
 
 a:hover {
-  color: #6ee7b7;
+  color: #0a2b72;
 }
 
 button {

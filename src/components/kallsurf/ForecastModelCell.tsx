@@ -9,7 +9,7 @@ interface ForecastModelCellProps {
 export function ForecastModelCell({ cell }: ForecastModelCellProps) {
   if (!cell) {
     return (
-      <div className="rounded-md border border-dashed border-emerald-800/50 bg-emerald-950/20 py-1.5 text-center text-emerald-700 text-[10px]">
+      <div className="rounded-md border border-dashed border-app-border/50 bg-app-bg/20 py-1.5 text-center text-app-subtle text-[10px]">
         –
       </div>
     );

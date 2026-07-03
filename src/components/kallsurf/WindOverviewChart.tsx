@@ -14,6 +14,7 @@ import { Clock, Moon, Compass, ArrowUp } from 'lucide-react';
 import { TimelinePoint } from '../../hooks/useKallsurfTimeline';
 import { getDirectionLabel } from '../../utils/windDataConverter';
 import { getWindAccentColor } from '../../utils/windColors';
+import { AVG_SURFABLE_MS, APP_THEME } from '../../config/windScale';
 
 
 
@@ -69,11 +70,11 @@ const CustomAxisTick = ({
 
   return (
     <g>
-      <text x={x} y={y} dy={16} textAnchor="middle" fill="#34d399" fontSize={10} fontWeight="bold">
+      <text x={x} y={y} dy={16} textAnchor="middle" fill={APP_THEME.textMuted} fontSize={10} fontWeight="bold">
         {payload.value}
       </text>
       <g transform={`translate(${x}, ${y + 28}) rotate(${item.dir ? item.dir + 180 : 180})`}>
-        <path d="M0 -4 L-3 3 L0 1 L3 3 Z" fill="#059669" />
+        <path d="M0 -4 L-3 3 L0 1 L3 3 Z" fill={APP_THEME.accentFlag.blue} />
       </g>
     </g>
   );
@@ -91,20 +92,20 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const dir = dataPoint?.dir || 0;
 
     return (
-      <div className="bg-emerald-900/95 border border-emerald-700 p-3 rounded-xl shadow-2xl backdrop-blur-sm min-w-[140px]">
+      <div className="bg-app-surface border border-app-border p-3 rounded-xl shadow-lg min-w-[140px]">
         <div className="flex justify-between items-center mb-2 gap-3">
-          <p className="text-emerald-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
-            {dayName && <span className="text-emerald-300">{dayName}</span>}
+          <p className="text-app-muted text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+            {dayName && <span className="text-app-text">{dayName}</span>}
             <Clock size={12} className="ml-1" /> {dataPoint?.timeStr || label}
           </p>
           <div className="flex gap-1">
             {isDark && (
-              <span className="text-[10px] bg-emerald-800 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-700 flex items-center gap-1">
+              <span className="text-[10px] bg-app-surface-elevated text-app-text px-1.5 py-0.5 rounded border border-app-border flex items-center gap-1">
                 <Moon size={8} />
               </span>
             )}
             {isForecast && (
-              <span className="text-[10px] bg-emerald-800 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-700">
+              <span className="text-[10px] bg-app-surface-elevated text-app-muted px-1.5 py-0.5 rounded border border-app-border">
                 PROG
               </span>
             )}
@@ -113,7 +114,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <div className="space-y-2">
           {avgData && (
             <div className="flex items-center justify-between gap-4">
-              <span className="text-xs text-emerald-400">Medel</span>
+              <span className="text-xs text-app-muted">Medel</span>
               <span
                 className="text-sm font-bold"
                 style={{ color: getWindAccentColor(avgData.value) }}
@@ -124,18 +125,18 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           )}
           {gustData && (
             <div className="flex items-center justify-between gap-4">
-              <span className="text-xs text-slate-400">Byvind</span>
-              <span className="text-sm font-bold text-white">{gustData.value} m/s</span>
+              <span className="text-xs text-app-subtle">Byvind</span>
+              <span className="text-sm font-bold text-app-text">{gustData.value} m/s</span>
             </div>
           )}
-          <div className="flex items-center justify-between gap-4 pt-2 border-t border-emerald-800">
-            <span className="text-xs text-emerald-400 flex items-center gap-1">
+          <div className="flex items-center justify-between gap-4 pt-2 border-t border-app-border">
+            <span className="text-xs text-app-muted flex items-center gap-1">
               <Compass size={10} /> Riktning
             </span>
-            <span className="text-xs font-mono text-emerald-300 flex items-center gap-1">
+            <span className="text-xs font-mono text-app-text flex items-center gap-1">
               {Math.round(dir)}° {getDirectionLabel(dir)}
               <div className="inline-block" style={{ transform: `rotate(${dir + 180}deg)` }}>
-                <ArrowUp size={12} className="text-emerald-400" />
+                <ArrowUp size={12} className="text-app-muted" />
               </div>
             </span>
           </div>
@@ -148,12 +149,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 interface WindOverviewChartProps {
   timeline: TimelinePoint[];
-  thresholds: {
-    SURF_OK_AVG: number;
-  };
 }
 
-export function WindOverviewChart({ timeline, thresholds }: WindOverviewChartProps) {
+export function WindOverviewChart({ timeline }: WindOverviewChartProps) {
   const chartData = useMemo(() => {
     const nowTime = new Date().getTime();
     const sixHoursAgo = nowTime - 6 * 60 * 60 * 1000;
@@ -197,8 +195,8 @@ export function WindOverviewChart({ timeline, thresholds }: WindOverviewChartPro
 
   if (chartData.length === 0) {
     return (
-      <div className="bg-emerald-900 border border-emerald-800 rounded-2xl p-4">
-        <div className="text-emerald-500 text-sm">Ingen data</div>
+      <div className="bg-app-surface border border-app-border rounded-2xl p-4 shadow-sm">
+        <div className="text-app-subtle text-sm">Ingen data</div>
       </div>
     );
   }
@@ -210,10 +208,10 @@ export function WindOverviewChart({ timeline, thresholds }: WindOverviewChartPro
   }, [timeline]);
 
   return (
-    <div className="bg-emerald-900 border border-emerald-800 rounded-2xl p-4 pb-8">
+    <div className="bg-app-surface border border-app-border rounded-2xl p-4 pb-8 shadow-sm">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-emerald-400 text-xs font-bold uppercase flex items-center gap-2">
-          Trend senaste 6h
+        <h3 className="text-app-text text-xs font-bold uppercase tracking-wider">
+          Utveckling kring nu
         </h3>
       </div>
       <div className="h-56 min-h-56 w-full">
@@ -221,29 +219,30 @@ export function WindOverviewChart({ timeline, thresholds }: WindOverviewChartPro
           <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 20, bottom: 0 }}>
             <defs>
               <linearGradient id="pastGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                <stop offset="5%" stopColor={APP_THEME.accentFlag.blue} stopOpacity={0.4} />
+                <stop offset="95%" stopColor={APP_THEME.accentFlag.blue} stopOpacity={0} />
               </linearGradient>
               <linearGradient id="futureGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#059669" stopOpacity={0.2} />
-                <stop offset="95%" stopColor="#059669" stopOpacity={0} />
+                <stop offset="5%" stopColor={APP_THEME.accentFlag.blue} stopOpacity={0.2} />
+                <stop offset="95%" stopColor={APP_THEME.accentFlag.blue} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#064e3b" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={APP_THEME.border} vertical={false} />
             <XAxis
               dataKey="time"
-              stroke="#34d399"
+              stroke={APP_THEME.textMuted}
               fontSize={10}
               tickLine={false}
               axisLine={false}
-              interval={35} // Show every ~3 hours (assuming 5 min intervals)
+              interval={35}
               tickFormatter={(val) => val}
               tick={<CustomAxisTick data={chartData} />}
               height={40}
             />
             <YAxis
               orientation="right"
-              tick={{ fontSize: 10, fill: '#34d399' }}
+              tick={{ fontSize: 10, fill: APP_THEME.textMuted }}
+              tickFormatter={(v: number) => Number.isInteger(v) ? String(v) : v.toFixed(1)}
               tickLine={false}
               axisLine={false}
               domain={['dataMin - 2', 'dataMax + 2']}
@@ -260,20 +259,20 @@ export function WindOverviewChart({ timeline, thresholds }: WindOverviewChartPro
               />
             ))}
 
-            <ReferenceLine y={thresholds.SURF_OK_AVG} stroke="#065f46" strokeDasharray="3 3" />
+            <ReferenceLine y={AVG_SURFABLE_MS} stroke={APP_THEME.accentFlag.blue} strokeDasharray="3 3" strokeOpacity={0.5} />
             {nowLineTime && (
               <ReferenceLine
                 x={nowLineTime}
-                stroke="#34d399"
+                stroke={APP_THEME.textMuted}
                 strokeDasharray="2 2"
-                label={{ value: 'NU', position: 'insideTop', fill: '#34d399', fontSize: 10 }}
+                label={{ value: 'NU', position: 'insideTop', fill: APP_THEME.textMuted, fontSize: 10 }}
               />
             )}
 
             <Area
               type="monotone"
               dataKey="pastAvg"
-              stroke="#34d399"
+              stroke={APP_THEME.accentFlag.blue}
               strokeWidth={2}
               fillOpacity={1}
               fill="url(#pastGradient)"
@@ -283,7 +282,7 @@ export function WindOverviewChart({ timeline, thresholds }: WindOverviewChartPro
             <Area
               type="monotone"
               dataKey="pastGust"
-              stroke="#6ee7b7"
+              stroke={APP_THEME.textMuted}
               strokeWidth={1}
               fill="transparent"
               dot={false}
@@ -292,9 +291,10 @@ export function WindOverviewChart({ timeline, thresholds }: WindOverviewChartPro
             <Area
               type="monotone"
               dataKey="futureAvg"
-              stroke="#059669"
+              stroke={APP_THEME.accentFlag.blue}
               strokeWidth={2}
               strokeDasharray="5 5"
+              strokeOpacity={0.7}
               fillOpacity={1}
               fill="url(#futureGradient)"
               dot={false}
@@ -303,9 +303,10 @@ export function WindOverviewChart({ timeline, thresholds }: WindOverviewChartPro
             <Area
               type="monotone"
               dataKey="futureGust"
-              stroke="#047857"
+              stroke={APP_THEME.textMuted}
               strokeWidth={1}
               strokeDasharray="5 5"
+              strokeOpacity={0.5}
               fill="transparent"
               dot={false}
               activeDot={{ r: 3 }}

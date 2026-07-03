@@ -223,22 +223,22 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({ preselectedDate, onUpl
     };
 
     return (
-        <div className="bg-emerald-900/40 p-6 rounded-2xl border border-emerald-800/50 backdrop-blur-sm">
-            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-emerald-400" />
+        <div className="bg-app-surface p-6 rounded-2xl border border-app-border/50 backdrop-blur-sm">
+            <h3 className="text-lg font-bold text-app-text mb-6 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-app-muted" />
                 Ladda upp bild/film
             </h3>
 
             {!file ? (
                 <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-emerald-700/50 rounded-xl p-10 text-center cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-800/30 transition-all group"
+                    className="border-2 border-dashed border-app-border/50 rounded-xl p-10 text-center cursor-pointer hover:border-app-accent/50 hover:bg-app-surface-elevated/30 transition-all group"
                 >
-                    <div className="bg-emerald-900/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                        <Upload className="w-8 h-8 text-emerald-400" />
+                    <div className="bg-app-surface/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                        <Upload className="w-8 h-8 text-app-muted" />
                     </div>
-                    <p className="text-emerald-200 font-medium">Klicka för att välja fil</p>
-                    <p className="text-emerald-500/60 text-xs mt-1">Bilder och videoklipp</p>
+                    <p className="text-app-text font-medium">Klicka för att välja fil</p>
+                    <p className="text-app-subtle/60 text-xs mt-1">Bilder och videoklipp</p>
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -250,7 +250,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({ preselectedDate, onUpl
             ) : (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {/* Preview Section */}
-                    <div className="relative rounded-xl overflow-hidden bg-black/40 border border-emerald-900/50">
+                    <div className="relative rounded-xl overflow-hidden bg-black/40 border border-app-border/50">
                         {file.type.startsWith('video/') ? (
                             <video src={previewUrl!} className="max-h-80 w-full object-contain" controls />
                         ) : (
@@ -267,9 +267,9 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({ preselectedDate, onUpl
                         {windData && (
                             <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-3 py-2 rounded-lg border border-white/10 flex items-center gap-3">
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] text-emerald-400 uppercase tracking-wider font-bold">Vind vid fototillfället</span>
+                                    <span className="text-[10px] text-app-muted uppercase tracking-wider font-bold">Vind vid fototillfället</span>
                                     <div className="flex items-center gap-2 text-white font-bold">
-                                        <Wind className="w-4 h-4 text-emerald-400" />
+                                        <Wind className="w-4 h-4 text-app-muted" />
                                         <span>{windData.avg.toFixed(1)}</span>
                                         <span className="text-yellow-400 text-xs">({windData.gust.toFixed(1)})</span>
                                         <span className="text-xs font-normal text-white/70">m/s</span>
@@ -282,7 +282,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({ preselectedDate, onUpl
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Date & Time */}
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                            <label className="text-xs font-bold text-app-muted uppercase tracking-wider flex items-center gap-2">
                                 <Calendar className="w-3 h-3" />
                                 Datum & Tid
                             </label>
@@ -291,20 +291,20 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({ preselectedDate, onUpl
                                     type="date"
                                     value={detectedDate}
                                     onChange={(e) => setDetectedDate(e.target.value)}
-                                    className="flex-1 bg-emerald-950/50 border border-emerald-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                                    className="flex-1 bg-app-bg/50 border border-app-border rounded-lg px-3 py-2 text-app-text focus:outline-none focus:border-app-accent transition-colors"
                                 />
                                 <input
                                     type="time"
                                     value={capturedAt}
                                     onChange={(e) => setCapturedAt(e.target.value)}
-                                    className="w-24 bg-emerald-950/50 border border-emerald-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                                    className="w-24 bg-app-bg/50 border border-app-border rounded-lg px-3 py-2 text-app-text focus:outline-none focus:border-app-accent transition-colors"
                                 />
                             </div>
                         </div>
 
                         {/* Uploader Name */}
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                            <label className="text-xs font-bold text-app-muted uppercase tracking-wider flex items-center gap-2">
                                 <User className="w-3 h-3" />
                                 Ditt Namn
                             </label>
@@ -313,14 +313,14 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({ preselectedDate, onUpl
                                 value={uploaderName}
                                 onChange={(e) => setUploaderName(e.target.value)}
                                 placeholder="Vem tog bilden?"
-                                className="w-full bg-emerald-950/50 border border-emerald-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 transition-colors placeholder:text-emerald-700"
+                                className="w-full bg-app-bg/50 border border-app-border rounded-lg px-3 py-2 text-app-text focus:outline-none focus:border-app-accent transition-colors placeholder:text-app-subtle"
                             />
                         </div>
                     </div>
 
                     {/* Description */}
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                        <label className="text-xs font-bold text-app-muted uppercase tracking-wider flex items-center gap-2">
                             <FileText className="w-3 h-3" />
                             Beskrivning
                         </label>
@@ -329,27 +329,27 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({ preselectedDate, onUpl
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Berätta lite om bilden... Hur var känslan?"
                             rows={3}
-                            className="w-full bg-emerald-950/50 border border-emerald-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 transition-colors placeholder:text-emerald-700 resize-none"
+                            className="w-full bg-app-bg/50 border border-app-border rounded-lg px-3 py-2 text-app-text focus:outline-none focus:border-app-accent transition-colors placeholder:text-app-subtle resize-none"
                         />
                     </div>
 
                     {/* Code Input */}
-                    <div className="space-y-2 pt-4 border-t border-emerald-800/50">
-                        <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Uppladdningskod</label>
+                    <div className="space-y-2 pt-4 border-t border-app-border/50">
+                        <label className="text-xs font-bold text-app-muted uppercase tracking-wider">Uppladdningskod</label>
                         <input
                             type="password"
                             value={uploadCode}
                             onChange={(e) => setUploadCode(e.target.value)}
                             placeholder="Ange kod för att ladda upp"
-                            className="w-full bg-emerald-950/50 border border-emerald-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 transition-colors placeholder:text-emerald-700"
+                            className="w-full bg-app-bg/50 border border-app-border rounded-lg px-3 py-2 text-app-text focus:outline-none focus:border-app-accent transition-colors placeholder:text-app-subtle"
                         />
                     </div>
 
                     {/* Progress Bar */}
                     {isUploading && (
-                        <div className="w-full bg-emerald-950 rounded-full h-2 overflow-hidden">
+                        <div className="w-full bg-app-bg rounded-full h-2 overflow-hidden">
                             <div
-                                className="bg-emerald-500 h-full transition-all duration-300"
+                                className="bg-app-accent-green h-full transition-all duration-300"
                                 style={{ width: `${uploadProgress}%` }}
                             ></div>
                         </div>
@@ -363,7 +363,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({ preselectedDate, onUpl
                     )}
 
                     {success && (
-                        <div className="text-emerald-300 text-sm bg-emerald-900/20 border border-emerald-800/50 p-3 rounded-lg flex items-center gap-2">
+                        <div className="text-app-text text-sm bg-app-surface/20 border border-app-border/50 p-3 rounded-lg flex items-center gap-2">
                             <Check className="w-4 h-4" />
                             Uppladdning klar!
                         </div>
@@ -374,8 +374,8 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({ preselectedDate, onUpl
                         disabled={isUploading || !uploadCode}
                         className={`w-full py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all
                   ${isUploading || !uploadCode
-                                ? 'bg-emerald-900/50 text-emerald-500/50 cursor-not-allowed'
-                                : 'bg-emerald-500 hover:bg-emerald-400 text-emerald-950 shadow-lg shadow-emerald-900/20 hover:scale-[1.02]'
+                                ? 'bg-app-surface/50 text-app-subtle/50 cursor-not-allowed'
+                                : 'bg-app-accent-green hover:bg-app-accent-green/90 text-app-bg shadow-lg shadow-black/20 hover:scale-[1.02]'
                             }`}
                     >
                         {isUploading ? 'Laddar upp...' : (

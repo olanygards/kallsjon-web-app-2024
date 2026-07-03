@@ -14,6 +14,7 @@ import { TimelinePoint } from '../../hooks/useKallsurfTimeline';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { getDirectionLabel } from '../../utils/windDataConverter';
+import { APP_THEME, AVG_SURFABLE_MS } from '../../config/windScale';
 
 import { MediaUpload } from '../media/MediaUpload';
 import { DailyGallery } from '../media/DailyGallery';
@@ -58,34 +59,34 @@ const CustomTooltip = ({ active, payload }: any) => {
     const dir = dataPoint?.dir || 0;
 
     return (
-      <div className="bg-emerald-900/95 border border-emerald-700 p-3 rounded-xl shadow-2xl backdrop-blur-sm min-w-[140px]">
-        <div className="mb-2 pb-2 border-b border-emerald-800">
-          <p className="text-xs font-medium text-emerald-300 capitalize">
+      <div className="bg-app-surface/95 border border-app-border p-3 rounded-xl shadow-2xl backdrop-blur-sm min-w-[140px]">
+        <div className="mb-2 pb-2 border-b border-app-border">
+          <p className="text-xs font-medium text-app-text capitalize">
             {format(dataPoint.fullDate, 'EEE d MMM HH:mm', { locale: sv })}
           </p>
         </div>
         <div className="space-y-2">
           {gustData && (
             <div className="flex items-center justify-between gap-4">
-              <span className="text-xs text-emerald-400">Byvind</span>
+              <span className="text-xs text-app-muted">Byvind</span>
               <span className="text-sm font-bold text-yellow-400">{gustData.value} m/s</span>
             </div>
           )}
           {avgData && (
             <div className="flex items-center justify-between gap-4">
-              <span className="text-xs text-emerald-400">Medel</span>
-              <span className="text-sm font-bold text-emerald-400">{avgData.value} m/s</span>
+              <span className="text-xs text-app-muted">Medel</span>
+              <span className="text-sm font-bold text-app-muted">{avgData.value} m/s</span>
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-4 pt-2 border-t border-emerald-800">
-            <span className="text-xs text-emerald-400 flex items-center gap-1">
+          <div className="flex items-center justify-between gap-4 pt-2 border-t border-app-border">
+            <span className="text-xs text-app-muted flex items-center gap-1">
               <Compass size={10} /> Riktning
             </span>
-            <span className="text-xs font-mono text-emerald-300 flex items-center gap-1">
+            <span className="text-xs font-mono text-app-text flex items-center gap-1">
               {Math.round(dir)}° {getDirectionLabel(dir)}
               <div className="inline-block" style={{ transform: `rotate(${dir + 180}deg)` }}>
-                <ArrowUp size={12} className="text-emerald-400" />
+                <ArrowUp size={12} className="text-app-muted" />
               </div>
             </span>
           </div>
@@ -172,8 +173,8 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
   return (
     <div className="animate-in slide-in-from-right-8 duration-300">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <BarChart2 size={20} className="text-emerald-400" />
+        <h2 className="text-xl font-bold text-app-text flex items-center gap-2">
+          <BarChart2 size={20} className="text-app-muted" />
           {selectedDate ? (
             <span>{format(selectedDate, 'd MMMM yyyy', { locale: sv })}</span>
           ) : (
@@ -184,7 +185,7 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
         {selectedDate ? (
           <button
             onClick={onClearSelection}
-            className="bg-emerald-800 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors"
+            className="bg-app-surface-elevated hover:bg-app-surface-elevated text-app-text px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors"
           >
             <X size={14} />
             Tillbaka
@@ -196,8 +197,8 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
                 key={range}
                 onClick={() => setHistoryRange(range)}
                 className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${historyRange === range
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'text-emerald-500 hover:text-emerald-300'
+                  ? 'bg-app-surface-elevated text-app-text shadow-sm'
+                  : 'text-app-subtle hover:text-app-text'
                   }`}
               >
                 {range.toUpperCase()}
@@ -207,7 +208,7 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
         )}
       </div>
 
-      <div ref={containerRef} className="bg-emerald-800/50 border border-emerald-700 rounded-2xl p-2 pb-8 shadow-lg relative h-[320px] w-full">
+      <div ref={containerRef} className="bg-app-surface border border-app-border rounded-2xl p-2 pb-8 shadow-sm relative h-[320px] w-full">
         {dimensions.width > 0 && dimensions.height > 0 ? (
           <AreaChart
             width={dimensions.width}
@@ -222,15 +223,15 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
           >
             <defs>
               <linearGradient id="colorAvg" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                <stop offset="5%" stopColor={APP_THEME.accentFlag.blue} stopOpacity={0.35} />
+                <stop offset="95%" stopColor={APP_THEME.accentFlag.blue} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#064e3b" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={APP_THEME.border} vertical={false} />
 
             <XAxis
               dataKey="fullDate"
-              stroke="#34d399"
+              stroke={APP_THEME.textMuted}
               fontSize={10}
               tickLine={false}
               axisLine={false}
@@ -244,7 +245,7 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
               }}
               height={40}
             />
-            <YAxis stroke="#34d399" fontSize={12} domain={[0, 'auto']} orientation="right" />
+            <YAxis stroke={APP_THEME.textMuted} fontSize={12} domain={[0, 'auto']} orientation="right" />
             <Tooltip content={<CustomTooltip />} wrapperStyle={{ zIndex: 10 }} />
 
             {nightZones.map((zone, i) => (
@@ -254,22 +255,23 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
                 x2={zone.end}
                 xAxisId={0}
                 fill="#000000"
-                fillOpacity={0.2}
+                fillOpacity={0.06}
               />
             ))}
 
             <ReferenceLine
-              y={10}
-              stroke="#10b981"
+              y={AVG_SURFABLE_MS}
+              stroke={APP_THEME.accentFlag.blue}
               strokeDasharray="3 3"
-              label={{ value: 'Medelvind = Surf', fill: '#10b981', fontSize: 10 }}
+              strokeOpacity={0.5}
+              label={{ value: 'Surfbart', fill: APP_THEME.textMuted, fontSize: 10 }}
             />
 
             <Area
               type="monotone"
               dataKey="gust"
               name="Byvind"
-              stroke="#facc15"
+              stroke={APP_THEME.textSubtle}
               strokeWidth={1}
               fill="transparent"
               dot={false}
@@ -279,37 +281,37 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
               type="monotone"
               dataKey="avg"
               name="Medel"
-              stroke="#10b981"
+              stroke={APP_THEME.accentFlag.blue}
               strokeWidth={2}
               fillOpacity={1}
               fill="url(#colorAvg)"
               dot={false}
-              activeDot={{ r: 4, strokeWidth: 0, fill: '#fff' }}
+              activeDot={{ r: 4, strokeWidth: 0, fill: APP_THEME.accentFlag.blue }}
             />
           </AreaChart>
         ) : (
-          <div className="flex items-center justify-center h-full text-emerald-500/50 text-sm">
+          <div className="flex items-center justify-center h-full text-app-subtle/50 text-sm">
             Laddar graf...
           </div>
         )}
       </div>
 
-      <div className="mt-4 bg-emerald-900/20 border border-emerald-800/50 p-4 rounded-xl flex justify-between items-center">
+      <div className="mt-4 bg-app-surface border border-app-border p-4 rounded-xl shadow-sm flex justify-between items-center">
         <div>
-          <h3 className="text-emerald-200 font-medium text-sm mb-1">
+          <h3 className="text-app-text font-medium text-sm mb-1">
             {historyRange === '24h'
               ? 'Senaste dygnet'
               : historyRange === '3d'
                 ? '3 dagar'
                 : '7 dagar'}
           </h3>
-          <p className="text-emerald-400 text-xs">
+          <p className="text-app-muted text-xs">
             {historyRange === '24h' ? '5 minuters upplösning' : 'Visar tim-värden'}
           </p>
         </div>
         <div className="text-right">
-          <span className="text-xs text-emerald-500 block">Högsta medelvind denna period</span>
-          <span className="text-lg font-bold text-white">
+          <span className="text-xs text-app-subtle block">Högsta medelvind denna period</span>
+          <span className="text-lg font-bold text-app-text">
             {activeHistoryData.length > 0
               ? Math.max(...activeHistoryData.map((d) => d.avg)).toFixed(1)
               : '0.0'}{' '}
@@ -319,12 +321,12 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
       </div>
 
       {selectedDate && (
-        <div className="mt-8 border-t border-emerald-800/50 pt-8">
+        <div className="mt-8 border-t border-app-border/50 pt-8">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold text-white">Media</h3>
+            <h3 className="text-lg font-bold text-app-text">Media</h3>
             <button
               onClick={() => setShowUpload(!showUpload)}
-              className="text-xs bg-emerald-800 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg transition-colors"
+              className="text-xs bg-app-surface-elevated hover:bg-app-surface-elevated text-app-text px-3 py-2 rounded-lg transition-colors"
             >
               {showUpload ? 'Dölj uppladdning' : 'Ladda upp bild/film'}
             </button>

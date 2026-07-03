@@ -25,12 +25,12 @@ export function ForecastView({ onDayDetailsClick }: ForecastViewProps) {
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-emerald-900/40 border border-emerald-800/50 rounded-2xl p-4">
+      <div className="bg-app-surface border border-app-border rounded-2xl p-4 shadow-sm">
         <div className="flex items-baseline justify-between mb-3">
-          <h3 className="text-emerald-400 text-xs font-bold uppercase tracking-wider">
+          <h3 className="text-app-muted text-xs font-bold uppercase tracking-wider">
             Prognosmodeller
           </h3>
-          <span className="text-[10px] text-emerald-500">Kallsjön · 7 dygn</span>
+          <span className="text-[10px] text-app-subtle">Kallsjön · 7 dygn</span>
         </div>
 
         {dayBests.length > 0 ? (
@@ -42,16 +42,16 @@ export function ForecastView({ onDayDetailsClick }: ForecastViewProps) {
         ) : loading ? (
           <div className="grid grid-cols-7 gap-1.5">
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="h-16 rounded-xl bg-emerald-900/60 animate-pulse" />
+              <div key={i} className="h-16 rounded-xl bg-app-surface/60 animate-pulse" />
             ))}
           </div>
         ) : null}
 
         <div className="mt-4 mb-2 flex items-baseline justify-between">
-          <span className="text-[11px] text-emerald-300 font-medium capitalize">
+          <span className="text-[11px] text-app-text font-medium capitalize">
             {selectedDay ? format(selectedDay.date, 'EEEE d MMMM', { locale: sv }) : ''}
           </span>
-          <span className="text-[9px] text-emerald-500">medel (by) m/s · pil = vindriktning</span>
+          <span className="text-[9px] text-app-subtle">medel (by) m/s · pil = vindriktning</span>
         </div>
 
         <ModelComparisonGrid rows={rows} selectedDayKey={selectedDayKey} />
@@ -59,7 +59,7 @@ export function ForecastView({ onDayDetailsClick }: ForecastViewProps) {
         {selectedDay && onDayDetailsClick && (
           <button
             onClick={() => onDayDetailsClick(selectedDay.date)}
-            className="mt-3 w-full text-center text-[11px] text-emerald-400 hover:text-emerald-200 underline underline-offset-2"
+            className="mt-3 w-full text-center text-[11px] text-app-muted hover:text-app-text underline underline-offset-2"
           >
             Visa dagen i Detaljer ›
           </button>
@@ -67,15 +67,15 @@ export function ForecastView({ onDayDetailsClick }: ForecastViewProps) {
       </div>
 
       {/* Vindskala — expanderbar förklaring */}
-      <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-xl">
+      <div className="bg-app-surface border border-app-border rounded-xl shadow-sm">
         <button
           onClick={() => setLegendOpen(o => !o)}
           className="w-full flex items-center justify-between p-3 text-left"
         >
-          <span className="text-xs text-emerald-200 font-bold">
+          <span className="text-xs text-app-text font-bold">
             Vindskala &amp; trösklar — vad krävs för surf?
           </span>
-          {legendOpen ? <ChevronUp size={14} className="text-emerald-500" /> : <ChevronDown size={14} className="text-emerald-500" />}
+          {legendOpen ? <ChevronUp size={14} className="text-app-subtle" /> : <ChevronDown size={14} className="text-app-subtle" />}
         </button>
 
         {legendOpen && (
@@ -87,12 +87,12 @@ export function ForecastView({ onDayDetailsClick }: ForecastViewProps) {
                     className="h-3 rounded-sm border border-black/10 mb-1"
                     style={{ backgroundColor: item.bg }}
                   />
-                  <span className="block text-[8px] text-emerald-300 font-bold leading-tight">{item.label}</span>
-                  <span className="block text-[8px] text-emerald-500 leading-tight">{item.threshold}</span>
+                  <span className="block text-[8px] text-app-text font-bold leading-tight">{item.label}</span>
+                  <span className="block text-[8px] text-app-subtle leading-tight">{item.threshold}</span>
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-emerald-500 leading-snug">
+            <p className="text-[10px] text-app-subtle leading-snug">
               Trösklar i medelvind (m/s). Byvind ≥ {GUST_SURFABLE_MS} m/s räknas som surfbart även om
               medelvinden är lägre. Nedtonade celler har passerat.
             </p>
@@ -100,7 +100,7 @@ export function ForecastView({ onDayDetailsClick }: ForecastViewProps) {
         )}
       </div>
 
-      <p className="text-[9px] text-emerald-600 text-center">
+      <p className="text-[9px] text-app-subtle text-center">
         Weather data by Open-Meteo.com · MET Norway
       </p>
     </div>

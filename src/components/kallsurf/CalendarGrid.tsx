@@ -82,13 +82,13 @@ export function CalendarGrid({ dailySummary, onDayClick, viewDate = new Date(), 
   ];
 
   return (
-    <div className="bg-emerald-900 border border-emerald-800 rounded-2xl p-4 shadow-xl relative overflow-hidden">
+    <div className="bg-app-surface border border-app-border rounded-2xl p-4 shadow-sm relative overflow-hidden">
       <div className="flex justify-between items-center mb-6">
         <h3
           onClick={togglePicker}
-          className="text-white font-bold capitalize flex items-center gap-2 cursor-pointer hover:text-emerald-400 transition-colors select-none"
+          className="text-app-text font-bold capitalize flex items-center gap-2 cursor-pointer hover:text-app-muted transition-colors select-none"
         >
-          <Calendar size={18} className="text-emerald-400" />
+          <Calendar size={18} className="text-app-muted" />
           {monthName}
         </h3>
 
@@ -96,7 +96,7 @@ export function CalendarGrid({ dailySummary, onDayClick, viewDate = new Date(), 
           <div className="flex gap-1">
             <button
               onClick={handlePrevMonth}
-              className="p-1 rounded-lg hover:bg-emerald-800 text-emerald-500 hover:text-emerald-300 transition-colors"
+              className="p-1 rounded-lg hover:bg-app-surface-elevated text-app-subtle hover:text-app-text transition-colors"
             >
               <ChevronLeft size={18} />
             </button>
@@ -104,8 +104,8 @@ export function CalendarGrid({ dailySummary, onDayClick, viewDate = new Date(), 
               onClick={handleNextMonth}
               disabled={isCurrentMonth}
               className={`p-1 rounded-lg transition-colors ${isCurrentMonth
-                ? 'text-emerald-700 cursor-not-allowed'
-                : 'hover:bg-emerald-800 text-emerald-500 hover:text-emerald-300'
+                ? 'text-app-subtle cursor-not-allowed'
+                : 'hover:bg-app-surface-elevated text-app-subtle hover:text-app-text'
                 }`}
             >
               <ChevronRight size={18} />
@@ -120,17 +120,17 @@ export function CalendarGrid({ dailySummary, onDayClick, viewDate = new Date(), 
           <div className="flex justify-between items-center mb-6 px-4">
             <button
               onClick={() => handleYearChange(-1)}
-              className="p-2 hover:bg-emerald-800 rounded-full text-emerald-400 hover:text-white transition-colors"
+              className="p-2 hover:bg-app-surface-elevated rounded-full text-app-muted hover:text-app-text transition-colors"
             >
               <ChevronLeft size={20} />
             </button>
-            <span className="text-xl font-bold text-white">{pickerYear}</span>
+            <span className="text-xl font-bold text-app-text">{pickerYear}</span>
             <button
               onClick={() => handleYearChange(1)}
               disabled={pickerYear >= new Date().getFullYear()}
               className={`p-2 rounded-full transition-colors ${pickerYear >= new Date().getFullYear()
-                ? 'text-emerald-700 cursor-not-allowed'
-                : 'hover:bg-emerald-800 text-emerald-400 hover:text-white'}`}
+                ? 'text-app-subtle cursor-not-allowed'
+                : 'hover:bg-app-surface-elevated text-app-muted hover:text-app-text'}`}
             >
               <ChevronRight size={20} />
             </button>
@@ -148,10 +148,10 @@ export function CalendarGrid({ dailySummary, onDayClick, viewDate = new Date(), 
                   disabled={isFuture}
                   onClick={() => handleMonthSelect(i)}
                   className={`p-3 rounded-lg text-sm font-medium transition-all ${isSelected
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
+                    ? 'bg-app-accent-green/20 text-app-muted border border-app-accent/50'
                     : isFuture
-                      ? 'text-emerald-700 cursor-not-allowed'
-                      : 'bg-emerald-800/50 text-emerald-300 hover:bg-emerald-800 hover:text-white border border-transparent'
+                      ? 'text-app-subtle cursor-not-allowed'
+                      : 'bg-app-surface-elevated/50 text-app-text hover:bg-app-surface-elevated hover:text-app-text border border-transparent'
                     }`}
                 >
                   {m}
@@ -163,7 +163,7 @@ export function CalendarGrid({ dailySummary, onDayClick, viewDate = new Date(), 
           <div className="mt-6 text-center">
             <button
               onClick={() => setIsPickerOpen(false)}
-              className="text-xs text-emerald-500 hover:text-emerald-300 underline"
+              className="text-xs text-app-subtle hover:text-app-text underline"
             >
               Avbryt
             </button>
@@ -173,7 +173,7 @@ export function CalendarGrid({ dailySummary, onDayClick, viewDate = new Date(), 
         <>
           <div className="grid grid-cols-7 gap-1 mb-2 text-center">
             {['M', 'T', 'O', 'T', 'F', 'L', 'S'].map((d, i) => (
-              <span key={i} className="text-[10px] font-bold text-emerald-500">
+              <span key={i} className="text-[10px] font-bold text-app-subtle">
                 {d}
               </span>
             ))}
@@ -195,9 +195,9 @@ export function CalendarGrid({ dailySummary, onDayClick, viewDate = new Date(), 
                   key={day.key}
                   onClick={() => day.summary && onDayClick?.(day.summary.date)}
                   className={`aspect-square rounded-lg flex flex-col items-center justify-center relative transition-all hover:scale-105 border ${isToday
-                    ? 'border-emerald-400 ring-2 ring-emerald-400/50 z-10'
-                    : 'border-emerald-800/50'
-                    } ${day.summary ? 'cursor-pointer hover:ring-2 hover:ring-emerald-400 hover:z-10' : ''
+                    ? 'border-app-accent ring-2 ring-app-accent/50 z-10'
+                    : 'border-app-border/50'
+                    } ${day.summary ? 'cursor-pointer hover:ring-2 hover:ring-app-accent hover:z-10' : ''
                     }`}
                   style={{ backgroundColor: bgColor }}
                 >
@@ -215,7 +215,7 @@ export function CalendarGrid({ dailySummary, onDayClick, viewDate = new Date(), 
               className="h-2 w-full rounded-full mb-1"
               style={{ background: getScaleGradient() }}
             ></div>
-            <div className="flex justify-between text-[10px] text-emerald-400 font-medium">
+            <div className="flex justify-between text-[10px] text-app-muted font-medium">
               <span>Lugnt</span>
               <span>Håll koll</span>
               <span>Surfbart</span>

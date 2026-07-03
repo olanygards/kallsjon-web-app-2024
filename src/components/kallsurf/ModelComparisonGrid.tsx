@@ -30,7 +30,7 @@ export function ModelComparisonGrid({ rows, selectedDayKey }: ModelComparisonGri
         {MATRIX_SLOT_HOURS.map((h, i) => (
           <div
             key={h}
-            className={`text-center text-[9px] ${i === nowSlotIndex ? 'text-white font-bold' : 'text-emerald-500'}`}
+            className={`text-center text-[9px] ${i === nowSlotIndex ? 'text-app-text font-bold' : 'text-app-subtle'}`}
           >
             {String(h).padStart(2, '0')}
             {i === nowSlotIndex && <span className="block leading-none">▾</span>}
@@ -42,15 +42,15 @@ export function ModelComparisonGrid({ rows, selectedDayKey }: ModelComparisonGri
       {rows.map(row => (
         <div
           key={row.model}
-          className={`grid gap-1 items-center ${row.isConsensus ? 'pb-2 mb-1 border-b border-emerald-800/60' : ''}`}
+          className={`grid gap-1 items-center ${row.isConsensus ? 'pb-2 mb-1 border-b border-app-border/60' : ''}`}
           style={{ gridTemplateColumns: '52px repeat(8, 1fr)' }}
         >
           <div className="pr-1">
-            <span className={`block text-[10px] font-bold leading-tight ${row.isConsensus ? 'text-white' : 'text-emerald-300'}`}>
+            <span className={`block text-[10px] font-bold leading-tight ${row.isConsensus ? 'text-app-text' : 'text-app-muted'}`}>
               {row.isConsensus ? 'CONS.' : row.name}
             </span>
             {row.isConsensus && (
-              <span className="block text-[8px] text-emerald-500 leading-none">median</span>
+              <span className="block text-[8px] text-app-subtle leading-none">median</span>
             )}
             {row.error && (
               <span className="block text-[8px] text-amber-500 leading-none" title={row.error.message}>
@@ -61,7 +61,7 @@ export function ModelComparisonGrid({ rows, selectedDayKey }: ModelComparisonGri
 
           {row.loading && row.cells.every(c => c === null)
             ? MATRIX_SLOT_HOURS.map(h => (
-                <div key={h} className="rounded-md bg-emerald-900/60 animate-pulse h-10" />
+                <div key={h} className="rounded-md bg-app-surface/60 animate-pulse h-10" />
               ))
             : row.cells.map((cell, i) => <ForecastModelCell key={i} cell={cell} />)}
         </div>

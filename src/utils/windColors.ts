@@ -28,28 +28,41 @@ export function getWindLevel(avgMs: number, gustMs: number): WindScaleLevelConfi
 }
 
 /**
- * Accentfärg läsbar mot mörk bakgrund (tooltips, text på mörka kort).
- * De mörkblå nivåerna får ljusare toner; ljusa nivåer en dämpad grön.
+ * Accentfärg för vindvärden på ljus bakgrund (hero, grafer, tooltips).
  */
-const DARK_BG_ACCENTS: Record<string, string> = {
-  calm: '#a7c4b3',
-  watching: '#D7EBDE',
-  interesting: '#34d399',
-  surfable: '#7C9FEF',
-  good: '#93b0f2',
-  great: '#aabff5',
-  rare: '#FF2FA0',
+const LIGHT_BG_ACCENTS: Record<string, string> = {
+  calm: '#6b6b6b',
+  watching: '#00813E',
+  interesting: '#00813E',
+  surfable: '#0F3D9E',
+  good: '#0A2B72',
+  great: '#071B4A',
+  rare: '#E60C84',
 };
 
 export function getWindAccentColor(avgMs: number): string {
   const level = WIND_SCALE_LEVELS[getLevelIndexFromAvg(avgMs)];
-  return DARK_BG_ACCENTS[level.id] ?? level.colors.bg;
+  return LIGHT_BG_ACCENTS[level.id] ?? level.colors.bg;
 }
 
 /** CSS-gradient över hela skalan — för legender */
 export function getScaleGradient(): string {
   const stops = WIND_SCALE_LEVELS.map((l) => l.colors.bg).join(', ');
   return `linear-gradient(to right, ${stops})`;
+}
+
+/** Inline-stilar för nivåbadge (bakgrund, text, kant) */
+export function getLevelBadgeStyle(avgMs: number, gustMs: number): {
+  backgroundColor: string;
+  color: string;
+  borderColor: string;
+} {
+  const level = getWindLevel(avgMs, gustMs);
+  return {
+    backgroundColor: level.colors.bg,
+    color: level.colors.text,
+    borderColor: level.colors.border ?? level.colors.bg,
+  };
 }
 
 /** Legendposter: label + tröskel + färg */

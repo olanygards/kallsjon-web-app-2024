@@ -5,6 +5,7 @@ import { TrendingUp, Wind, Calendar, Droplet, Sun } from 'lucide-react';
 import { useDailyStats } from '../../hooks/useDailyStats';
 import { filterSurfableDays } from '../../utils/surfableDays';
 import { isMaxWindDuringDaylight } from '../../utils/daylightCalculations';
+import { getWindColor, getWindTextColor } from '../../utils/windColors';
 
 // Helper function to convert wind direction in degrees to cardinal direction
 function getWindDirection(degrees: number): string {
@@ -13,13 +14,13 @@ function getWindDirection(degrees: number): string {
     return directions[index];
 }
 
-// Helper function to get a color based on wind speed (emerald theme)
-function getWindSpeedColor(speed: number): string {
-    if (speed >= 18) return "bg-red-900/40 border-red-800/60 text-red-100";
-    if (speed >= 15) return "bg-orange-900/40 border-orange-800/60 text-orange-100";
-    if (speed >= 12) return "bg-emerald-800/40 border-emerald-700/60 text-emerald-100";
-    if (speed >= 10) return "bg-emerald-900/40 border-emerald-800/60 text-emerald-200";
-    return "bg-emerald-950/40 border-emerald-900/60 text-emerald-300";
+// Helper: vindnivåfärger från sjustegsskalan
+function getWindSpeedStyle(speed: number): React.CSSProperties {
+  return {
+    backgroundColor: getWindColor(speed),
+    color: getWindTextColor(speed),
+    borderColor: getWindColor(speed),
+  };
 }
 
 interface StatsViewProps {
@@ -127,9 +128,9 @@ export function StatsView({ onDayClick }: StatsViewProps) {
 
     if (isInitialLoading) {
         return (
-            <div className="flex h-[60vh] items-center justify-center text-emerald-500">
+            <div className="flex h-[60vh] items-center justify-center text-app-subtle">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-8 h-8 border-2 border-app-accent border-t-transparent rounded-full animate-spin"></div>
                     <span className="text-xs uppercase tracking-widest font-medium">Hämtar statistik...</span>
                 </div>
             </div>
@@ -139,7 +140,7 @@ export function StatsView({ onDayClick }: StatsViewProps) {
     if (dailyStats.length === 0) {
         return (
             <div className="animate-in slide-in-from-right-8 duration-300">
-                <div className="bg-emerald-900/30 border border-emerald-800/50 p-4 rounded-xl text-emerald-200">
+                <div className="bg-app-surface/30 border border-app-border/50 p-4 rounded-xl text-app-text">
                     <p className="font-bold mb-1">Ingen data</p>
                     <p className="text-sm">Inga blåsiga dagar hittades (kriterium: ≥10 m/s)</p>
                 </div>
@@ -150,16 +151,16 @@ export function StatsView({ onDayClick }: StatsViewProps) {
     return (
         <div className="animate-in slide-in-from-right-8 duration-300 space-y-6">
             {/* Ice period toggle */}
-            <div className="flex items-center justify-between bg-emerald-950/40 border border-emerald-900/60 rounded-xl p-3">
+            <div className="flex items-center justify-between bg-app-bg/40 border border-app-border/60 rounded-xl p-3">
                 <div className="flex items-center gap-2">
                     <Droplet size={16} className="text-blue-400" />
-                    <span className="text-sm text-emerald-200">Dagar utan is (15 feb - 15 apr)</span>
+                    <span className="text-sm text-app-text">Dagar utan is (15 feb - 15 apr)</span>
                 </div>
                 <button
                     onClick={() => setExcludeIcePeriod(!excludeIcePeriod)}
                     className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${excludeIcePeriod
                         ? 'bg-blue-600 text-white'
-                        : 'bg-emerald-900/40 text-emerald-300 hover:bg-emerald-800/40'
+                        : 'bg-app-surface/40 text-app-text hover:bg-app-surface-elevated/40'
                         }`}
                 >
                     {excludeIcePeriod ? 'På' : 'Av'}
@@ -167,16 +168,16 @@ export function StatsView({ onDayClick }: StatsViewProps) {
             </div>
 
             {/* Daylight filter toggle */}
-            <div className="flex items-center justify-between bg-emerald-950/40 border border-emerald-900/60 rounded-xl p-3">
+            <div className="flex items-center justify-between bg-app-bg/40 border border-app-border/60 rounded-xl p-3">
                 <div className="flex items-center gap-2">
                     <Sun size={16} className="text-yellow-400" />
-                    <span className="text-sm text-emerald-200">Dagar med vind ≥10 m/s vid dagsljus</span>
+                    <span className="text-sm text-app-text">Dagar med vind ≥10 m/s vid dagsljus</span>
                 </div>
                 <button
                     onClick={() => setDaylightOnly(!daylightOnly)}
                     className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${daylightOnly
                         ? 'bg-yellow-600 text-white'
-                        : 'bg-emerald-900/40 text-emerald-300 hover:bg-emerald-800/40'
+                        : 'bg-app-surface/40 text-app-text hover:bg-app-surface-elevated/40'
                         }`}
                 >
                     {daylightOnly ? 'På' : 'Av'}
@@ -202,37 +203,37 @@ export function StatsView({ onDayClick }: StatsViewProps) {
             {/* Hero stats */}
             <div className="grid grid-cols-2 gap-3">
                 {bestDay && (
-                    <div className="bg-gradient-to-br from-emerald-900/60 to-emerald-950/60 border border-emerald-800/60 rounded-2xl p-4">
+                    <div className="bg-gradient-to-br from-app-surface/60 to-app-bg/60 border border-app-border/60 rounded-2xl p-4">
                         <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp size={16} className="text-emerald-400" />
-                            <span className="text-xs font-medium text-emerald-300 uppercase tracking-wide">Bästa dagen</span>
+                            <TrendingUp size={16} className="text-app-muted" />
+                            <span className="text-xs font-medium text-app-text uppercase tracking-wide">Bästa dagen</span>
                         </div>
-                        <p className="text-3xl font-bold text-white mb-1">{bestDay.maxForce} m/s</p>
-                        <p className="text-xs text-emerald-300">
+                        <p className="text-3xl font-bold text-app-text mb-1">{bestDay.maxForce} m/s</p>
+                        <p className="text-xs text-app-text">
                             {format(parseISO(bestDay.date), 'd MMMM yyyy', { locale: sv })}
                         </p>
                     </div>
                 )}
 
-                <div className="bg-gradient-to-br from-emerald-900/60 to-emerald-950/60 border border-emerald-800/60 rounded-2xl p-4">
+                <div className="bg-gradient-to-br from-app-surface/60 to-app-bg/60 border border-app-border/60 rounded-2xl p-4">
                     <div className="flex items-center gap-2 mb-2">
-                        <Calendar size={16} className="text-emerald-400" />
-                        <span className="text-xs font-medium text-emerald-300 uppercase tracking-wide">Dagar ≥10 m/s</span>
+                        <Calendar size={16} className="text-app-muted" />
+                        <span className="text-xs font-medium text-app-text uppercase tracking-wide">Dagar ≥10 m/s</span>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{totalDays}</p>
-                    <p className="text-xs text-emerald-300">Sedan 2020</p>
+                    <p className="text-3xl font-bold text-app-text mb-1">{totalDays}</p>
+                    <p className="text-xs text-app-text">Sedan 2020</p>
                 </div>
             </div>
 
             {/* Stats per year */}
-            <div className="bg-emerald-950/40 border border-emerald-900/60 rounded-2xl p-4">
-                <h3 className="text-sm font-bold text-emerald-100 mb-4 flex items-center gap-2">
+            <div className="bg-app-bg/40 border border-app-border/60 rounded-2xl p-4">
+                <h3 className="text-sm font-bold text-app-text mb-4 flex items-center gap-2">
                     <TrendingUp size={16} />
                     Statistik per år
                     {selectedYear && (
                         <button
                             onClick={() => setSelectedYear(null)}
-                            className="ml-auto text-xs bg-emerald-800/40 hover:bg-emerald-700/40 px-2 py-1 rounded-lg transition-colors"
+                            className="ml-auto text-xs bg-app-surface-elevated/40 hover:bg-app-surface-elevated/40 px-2 py-1 rounded-lg transition-colors"
                         >
                             Visa alla
                         </button>
@@ -249,20 +250,20 @@ export function StatsView({ onDayClick }: StatsViewProps) {
                                     key={year}
                                     onClick={() => setSelectedYear(isSelected ? null : yearNum)}
                                     className={`w-full text-left rounded-xl p-3 transition-all ${isSelected
-                                        ? 'bg-emerald-700/50 border-2 border-emerald-500 ring-2 ring-emerald-500/30'
-                                        : 'bg-emerald-900/30 border border-emerald-800/50 hover:bg-emerald-800/40'
+                                        ? 'bg-app-surface-elevated/50 border-2 border-app-accent ring-2 ring-app-accent/30'
+                                        : 'bg-app-surface/30 border border-app-border/50 hover:bg-app-surface-elevated/40'
                                         }`}
                                 >
                                     <div className="flex justify-between items-start mb-2">
-                                        <span className={`font-bold ${isSelected ? 'text-emerald-200' : 'text-emerald-100'}`}>
+                                        <span className={`font-bold ${isSelected ? 'text-app-text' : 'text-app-text'}`}>
                                             {year}
                                         </span>
-                                        <span className="text-xs text-emerald-300">{stats.days} dagar</span>
+                                        <span className="text-xs text-app-text">{stats.days} dagar</span>
                                     </div>
                                     {stats.bestDay && (
                                         <div className="flex justify-between items-center text-xs">
-                                            <span className="text-emerald-400">Bästa dag:</span>
-                                            <span className="text-white font-bold">{stats.bestDay.maxForce} m/s</span>
+                                            <span className="text-app-muted">Bästa dag:</span>
+                                            <span className="text-app-text font-bold">{stats.bestDay.maxForce} m/s</span>
                                         </div>
                                     )}
                                 </button>
@@ -272,14 +273,14 @@ export function StatsView({ onDayClick }: StatsViewProps) {
             </div>
 
             {/* Wind directions */}
-            <div className="bg-emerald-950/40 border border-emerald-900/60 rounded-2xl p-4">
-                <h3 className="text-sm font-bold text-emerald-100 mb-4 flex items-center gap-2">
+            <div className="bg-app-bg/40 border border-app-border/60 rounded-2xl p-4">
+                <h3 className="text-sm font-bold text-app-text mb-4 flex items-center gap-2">
                     <Wind size={16} />
                     Vindriktningar
                     {selectedDirection && (
                         <button
                             onClick={() => setSelectedDirection(null)}
-                            className="ml-auto text-xs bg-emerald-800/40 hover:bg-emerald-700/40 px-2 py-1 rounded-lg transition-colors"
+                            className="ml-auto text-xs bg-app-surface-elevated/40 hover:bg-app-surface-elevated/40 px-2 py-1 rounded-lg transition-colors"
                         >
                             Visa alla
                         </button>
@@ -293,14 +294,14 @@ export function StatsView({ onDayClick }: StatsViewProps) {
                                 key={direction}
                                 onClick={() => setSelectedDirection(isSelected ? null : direction)}
                                 className={`rounded-lg p-2 text-center transition-all ${isSelected
-                                    ? 'bg-emerald-700/50 border-2 border-emerald-500 ring-2 ring-emerald-500/30'
-                                    : 'bg-emerald-900/30 border border-emerald-800/50 hover:bg-emerald-800/40'
+                                    ? 'bg-app-surface-elevated/50 border-2 border-app-accent ring-2 ring-app-accent/30'
+                                    : 'bg-app-surface/30 border border-app-border/50 hover:bg-app-surface-elevated/40'
                                     }`}
                             >
-                                <div className={`font-bold text-sm ${isSelected ? 'text-emerald-200' : 'text-emerald-100'}`}>
+                                <div className={`font-bold text-sm ${isSelected ? 'text-app-text' : 'text-app-text'}`}>
                                     {direction}
                                 </div>
-                                <div className="text-xs text-emerald-400">{count}</div>
+                                <div className="text-xs text-app-muted">{count}</div>
                             </button>
                         );
                     })}
@@ -308,13 +309,13 @@ export function StatsView({ onDayClick }: StatsViewProps) {
             </div>
 
             {/* Top days list */}
-            <div className="bg-emerald-950/40 border border-emerald-900/60 rounded-2xl p-4">
+            <div className="bg-app-bg/40 border border-app-border/60 rounded-2xl p-4">
                 <div className="flex items-start justify-between mb-4">
-                    <h3 className="text-sm font-bold text-emerald-100 flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-app-text flex items-center gap-2">
                         <Calendar size={16} />
                         Bästa dagarna
-                        {selectedYear && <span className="text-xs text-emerald-400">({selectedYear})</span>}
-                        {selectedDirection && <span className="text-xs text-emerald-400">({selectedDirection})</span>}
+                        {selectedYear && <span className="text-xs text-app-muted">({selectedYear})</span>}
+                        {selectedDirection && <span className="text-xs text-app-muted">({selectedDirection})</span>}
                     </h3>
 
                     {/* Sort selector */}
@@ -322,8 +323,8 @@ export function StatsView({ onDayClick }: StatsViewProps) {
                         <button
                             onClick={() => setSortBy('maxGust')}
                             className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${sortBy === 'maxGust'
-                                ? 'bg-emerald-700 text-white'
-                                : 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-800/40'
+                                ? 'bg-app-surface-elevated text-app-text'
+                                : 'bg-app-surface/40 text-app-muted hover:bg-app-surface-elevated/40'
                                 }`}
                             title="Sortera efter högsta byvind"
                         >
@@ -332,8 +333,8 @@ export function StatsView({ onDayClick }: StatsViewProps) {
                         <button
                             onClick={() => setSortBy('maxForce')}
                             className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${sortBy === 'maxForce'
-                                ? 'bg-emerald-700 text-white'
-                                : 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-800/40'
+                                ? 'bg-app-surface-elevated text-app-text'
+                                : 'bg-app-surface/40 text-app-muted hover:bg-app-surface-elevated/40'
                                 }`}
                             title="Sortera efter högsta medelvind"
                         >
@@ -342,8 +343,8 @@ export function StatsView({ onDayClick }: StatsViewProps) {
                         <button
                             onClick={() => setSortBy('avgForce')}
                             className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${sortBy === 'avgForce'
-                                ? 'bg-emerald-700 text-white'
-                                : 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-800/40'
+                                ? 'bg-app-surface-elevated text-app-text'
+                                : 'bg-app-surface/40 text-app-muted hover:bg-app-surface-elevated/40'
                                 }`}
                             title="Sortera efter genomsnittsvind"
                         >
@@ -378,7 +379,8 @@ export function StatsView({ onDayClick }: StatsViewProps) {
                                 <button
                                     key={day.date}
                                     onClick={() => onDayClick && onDayClick(dayDate)}
-                                    className={`w-full ${getWindSpeedColor(day.maxForce)} border rounded-xl p-3 text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg`}
+                                    className="w-full border rounded-xl p-3 text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
+                                    style={getWindSpeedStyle(day.maxForce)}
                                 >
                                     <div className="flex justify-between items-start mb-1">
                                         <span className="font-bold">
@@ -407,7 +409,7 @@ export function StatsView({ onDayClick }: StatsViewProps) {
 
             {loading && (
                 <div className="text-center py-4">
-                    <span className="text-xs text-emerald-500">Uppdaterar...</span>
+                    <span className="text-xs text-app-subtle">Uppdaterar...</span>
                 </div>
             )}
         </div>

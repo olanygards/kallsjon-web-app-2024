@@ -73,16 +73,37 @@ export const WIND_SCALE_LEVELS: readonly WindScaleLevelConfig[] = [
   },
 ] as const;
 
-/** App-chrome (navigation, text) — neutral, inte vindnivå */
+/** App-chrome (navigation, text) — neutral ljus, enligt UX-skiss v1.4. Beslut 04. */
 export const APP_THEME = {
   background: '#fbfbf9',
-  backgroundDark: '#1c1c1c',
+  surface: '#ffffff',
+  surfaceElevated: '#f3f3f1',
+  border: '#e0e0dc',
+  borderMuted: '#ececea',
   text: '#1c1c1c',
   textMuted: '#6b6b6b',
+  textSubtle: '#9a9a9a',
+  /** Bottennav — mörk bar enligt skiss, oberoende av sidans ljusa bakgrund */
+  nav: {
+    bg: '#1c1c1c',
+    text: '#9a9a9a',
+    activeBg: '#000000',
+    activeText: '#ffffff',
+  },
   accentFlag: {
     blue: '#0F3D9E',
     green: '#00813E',
+    yellow: '#F5C400',
+    red: '#C8102E',
   },
+} as const;
+
+/** Surftrösklar för referenslinjer m.m. — speglar skalan */
+export const WIND_THRESHOLDS = {
+  MIN_WORTH_WATCHING: 6,
+  INTERESTING: 8,
+  AVG_SURFABLE: AVG_SURFABLE_MS,
+  GUST_SURFABLE: GUST_SURFABLE_MS,
 } as const;
 
 export function getLevelIndexFromAvg(avgMs: number): number {

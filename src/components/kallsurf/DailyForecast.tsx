@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { Calendar } from 'lucide-react';
 import { HourlyBucket } from '../../hooks/useKallsurfTimeline';
 import { getBestSlotPerDay } from '../../utils/bestWindPerDay';
 import { DayStrip } from './DayStrip';
@@ -23,16 +22,14 @@ export function DailyForecast({ hourlyBuckets, onCardClick }: DailyForecastProps
     if (days.length === 0) return null;
 
     return (
-        <div className="space-y-3">
-            <div className="flex items-center justify-between ml-1">
-                <h3 className="text-emerald-400 text-xs font-bold uppercase flex items-center gap-2">
-                    <Calendar size={14} /> Kommande 7 dagar
-                </h3>
-            </div>
+        <div className="bg-app-surface border border-app-border rounded-2xl p-4 shadow-sm space-y-3">
+            <h3 className="text-app-text text-xs font-bold uppercase tracking-wider">
+                Kommande 7 dagar
+            </h3>
 
             <DayStrip days={days} onDayClick={(day) => onCardClick?.(day.slot.time)} />
 
-            <p className="text-[10px] text-emerald-600 ml-1">
+            <p className="text-[10px] text-app-subtle">
                 Bästa vindtillfälle per dag (medel m/s) · * = byvind lyfter dagen · tryck för detaljer
             </p>
         </div>

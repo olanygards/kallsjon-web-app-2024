@@ -9,16 +9,7 @@ import { KALLSJON } from '../config/constants';
 import { ForecastModel } from '../types/WindData';
 import { windPointsToWindData } from '../utils/windDataConverter';
 import { getSunTimes } from '../utils/sunTimes';
-
-// Trösklar för surfbarhet
-const THRESHOLDS = {
-  MIN_WORTH_WATCHING: 6,
-  SURF_OK_AVG: 8,
-  SURF_GOOD_AVG: 10,
-  SURF_GUST: 15
-};
-
-type Surfability = 'none' | 'watching' | 'ok' | 'good';
+import { getEffectiveLevelIndex, WIND_THRESHOLDS } from '../config/windScale';
 
 // Konfiguration
 const CONFIG = {
@@ -40,19 +31,9 @@ const isSurfableTime = (date: Date): boolean => {
   return hourVal >= times.rise && hourVal < times.lastLight;
 };
 
-// Beräknar surfbarhet baserat på trösklar
-const getSurfability = (avg: number, gust: number): 'none' | 'watching' | 'ok' | 'good' => {
-  if (avg >= THRESHOLDS.SURF_GOOD_AVG || gust >= THRESHOLDS.SURF_GUST) {
-    return 'good';
-  }
-  if (avg >= THRESHOLDS.SURF_OK_AVG) {
-    return 'ok';
-  }
-  if (avg >= THRESHOLDS.MIN_WORTH_WATCHING) {
-    return 'watching';
-  }
-  return 'none';
-};
+// Beräknar vindnivå (sjustegsskala) inkl. by-regel
+const getWindLevelIndex = (avg: number, gust: number): number =>
+  getEffectiveLevelIndex(avg, gust);
 
 // Timeline data point interface
 export interface TimelinePoint {
@@ -64,7 +45,7 @@ export interface TimelinePoint {
   dir: number;
   isDaylight: boolean;
   isNow: boolean;
-  surfability: 'none' | 'watching' | 'ok' | 'good';
+  windLevelIndex: number;
   isForecast: boolean;
 }
 
@@ -77,7 +58,7 @@ export interface HourlyBucket {
   gust: number;
   dir: number;
   isDaylight: boolean;
-  surfability: 'none' | 'watching' | 'ok' | 'good';
+  windLevelIndex: number;
   isForecast: boolean;
 }
 
@@ -88,7 +69,7 @@ export interface DailySummary {
   maxAvg: number;
   avgAvg: number;
   maxGust: number;
-  bestSurfability: 'none' | 'watching' | 'ok' | 'good';
+  bestWindLevelIndex: number;
 }
 
 export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null) {
@@ -276,7 +257,7 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
         dir,
         isDaylight: isSurfableTime(time),
         isNow: Math.abs(time.getTime() - nowTime) < 5 * 60 * 1000, // 5 min tolerans
-        surfability: getSurfability(avg, gust),
+        windLevelIndex: getWindLevelIndex(avg, gust),
         isForecast: false
       });
     });
@@ -297,7 +278,7 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
         dir,
         isDaylight: isSurfableTime(time),
         isNow: Math.abs(time.getTime() - nowTime) < 5 * 60 * 1000,
-        surfability: getSurfability(avg, gust),
+        windLevelIndex: getWindLevelIndex(avg, gust),
         isForecast: true
       });
     });
@@ -333,10 +314,8 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
         const gust = Math.max(...points.map(p => p.gust));
         const dir = points[0].dir; // Ta första riktningen
         const isDaylight = points.some(p => p.isDaylight);
-        const surfability = points.reduce<Surfability>((best, p) => {
-          const order = { none: 0, watching: 1, ok: 2, good: 3 };
-          return order[p.surfability] > order[best] ? p.surfability : best;
-        }, 'none');
+        const windLevelIndex = points.reduce((best, p) =>
+          Math.max(best, p.windLevelIndex), 0);
         const isForecast = points[0].isForecast;
 
         return {
@@ -347,7 +326,7 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
           gust,
           dir,
           isDaylight,
-          surfability,
+          windLevelIndex,
           isForecast
         };
       })
@@ -390,17 +369,15 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
           maxAvg: 0,
           avgAvg: 0,
           maxGust: 0,
-          bestSurfability: 'none' as const
+          bestWindLevelIndex: 0
         };
       }
 
       const maxAvg = Math.max(...dayPoints.map(p => p.avg));
       const avgAvg = dayPoints.reduce((sum, p) => sum + p.avg, 0) / dayPoints.length;
       const maxGust = Math.max(...dayPoints.map(p => p.gust));
-      const bestSurfability = dayPoints.reduce<Surfability>((best, p) => {
-        const order = { none: 0, watching: 1, ok: 2, good: 3 };
-        return order[p.surfability] > order[best] ? p.surfability : best;
-      }, 'none');
+      const bestWindLevelIndex = dayPoints.reduce((best, p) =>
+        Math.max(best, p.windLevelIndex), 0);
 
       return {
         date,
@@ -408,7 +385,7 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
         maxAvg,
         avgAvg,
         maxGust,
-        bestSurfability
+        bestWindLevelIndex
       };
     });
   }, [timeline, now, viewDate]);
@@ -465,7 +442,7 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
     loading,
     error,
     warning,
-    thresholds: THRESHOLDS
+    thresholds: WIND_THRESHOLDS
   };
 }
 
