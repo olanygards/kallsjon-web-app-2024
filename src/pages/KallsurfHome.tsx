@@ -30,6 +30,14 @@ export default function KallsurfHome() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  /** Läget ska alltid visa nu — rensa dagval från Detaljer/Nästa surfchans */
+  const goToOverview = () => {
+    setSelectedDate(null);
+    setViewDate(new Date());
+    setActiveTab('overview');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const showPotentialInfo = useMemo(() => {
     const next12Hours = hourlyBuckets.slice(0, 12);
     return next12Hours.some(h => h.avg > 9);
@@ -74,7 +82,7 @@ export default function KallsurfHome() {
       >
         <div className="max-w-md mx-auto flex justify-between items-center">
           <button
-            onClick={() => setActiveTab('overview')}
+            onClick={goToOverview}
             className="flex flex-col items-start bg-transparent border-none cursor-pointer p-0"
           >
             <h1 className="font-bold text-base tracking-tight text-app-text uppercase">
@@ -164,7 +172,7 @@ export default function KallsurfHome() {
                 <MediaView
                   onNavigateToDate={handleDayClick}
                   onUploadClick={() => setShowUploadModal(true)}
-                  onBackToOverview={() => setActiveTab('overview')}
+                  onBackToOverview={goToOverview}
                 />
               </div>
             )}
@@ -206,7 +214,7 @@ export default function KallsurfHome() {
           ]).map(({ id, label, Icon }) => (
             <button
               key={id}
-              onClick={() => setActiveTab(id)}
+              onClick={() => (id === 'overview' ? goToOverview() : setActiveTab(id))}
               className={`flex flex-col items-center gap-1 py-3 px-1 rounded-2xl transition-all duration-300 w-16 ${activeTab === id
                 ? 'bg-app-nav-active text-white shadow-lg scale-105'
                 : 'text-app-nav-muted hover:text-white bg-transparent'
