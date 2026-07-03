@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
-  AreaChart,
+  ComposedChart,
+  Line,
   Area,
   XAxis,
   YAxis,
@@ -10,311 +11,305 @@ import {
   ReferenceLine,
   ReferenceArea
 } from 'recharts';
-import { Clock, Moon, Compass, ArrowUp } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import { TimelinePoint } from '../../hooks/useKallsurfTimeline';
-import { getDirectionLabel } from '../../utils/windDataConverter';
-import { getWindAccentColor } from '../../utils/windColors';
 import { AVG_SURFABLE_MS, APP_THEME } from '../../config/windScale';
+import { getSunTimes, formatDecimalTime } from '../../utils/sunTimes';
 
+const INK = APP_THEME.text;
 
+/** Kortriktning för avläsningsraden */
+const getShortDirection = (degrees: number): string => {
+  if (degrees === 0) return '–';
+  const dirs = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSV', 'SV', 'VSV', 'V', 'VNV', 'NV', 'NNV'];
+  return dirs[Math.round(degrees / 22.5) % 16];
+};
 
-const getNightZones = (data: TimelinePoint[]) => {
-  const zones: Array<{ start: number; end: number; startTimeStr: string; endTimeStr: string }> = [];
-  let currentZone: { start: number; startTimeStr: string } | null = null;
+/** Tidsfönster enligt UX-skiss v1.4 (3a #4) — valet minns */
+const WINDOWS = [
+  { id: '3-6', label: '−3 h +6 h', past: 3, future: 6 },
+  { id: '6-12', label: '−6 h +12 h', past: 6, future: 12 },
+  { id: '12-24', label: '−12 h +24 h', past: 12, future: 24 },
+] as const;
+type WindowId = typeof WINDOWS[number]['id'];
 
-  data.forEach((point) => {
-    if (!point.isDaylight) {
-      if (!currentZone) {
-        currentZone = { start: point.time.getTime(), startTimeStr: point.timeStr };
-      }
-    } else {
-      if (currentZone) {
-        zones.push({
-          start: currentZone!.start,
-          startTimeStr: currentZone!.startTimeStr,
-          end: point.time.getTime(),
-          endTimeStr: point.timeStr
-        });
-        currentZone = null;
-      }
+const WINDOW_STORAGE_KEY = 'kallifornia.trendWindow';
+
+const loadWindow = (): WindowId => {
+  try {
+    const saved = localStorage.getItem(WINDOW_STORAGE_KEY);
+    if (saved && WINDOWS.some(w => w.id === saved)) return saved as WindowId;
+  } catch { /* localStorage kan saknas (SSR/privat läge) */ }
+  return '6-12';
+};
+
+interface ChartPoint {
+  timeMs: number;
+  timeStr: string;
+  day: string;
+  pastAvg: number | null;
+  pastGust: number | null;
+  futureAvg: number | null;
+  futureGust: number | null;
+  avg: number;
+  gust: number;
+  dir: number;
+  isDaylight: boolean;
+  isForecast: boolean;
+}
+
+const getNightZones = (data: ChartPoint[]) => {
+  const zones: Array<{ start: number; end: number }> = [];
+  let start: number | null = null;
+
+  data.forEach(point => {
+    if (!point.isDaylight && start === null) start = point.timeMs;
+    if (point.isDaylight && start !== null) {
+      zones.push({ start, end: point.timeMs });
+      start = null;
     }
   });
-
-  if (currentZone) {
-    zones.push({
-      start: (currentZone as any).start,
-      startTimeStr: (currentZone as any).startTimeStr,
-      end: data[data.length - 1].time.getTime(),
-      endTimeStr: data[data.length - 1].timeStr
-    });
+  if (start !== null && data.length > 0) {
+    zones.push({ start, end: data[data.length - 1].timeMs });
   }
-
   return zones;
-};
-
-const CustomAxisTick = ({
-  x,
-  y,
-  payload,
-  data
-}: {
-  x?: number;
-  y?: number;
-  payload?: any;
-  data: any[];
-}) => {
-  const index = payload.index;
-  const item = data && data[index];
-
-  if (!item || typeof x !== 'number' || typeof y !== 'number' || isNaN(x) || isNaN(y)) return null;
-
-  return (
-    <g>
-      <text x={x} y={y} dy={16} textAnchor="middle" fill={APP_THEME.textMuted} fontSize={10} fontWeight="bold">
-        {payload.value}
-      </text>
-      <g transform={`translate(${x}, ${y + 28}) rotate(${item.dir ? item.dir + 180 : 180})`}>
-        <path d="M0 -4 L-3 3 L0 1 L3 3 Z" fill={APP_THEME.accentFlag.blue} />
-      </g>
-    </g>
-  );
-};
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    const avgData = payload.find((p: any) => p.dataKey === 'pastAvg' || p.dataKey === 'futureAvg' || p.dataKey === 'avg');
-    const gustData = payload.find((p: any) => p.dataKey === 'pastGust' || p.dataKey === 'futureGust' || p.dataKey === 'gust');
-    const isForecast = payload.some((p: any) => p.dataKey && p.dataKey.includes('future') && p.value !== null);
-
-    const dataPoint = payload[0]?.payload;
-    const isDark = dataPoint && dataPoint.isDaylight === false;
-    const dayName = dataPoint?.day || '';
-    const dir = dataPoint?.dir || 0;
-
-    return (
-      <div className="bg-app-surface border border-app-border p-3 rounded-xl shadow-lg min-w-[140px]">
-        <div className="flex justify-between items-center mb-2 gap-3">
-          <p className="text-app-muted text-xs font-bold uppercase tracking-wider flex items-center gap-1">
-            {dayName && <span className="text-app-text">{dayName}</span>}
-            <Clock size={12} className="ml-1" /> {dataPoint?.timeStr || label}
-          </p>
-          <div className="flex gap-1">
-            {isDark && (
-              <span className="text-[10px] bg-app-surface-elevated text-app-text px-1.5 py-0.5 rounded border border-app-border flex items-center gap-1">
-                <Moon size={8} />
-              </span>
-            )}
-            {isForecast && (
-              <span className="text-[10px] bg-app-surface-elevated text-app-muted px-1.5 py-0.5 rounded border border-app-border">
-                PROG
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="space-y-2">
-          {avgData && (
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-xs text-app-muted">Medel</span>
-              <span
-                className="text-sm font-bold"
-                style={{ color: getWindAccentColor(avgData.value) }}
-              >
-                {avgData.value} m/s
-              </span>
-            </div>
-          )}
-          {gustData && (
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-xs text-app-subtle">Byvind</span>
-              <span className="text-sm font-bold text-app-text">{gustData.value} m/s</span>
-            </div>
-          )}
-          <div className="flex items-center justify-between gap-4 pt-2 border-t border-app-border">
-            <span className="text-xs text-app-muted flex items-center gap-1">
-              <Compass size={10} /> Riktning
-            </span>
-            <span className="text-xs font-mono text-app-text flex items-center gap-1">
-              {Math.round(dir)}° {getDirectionLabel(dir)}
-              <div className="inline-block" style={{ transform: `rotate(${dir + 180}deg)` }}>
-                <ArrowUp size={12} className="text-app-muted" />
-              </div>
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  return null;
 };
 
 interface WindOverviewChartProps {
   timeline: TimelinePoint[];
 }
 
+/**
+ * "Utveckling kring nu" enligt UX-skiss v1.4: observation heldragen,
+ * prognos streckad, NU-linje, tre valbara fönster och en fast avläsning
+ * uppe till höger (aldrig en tooltip som skymmer kurvan). Scrubb i grafen
+ * flyttar avläsningen; släpp återgår till NU.
+ */
 export function WindOverviewChart({ timeline }: WindOverviewChartProps) {
-  const chartData = useMemo(() => {
-    const nowTime = new Date().getTime();
-    const sixHoursAgo = nowTime - 6 * 60 * 60 * 1000;
+  const [windowId, setWindowId] = useState<WindowId>(loadWindow);
+  const [scrub, setScrub] = useState<ChartPoint | null>(null);
 
-    // Filter timeline to show only relevant data (last 6h + next 12h)
-    const twelveHoursFuture = nowTime + 12 * 60 * 60 * 1000;
-    const relevantPoints = timeline.filter(p =>
-      p.time.getTime() >= sixHoursAgo && p.time.getTime() <= twelveHoursFuture
-    );
+  const selectWindow = (id: WindowId) => {
+    setWindowId(id);
+    try { localStorage.setItem(WINDOW_STORAGE_KEY, id); } catch { /* ignore */ }
+  };
 
-    // Find the index of the last observed point (not forecast) to connect the lines
+  const win = WINDOWS.find(w => w.id === windowId)!;
+
+  const chartData = useMemo<ChartPoint[]>(() => {
+    const nowMs = Date.now();
+    const startMs = nowMs - win.past * 60 * 60 * 1000;
+    const endMs = nowMs + win.future * 60 * 60 * 1000;
+
+    const relevant = timeline.filter(p => {
+      const t = p.time.getTime();
+      return t >= startMs && t <= endMs;
+    });
+
     let lastObservedIndex = -1;
-    for (let i = relevantPoints.length - 1; i >= 0; i--) {
-      if (!relevantPoints[i].isForecast) {
-        lastObservedIndex = i;
-        break;
-      }
+    for (let i = relevant.length - 1; i >= 0; i--) {
+      if (!relevant[i].isForecast) { lastObservedIndex = i; break; }
     }
 
-    return relevantPoints.map((point, index) => {
-      // Observed data (solid line) includes all non-forecast points
+    return relevant.map((point, index) => {
       const isObserved = !point.isForecast;
-
-      // Future data (dashed line) includes forecast points AND the last observed point (to connect the lines)
       const isFuture = point.isForecast || index === lastObservedIndex;
 
       return {
-        time: point.timeStr,
-        fullDate: point.time,
+        timeMs: point.time.getTime(),
+        timeStr: point.timeStr,
+        day: point.day,
         pastAvg: isObserved ? point.avg : null,
         pastGust: isObserved ? point.gust : null,
         futureAvg: isFuture ? point.avg : null,
         futureGust: isFuture ? point.gust : null,
-        isDaylight: point.isDaylight,
-        day: point.day,
+        avg: point.avg,
+        gust: point.gust,
         dir: point.dir,
-        isForecast: point.isForecast
+        isDaylight: point.isDaylight,
+        isForecast: point.isForecast,
       };
     });
-  }, [timeline]);
+  }, [timeline, win]);
+
+  const nightZones = useMemo(() => getNightZones(chartData), [chartData]);
+
+  const nowPoint = useMemo(() => {
+    const observed = chartData.filter(p => !p.isForecast);
+    return observed.length > 0 ? observed[observed.length - 1] : null;
+  }, [chartData]);
+
+  const sunTimes = getSunTimes(new Date());
 
   if (chartData.length === 0) {
     return (
       <div className="bg-app-surface border border-app-border rounded-2xl p-4 shadow-sm">
-        <div className="text-app-subtle text-sm">Ingen data</div>
+        <div className="text-app-subtle text-sm">Ingen data i valt fönster</div>
       </div>
     );
   }
 
-  const nightZones = useMemo(() => getNightZones(timeline), [timeline]);
-  const nowLineTime = useMemo(() => {
-    const nowPoint = timeline.find(p => p.isNow);
-    return nowPoint ? nowPoint.timeStr : null;
-  }, [timeline]);
+  // Avläsning: scrubbpunkt om finger/mus är i grafen, annars NU
+  const readout = scrub ?? nowPoint;
+  const readoutLabel = scrub
+    ? `${scrub.day} · ${scrub.timeStr} · ${scrub.isForecast ? 'PROG' : 'OBS'}`
+    : nowPoint
+      ? `NU · ${nowPoint.timeStr} · OBS`
+      : '';
 
   return (
-    <div className="bg-app-surface border border-app-border rounded-2xl p-4 pb-8 shadow-sm">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-app-text text-xs font-bold uppercase tracking-wider">
+    <div className="bg-app-surface border border-app-border rounded-2xl p-4 shadow-sm">
+      <div className="flex justify-between items-start mb-3 gap-2">
+        <h3 className="text-app-text text-xs font-bold uppercase tracking-wider pt-0.5">
           Utveckling kring nu
         </h3>
+        {readout && (
+          <div className="text-right font-mono leading-tight flex-shrink-0">
+            <span className="block text-[9px] font-bold tracking-wider text-app-subtle uppercase">
+              {readoutLabel}
+            </span>
+            <span className="text-sm font-bold text-app-text">
+              {readout.avg.toFixed(1).replace('.', ',')} / {readout.gust.toFixed(1).replace('.', ',')}
+            </span>
+            <span className="text-[10px] text-app-muted ml-1 inline-flex items-center gap-0.5">
+              <span
+                className="inline-flex"
+                style={{ transform: `rotate(${readout.dir + 180}deg)` }}
+              >
+                <ArrowUp size={9} strokeWidth={3} />
+              </span>
+              {getShortDirection(readout.dir)}
+            </span>
+          </div>
+        )}
       </div>
-      <div className="h-56 min-h-56 w-full">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={50}>
-          <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="pastGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={APP_THEME.accentFlag.blue} stopOpacity={0.4} />
-                <stop offset="95%" stopColor={APP_THEME.accentFlag.blue} stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="futureGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={APP_THEME.accentFlag.blue} stopOpacity={0.2} />
-                <stop offset="95%" stopColor={APP_THEME.accentFlag.blue} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={APP_THEME.border} vertical={false} />
+
+      {/* Fönsterväxlare */}
+      <div className="grid grid-cols-3 border border-app-border rounded-lg overflow-hidden mb-3 text-[11px]">
+        {WINDOWS.map(w => (
+          <button
+            key={w.id}
+            onClick={() => selectWindow(w.id)}
+            className={`py-1.5 text-center transition-colors ${w.id === windowId
+              ? 'bg-app-text text-white font-bold'
+              : 'bg-app-surface text-app-muted hover:text-app-text'
+              } border-l border-app-border first:border-l-0`}
+          >
+            {w.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="h-48 min-h-48 w-full">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={180} debounce={50}>
+          <ComposedChart
+            data={chartData}
+            margin={{ top: 12, right: 0, left: -18, bottom: 0 }}
+            onMouseMove={(state) => {
+              const active = (state as { activePayload?: Array<{ payload?: ChartPoint }> })?.activePayload;
+              setScrub(active?.[0]?.payload ?? null);
+            }}
+            onMouseLeave={() => setScrub(null)}
+          >
+            <CartesianGrid strokeDasharray="2 3" stroke={APP_THEME.borderMuted} vertical={false} />
             <XAxis
-              dataKey="time"
-              stroke={APP_THEME.textMuted}
-              fontSize={10}
+              dataKey="timeMs"
+              type="number"
+              domain={['dataMin', 'dataMax']}
+              scale="time"
+              stroke={APP_THEME.textSubtle}
+              fontSize={9}
               tickLine={false}
               axisLine={false}
-              interval={35}
-              tickFormatter={(val) => val}
-              tick={<CustomAxisTick data={chartData} />}
-              height={40}
+              tickCount={5}
+              tickFormatter={(ms: number) =>
+                new Date(ms).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+              }
             />
             <YAxis
-              orientation="right"
-              tick={{ fontSize: 10, fill: APP_THEME.textMuted }}
-              tickFormatter={(v: number) => Number.isInteger(v) ? String(v) : v.toFixed(1)}
+              orientation="left"
+              tick={{ fontSize: 9, fill: APP_THEME.textSubtle, fontFamily: 'monospace' }}
               tickLine={false}
               axisLine={false}
-              domain={['dataMin - 2', 'dataMax + 2']}
+              domain={[0, (dataMax: number) => Math.max(12, Math.ceil(dataMax + 1))]}
+              allowDecimals={false}
+              tickCount={5}
             />
-            <Tooltip content={<CustomTooltip />} wrapperStyle={{ zIndex: 10 }} />
+            {/* Tooltip utan innehåll — driver bara scrubb-avläsningen */}
+            <Tooltip content={() => null} cursor={{ stroke: INK, strokeWidth: 1, strokeDasharray: '2 2' }} />
 
             {nightZones.map((zone, i) => (
-              <ReferenceArea
-                key={i}
-                x1={zone.start}
-                x2={zone.end}
-                fill="#000000"
-                fillOpacity={0.2}
-              />
+              <ReferenceArea key={i} x1={zone.start} x2={zone.end} fill="#000000" fillOpacity={0.05} />
             ))}
 
-            <ReferenceLine y={AVG_SURFABLE_MS} stroke={APP_THEME.accentFlag.blue} strokeDasharray="3 3" strokeOpacity={0.5} />
-            {nowLineTime && (
+            <ReferenceLine
+              y={AVG_SURFABLE_MS}
+              stroke={APP_THEME.accentFlag.blue}
+              strokeDasharray="4 3"
+              strokeOpacity={0.6}
+            />
+            {nowPoint && (
               <ReferenceLine
-                x={nowLineTime}
-                stroke={APP_THEME.textMuted}
-                strokeDasharray="2 2"
-                label={{ value: 'NU', position: 'insideTop', fill: APP_THEME.textMuted, fontSize: 10 }}
+                x={nowPoint.timeMs}
+                stroke={INK}
+                strokeWidth={1.2}
+                label={{ value: 'NU', position: 'insideTopLeft', fill: INK, fontSize: 9, fontWeight: 700, offset: 4 }}
               />
             )}
 
+            {/* Diskret fyllnad under observerad medelvind */}
             <Area
               type="monotone"
               dataKey="pastAvg"
-              stroke={APP_THEME.accentFlag.blue}
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#pastGradient)"
-              dot={false}
-              activeDot={{ r: 4, strokeWidth: 0, fill: '#fff' }}
+              stroke="none"
+              fill={APP_THEME.accentFlag.blue}
+              fillOpacity={0.06}
+              isAnimationActive={false}
             />
-            <Area
+
+            <Line
               type="monotone"
               dataKey="pastGust"
-              stroke={APP_THEME.textMuted}
+              stroke={APP_THEME.textSubtle}
               strokeWidth={1}
-              fill="transparent"
               dot={false}
-              activeDot={{ r: 3 }}
+              isAnimationActive={false}
             />
-            <Area
+            <Line
               type="monotone"
-              dataKey="futureAvg"
-              stroke={APP_THEME.accentFlag.blue}
+              dataKey="pastAvg"
+              stroke={INK}
               strokeWidth={2}
-              strokeDasharray="5 5"
-              strokeOpacity={0.7}
-              fillOpacity={1}
-              fill="url(#futureGradient)"
               dot={false}
-              activeDot={{ r: 4, strokeWidth: 0, fill: '#fff' }}
+              isAnimationActive={false}
             />
-            <Area
+            <Line
               type="monotone"
               dataKey="futureGust"
-              stroke={APP_THEME.textMuted}
+              stroke={APP_THEME.textSubtle}
               strokeWidth={1}
-              strokeDasharray="5 5"
-              strokeOpacity={0.5}
-              fill="transparent"
+              strokeDasharray="4 4"
               dot={false}
-              activeDot={{ r: 3 }}
+              isAnimationActive={false}
             />
-          </AreaChart>
+            <Line
+              type="monotone"
+              dataKey="futureAvg"
+              stroke={INK}
+              strokeWidth={2}
+              strokeDasharray="5 4"
+              dot={false}
+              isAnimationActive={false}
+            />
+          </ComposedChart>
         </ResponsiveContainer>
+      </div>
+
+      <div className="flex justify-between items-center mt-1 text-[9px] text-app-subtle">
+        <span>obs, heldragen</span>
+        <span>☀ ljust till {formatDecimalTime(sunTimes.set)}</span>
+        <span>prognos, streckad</span>
       </div>
     </div>
   );
 }
-
