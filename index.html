@@ -18,72 +18,23 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <style>
-    /* Define CSS variables for safe area insets */
-    :root {
-      --sat: env(safe-area-inset-top);
-      --sab: env(safe-area-inset-bottom);
-      --sal: env(safe-area-inset-left);
-      --sar: env(safe-area-inset-right);
-      scroll-behavior: smooth;
-    }
-
+    /* App-skal: html/body/#root fyller skärmen, ingen sidscroll.
+       Scrollen sker i <main> (flex-kolumn i KallsurfHome) — samma
+       beteende i Safari och som installerad PWA. */
     html,
     body {
-      background-color: #fbfbf9;
-    }
-
-    /* Enhanced scroll styling for iOS */
-    html {
-      overflow: hidden;
       height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #fbfbf9;
+      overflow: hidden;
+      overscroll-behavior: none;
       -webkit-text-size-adjust: 100%;
     }
 
-    /* Prevent scrolling bounce effect on iOS */
-    html,
-    body {
-      overflow-x: hidden;
-      width: 100%;
-      height: 100%;
-      position: fixed;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: none;
-      margin: 0;
-      padding: 0;
-    }
-
-    /* Allow the main content to scroll */
     #root {
       height: 100%;
-      overflow-y: auto;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      scroll-behavior: smooth;
-      -webkit-overflow-scrolling: touch;
-      /* For better iOS scrolling */
       -webkit-tap-highlight-color: transparent;
-    }
-
-    /* Fix for PWA and header scaling on scroll */
-    body.standalone #root {
-      overflow-y: scroll;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    /* Avoid global transforms on iOS.
-       They can break position: fixed/sticky by creating new containing blocks. */
-
-    @media (display-mode: standalone) {
-      body {
-        background-color: #fbfbf9;
-      }
-
-      body.standalone #root header {
-        z-index: 1000;
-      }
     }
   </style>
 </head>
@@ -92,36 +43,12 @@
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
   <script>
-      // Add standalone class to body when in PWA mode
-      if (window.matchMedia('(display-mode: standalone)').matches || 
-          (window.navigator.standalone) || 
+      // Markera PWA-läge (kan användas för CSS-avvikelser vid behov)
+      if (window.matchMedia('(display-mode: standalone)').matches ||
+          (window.navigator.standalone) ||
           document.referrer.includes('android-app://')) {
         document.body.classList.add('standalone');
       }
-      
-      // Add iOS class for specific iOS fixes
-      if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
-        document.body.classList.add('ios');
-      }
-      
-      // Monitor scroll events on iOS in a more compatible way
-      document.addEventListener('DOMContentLoaded', function() {
-        const root = document.getElementById('root');
-        if (root) {
-          // Force scroll event registration on iOS
-          root.addEventListener('scroll', function() {}, { passive: true });
-          document.addEventListener('scroll', function() {}, { passive: true });
-          
-          // Initialize window.scrollY polyfill for iOS
-          if (typeof window.scrollY === 'undefined') {
-            Object.defineProperty(window, 'scrollY', {
-              get: function() {
-                return document.documentElement.scrollTop || document.body.scrollTop || root.scrollTop || 0;
-              }
-            });
-          }
-        }
-      });
   </script>
 </body>
 
