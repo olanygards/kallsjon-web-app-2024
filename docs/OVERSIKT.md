@@ -191,7 +191,7 @@ Surfare kan ladda upp **bilder och filmer** från surfpass. Media lagras i **Fir
 **Var det syns:**
 
 - **Media-fliken** – hela galleriet grupperat per månad
-- **Detaljer-fliken** – när en dag är vald: **bilder/video ovanför kalendern** (`DailyGallery`) med vindbadge och tid. Längre ner: uppladdning för vald dag
+- **Detaljer-fliken** – när en dag är vald (`DayDetail`): dagsgraf med mediamarkörer, **dagens media** (`DailyGallery`) med vindbadge och tid, plus uppladdning för vald dag
 
 **Uppladdning** (`MediaUpload.tsx`):
 
@@ -276,7 +276,7 @@ Appen har **en enda vy**. Alla paths leder till samma sida.
 | Flik | Kodnamn | Innehåll |
 |------|---------|----------|
 | **Läget** | `overview` | NU-kort (observation, nivåmätare), ev. Hög potential-banner, Nästa surfchans, trendgraf (valbart fönster), Kommande 7 dagar |
-| **Detaljer** | `history` | Vindgraf (24H / 3D / 7D), kalender, media per dag |
+| **Detaljer** | `history` | Periodgraf (24H / 3D / 7D) + kalender; vid dagval: `DayDetail` (sammanfattning, dagsgraf, media, uppladdning) |
 | **Prognos** | `forecast` | Modelljämförelse en dag i taget — consensus + MET + ECMWF/GFS/ICON (+ SMHI i dev) |
 | **Stats** | `stats` | Säsongsstatistik från `dailyStats`, filter is/dagsljus/≥10 m/s |
 | **Media** | `media` | Galleri och uppladdning |
@@ -325,7 +325,7 @@ Referensbilder i `docs/images/` — UX-skiss v1.4 (annoterade) och live-app där
 |-----|--------|
 | `laget.png` | ✅ |
 | `laget-surfbart.png` | ✅ (extra: surfbart läge) |
-| `detaljer.png` | ✅ (Fas E-skiss — ej helt implementerad) |
+| `detaljer.png` | ✅ (Fas E — implementerad juli 2026) |
 | `stats.png` | ✅ (UX-skiss — avviker delvis från prod) |
 | `prognos.png` | ✅ (UX-skiss — SMHI-rad kräver Fas B i prod) |
 | `media.png` | ✅ (UX-skiss — Fas C) |
@@ -478,7 +478,6 @@ Firebase-projekt: **`kallsjon`**.
 | Manuell uppdatering | Ingen refresh-knapp än; live-vind auto-uppdateras. Knappar vid behov per vy (Fas A) |
 | PWA-splash | `manifest.json` uppdaterat till ljus tema; `public/apple-splash-*.jpg` fortfarande gamla mörkgröna JPG:er |
 | Docs-skärmdumpar | Komplett utom `detaljer-kalender-media.png` — se `OVERSIKT.md` |
-| Detaljer-dagvyn | Dagsammanfattning och mediamarkörer i graf — planerat (Fas E) |
 | Media-auth | Delad uppladdningskod hårdkodad i klienten – ska ersättas med Firebase Auth + roller (Fas C) |
 | Bundle-storlek | `KallsurfHome`-chunk >500 kB – ev. code-splitting |
 
@@ -508,4 +507,4 @@ Firebase-projekt: **`kallsjon`**.
 
 ---
 
-*Senast uppdaterad: 2026-07-03 (UX v2 live: Läget tight, Prognos-flik, sjustegsskala)*
+*Senast uppdaterad: 2026-07-04 (Fas E — Detaljer-dagvy live)*
