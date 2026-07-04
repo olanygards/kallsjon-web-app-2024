@@ -133,7 +133,7 @@ Full specifikation: [PLAN-MEDIA-AUTH.md](./PLAN-MEDIA-AUTH.md).
 
 ## Valfritt (låg prioritet)
 
-- Nya skärmdumpar i `docs/images/` (checklista i `OVERSIKT.md`) — gamla emerald-bilder borttagna juli 2026
+- Nya skärmdumpar: `prognos.png`, `detaljer-kalender-media.png`, `media.png` saknas fortfarande (se `OVERSIKT.md`)
 - PWA-splash och ikoner — byt `public/apple-splash-*.jpg` till ljus/neutral palett (manifest redan uppdaterat)
 - Tröskelskuggning i Lägets trendgraf (zon över 10 m/s)
 - Städning: `WIND_CALENDAR_COLORS` i `constants.ts` (oanvänd efter skala-refaktorering)

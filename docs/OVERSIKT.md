@@ -284,20 +284,35 @@ Appen har **en enda vy**. Alla paths leder till samma sida.
 
 Central hook: `useKallsurfTimeline`.
 
-### Skärmdumpar (live-app)
+### Skärmdumpar
 
-Bilder från [kallsjon.web.app](https://kallsjon.web.app) — en per flik. Lagras i `docs/images/`.
+Referensbilder i `docs/images/` — UX-skiss v1.4 (annoterade) och live-app där det finns. Siffrorna i bilderna är guide-markörer från skissen, inte UI i produktion.
 
-> **Status (juli 2026):** Gamla skärmdumpar (emerald-tema) är borttagna. Nya bilder ska tas från UX v2 (ljus chrome, sjustegsskala) innan de läggs tillbaka i denna fil.
+**Läget** — lugn dag (NU-kort, Nästa surfchans, trendgraf, Kommande 7 dagar):
 
-| Fil | Vy | Innehåll att fånga |
-|-----|-----|-------------------|
-| `laget.png` | Läget | NU-kort, nivåmätare, Nästa surfchans, trendgraf |
-| `prognos.png` | Prognos | Dagremsa + modellgrid en dag |
-| `detaljer.png` | Detaljer | Vindgraf 24H / 3D / 7D |
-| `detaljer-kalender-media.png` | Detaljer | Kalender + media för vald dag |
-| `stats.png` | Stats | Säsongsstatistik med filter |
-| `media.png` | Media | Galleri per månad |
+![Läget – lugn dag](images/laget.png)
+
+**Läget** — surfbart (Hög potential-banner, tröskelskuggning i graf — planerat polish):
+
+![Läget – surfbart](images/laget-surfbart.png)
+
+**Detaljer** — dagvy enligt skiss Fas E (dagsammanfattning, graf med mediamarkörer, media):
+
+![Detaljer – dagvy](images/detaljer.png)
+
+**Stats** — månadsvy med filter och staplar:
+
+![Stats – månad](images/stats.png)
+
+| Fil | Status |
+|-----|--------|
+| `laget.png` | ✅ |
+| `laget-surfbart.png` | ✅ (extra: surfbart läge) |
+| `detaljer.png` | ✅ (Fas E-skiss — ej helt implementerad) |
+| `stats.png` | ✅ (UX-skiss — avviker delvis från prod) |
+| `prognos.png` | Saknas |
+| `detaljer-kalender-media.png` | Saknas |
+| `media.png` | Saknas |
 
 > Nedtonad varningsrad (*"Viss prognosdata kunde inte hämtas"*) syns när prognos-API:et misslyckas. Observationer från Vassnäs fungerar ändå.
 
@@ -443,7 +458,7 @@ Firebase-projekt: **`kallsjon`**.
 | SMHI i prod | CORS blockerar direktanrop; consensus kräver proxy eller server-side fetch (Fas B i åtgärdsplan) |
 | Manuell uppdatering | Ingen refresh-knapp än; live-vind auto-uppdateras. Knappar vid behov per vy (Fas A) |
 | PWA-splash | `manifest.json` uppdaterat till ljus tema; `public/apple-splash-*.jpg` fortfarande gamla mörkgröna JPG:er |
-| Docs-skärmdumpar | Gamla PNG i `docs/images/` borttagna — nya ska tas från UX v2 (se `OVERSIKT.md`) |
+| Docs-skärmdumpar | `laget`, `detaljer`, `stats` i `docs/images/` — `prognos`, `media` saknas än |
 | Detaljer-dagvyn | Dagsammanfattning och mediamarkörer i graf — planerat (Fas E) |
 | Media-auth | Delad uppladdningskod hårdkodad i klienten – ska ersättas med Firebase Auth + roller (Fas C) |
 | Bundle-storlek | `KallsurfHome`-chunk >500 kB – ev. code-splitting |
