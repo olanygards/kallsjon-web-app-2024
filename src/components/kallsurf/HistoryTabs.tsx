@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { BarChart2, X, ArrowUp, Compass } from 'lucide-react';
+import { BarChart2, ArrowUp, Compass } from 'lucide-react';
 import {
   AreaChart,
   Area,
@@ -11,15 +11,10 @@ import {
   ReferenceArea
 } from 'recharts';
 import { TimelinePoint } from '../../hooks/useKallsurfTimeline';
-import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { getDirectionLabel } from '../../utils/windDataConverter';
 import { APP_THEME, AVG_SURFABLE_MS } from '../../config/windScale';
-
-import { MediaUpload } from '../media/MediaUpload';
-import { DailyGallery } from '../media/DailyGallery';
-
-// ... (keep getNightZones and CustomTooltip as is)
 
 const getNightZones = (data: TimelinePoint[]) => {
   const zones: Array<{ start: number; end: number }> = [];
@@ -41,9 +36,9 @@ const getNightZones = (data: TimelinePoint[]) => {
     }
   });
 
-  if (currentZone) {
+  if (currentZone !== null) {
     zones.push({
-      start: (currentZone as any).start,
+      start: (currentZone as { start: number }).start,
       end: data[data.length - 1].time.getTime()
     });
   }
@@ -51,11 +46,18 @@ const getNightZones = (data: TimelinePoint[]) => {
   return zones;
 };
 
-const CustomTooltip = ({ active, payload }: any) => {
+interface TooltipEntry {
+  dataKey?: string;
+  value?: number;
+  payload?: { fullDate: Date; dir?: number };
+}
+
+const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: TooltipEntry[] }) => {
   if (active && payload && payload.length) {
-    const avgData = payload.find((p: any) => p.dataKey === 'avg');
-    const gustData = payload.find((p: any) => p.dataKey === 'gust');
+    const avgData = payload.find((p) => p.dataKey === 'avg');
+    const gustData = payload.find((p) => p.dataKey === 'gust');
     const dataPoint = payload[0]?.payload;
+    if (!dataPoint) return null;
     const dir = dataPoint?.dir || 0;
 
     return (
@@ -99,14 +101,11 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 interface HistoryTabsProps {
   timeline: TimelinePoint[];
-
-  selectedDate?: Date | null;
-  onClearSelection?: () => void;
 }
 
-export function HistoryTabs({ timeline, selectedDate, onClearSelection }: HistoryTabsProps) {
-  const [historyRange, setHistoryRange] = useState<'24h' | '3d' | '7d' | 'Kalender'>('24h');
-  const [showUpload, setShowUpload] = useState(false);
+/** Periodgraf 24h/3d/7d. Vald dag hanteras av DayDetail. */
+export function HistoryTabs({ timeline }: HistoryTabsProps) {
+  const [historyRange, setHistoryRange] = useState<'24h' | '3d' | '7d'>('24h');
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
@@ -131,12 +130,6 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
   }, []);
 
   const activeHistoryData = useMemo(() => {
-    if (selectedDate) {
-      const start = startOfDay(selectedDate);
-      const end = endOfDay(selectedDate);
-      return timeline.filter((p) => p.time >= start && p.time <= end);
-    }
-
     const now = new Date();
     let cutoffDate: Date;
 
@@ -144,14 +137,12 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
       cutoffDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     } else if (historyRange === '3d') {
       cutoffDate = subDays(now, 3);
-    } else if (historyRange === '7d') {
-      cutoffDate = subDays(now, 7);
     } else {
-      return [];
+      cutoffDate = subDays(now, 7);
     }
 
     return timeline.filter((p) => p.time >= cutoffDate && !p.isForecast);
-  }, [historyRange, timeline, selectedDate]);
+  }, [historyRange, timeline]);
 
   const chartData = useMemo(() => {
     return activeHistoryData.map((point) => ({
@@ -166,46 +157,28 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
 
   const nightZones = useMemo(() => getNightZones(activeHistoryData), [activeHistoryData]);
 
-  if (historyRange === 'Kalender' && !selectedDate) {
-    return null; // Kalendern hanteras separat
-  }
-
   return (
     <div className="animate-in slide-in-from-right-8 duration-300">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-app-text flex items-center gap-2">
           <BarChart2 size={20} className="text-app-muted" />
-          {selectedDate ? (
-            <span>{format(selectedDate, 'd MMMM yyyy', { locale: sv })}</span>
-          ) : (
-            'Detaljer'
-          )}
+          Detaljer
         </h2>
 
-        {selectedDate ? (
-          <button
-            onClick={onClearSelection}
-            className="bg-app-surface-elevated hover:bg-app-surface-elevated text-app-text px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors"
-          >
-            <X size={14} />
-            Tillbaka
-          </button>
-        ) : (
-          <div className="flex gap-1">
-            {(['24h', '3d', '7d'] as const).map((range) => (
-              <button
-                key={range}
-                onClick={() => setHistoryRange(range)}
-                className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${historyRange === range
-                  ? 'bg-app-surface-elevated text-app-text shadow-sm'
-                  : 'text-app-subtle hover:text-app-text'
-                  }`}
-              >
-                {range.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex gap-1">
+          {(['24h', '3d', '7d'] as const).map((range) => (
+            <button
+              key={range}
+              onClick={() => setHistoryRange(range)}
+              className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${historyRange === range
+                ? 'bg-app-surface-elevated text-app-text shadow-sm'
+                : 'text-app-subtle hover:text-app-text'
+                }`}
+            >
+              {range.toUpperCase()}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div ref={containerRef} className="bg-app-surface border border-app-border rounded-2xl p-2 pb-8 shadow-sm relative h-[320px] w-full">
@@ -320,30 +293,6 @@ export function HistoryTabs({ timeline, selectedDate, onClearSelection }: Histor
         </div>
       </div>
 
-      {selectedDate && (
-        <div className="mt-8 border-t border-app-border/50 pt-8">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold text-app-text">Media</h3>
-            <button
-              onClick={() => setShowUpload(!showUpload)}
-              className="text-xs bg-app-surface-elevated hover:bg-app-surface-elevated text-app-text px-3 py-2 rounded-lg transition-colors"
-            >
-              {showUpload ? 'Dölj uppladdning' : 'Ladda upp bild/film'}
-            </button>
-          </div>
-
-          {showUpload && (
-            <div className="mb-8">
-              <MediaUpload
-                preselectedDate={format(selectedDate, 'yyyy-MM-dd')}
-                onUploadComplete={() => setShowUpload(false)}
-              />
-            </div>
-          )}
-
-          <DailyGallery date={format(selectedDate, 'yyyy-MM-dd')} />
-        </div>
-      )}
     </div>
   );
 }
