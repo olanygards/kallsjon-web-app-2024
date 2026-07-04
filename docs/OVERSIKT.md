@@ -286,29 +286,18 @@ Central hook: `useKallsurfTimeline`.
 
 ### Skärmdumpar (live-app)
 
-Bilder från produktion – en vy per flik. Lagras i `docs/images/`.
+Bilder från [kallsjon.web.app](https://kallsjon.web.app) — en per flik. Lagras i `docs/images/`.
 
-> **Obs (juli 2026):** Skärmdumparna är från före UX v2 (mörkgrön/emerald-tema). Live-appen har ljus chrome, nivåmätare och Nästa surfchans — uppdatera bilderna vid tillfälle.
+> **Status (juli 2026):** Gamla skärmdumpar (emerald-tema) är borttagna. Nya bilder ska tas från UX v2 (ljus chrome, sjustegsskala) innan de läggs tillbaka i denna fil.
 
-**Läget** – live-vind från stationen, trend senaste 6 h:
-
-![Läget – live-vind och trend](images/laget.png)
-
-**Detaljer** – vindgraf med växlare 24H / 3D / 7D:
-
-![Detaljer – vindgraf](images/detaljer.png)
-
-**Detaljer** – kalender + media för vald dag:
-
-![Detaljer – kalender och media per dag](images/detaljer-kalender-media.png)
-
-**Stats** – filter för is och dagar ≥10 m/s:
-
-![Stats – säsongsstatistik](images/stats.png)
-
-**Media** – galleri grupperat per månad:
-
-![Media – galleri](images/media.png)
+| Fil | Vy | Innehåll att fånga |
+|-----|-----|-------------------|
+| `laget.png` | Läget | NU-kort, nivåmätare, Nästa surfchans, trendgraf |
+| `prognos.png` | Prognos | Dagremsa + modellgrid en dag |
+| `detaljer.png` | Detaljer | Vindgraf 24H / 3D / 7D |
+| `detaljer-kalender-media.png` | Detaljer | Kalender + media för vald dag |
+| `stats.png` | Stats | Säsongsstatistik med filter |
+| `media.png` | Media | Galleri per månad |
 
 > Nedtonad varningsrad (*"Viss prognosdata kunde inte hämtas"*) syns när prognos-API:et misslyckas. Observationer från Vassnäs fungerar ändå.
 
@@ -454,6 +443,7 @@ Firebase-projekt: **`kallsjon`**.
 | SMHI i prod | CORS blockerar direktanrop; consensus kräver proxy eller server-side fetch (Fas B i åtgärdsplan) |
 | Manuell uppdatering | Ingen refresh-knapp än; live-vind auto-uppdateras. Knappar vid behov per vy (Fas A) |
 | PWA-splash | `manifest.json` uppdaterat till ljus tema; `public/apple-splash-*.jpg` fortfarande gamla mörkgröna JPG:er |
+| Docs-skärmdumpar | Gamla PNG i `docs/images/` borttagna — nya ska tas från UX v2 (se `OVERSIKT.md`) |
 | Detaljer-dagvyn | Dagsammanfattning och mediamarkörer i graf — planerat (Fas E) |
 | Media-auth | Delad uppladdningskod hårdkodad i klienten – ska ersättas med Firebase Auth + roller (Fas C) |
 | Bundle-storlek | `KallsurfHome`-chunk >500 kB – ev. code-splitting |

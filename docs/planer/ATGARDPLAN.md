@@ -116,7 +116,6 @@ SMHI-proxy (Fas B) och MET-rad kan läggas till i v1.1 utan att ändra grundlayo
 |-----|----------|
 | Dagsammanfattning | T.ex. *"Över tröskeln 11:20–19:40"* för vald dag |
 | Mediamarkörer | Markörer i dagsgrafen när media finns för tidpunkten |
-| Ev. polish | Uppdaterade skärmdumpar i `docs/images/` |
 
 **Berörda filer:** `HistoryTabs.tsx`, `CalendarGrid.tsx`, ev. `DailyGallery.tsx`
 
@@ -134,6 +133,7 @@ Full specifikation: [PLAN-MEDIA-AUTH.md](./PLAN-MEDIA-AUTH.md).
 
 ## Valfritt (låg prioritet)
 
+- Nya skärmdumpar i `docs/images/` (checklista i `OVERSIKT.md`) — gamla emerald-bilder borttagna juli 2026
 - PWA-splash och ikoner — byt `public/apple-splash-*.jpg` till ljus/neutral palett (manifest redan uppdaterat)
 - Tröskelskuggning i Lägets trendgraf (zon över 10 m/s)
 - Städning: `WIND_CALENDAR_COLORS` i `constants.ts` (oanvänd efter skala-refaktorering)
