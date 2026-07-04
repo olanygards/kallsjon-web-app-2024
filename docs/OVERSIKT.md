@@ -304,15 +304,33 @@ Referensbilder i `docs/images/` — UX-skiss v1.4 (annoterade) och live-app där
 
 ![Stats – månad](images/stats.png)
 
+**Prognos** — modellgrid en dag, passerade luckor nedtonade:
+
+![Prognos – idag](images/prognos.png)
+
+**Media** — galleri per månad med detaljvy:
+
+![Media – galleri](images/media.png)
+
+**Media — uppladdning** (Fas C-skiss, ej live):
+
+![Media – ladda upp](images/media-uppladdning.png)
+
+**Media — inloggning** (Fas C-skiss, ersätter delad kod):
+
+![Media – logga in](images/media-inloggning.png)
+
 | Fil | Status |
 |-----|--------|
 | `laget.png` | ✅ |
 | `laget-surfbart.png` | ✅ (extra: surfbart läge) |
 | `detaljer.png` | ✅ (Fas E-skiss — ej helt implementerad) |
 | `stats.png` | ✅ (UX-skiss — avviker delvis från prod) |
-| `prognos.png` | Saknas |
+| `prognos.png` | ✅ (UX-skiss — SMHI-rad kräver Fas B i prod) |
+| `media.png` | ✅ (UX-skiss — Fas C) |
+| `media-uppladdning.png` | ✅ (Fas C-skiss) |
+| `media-inloggning.png` | ✅ (Fas C-skiss) |
 | `detaljer-kalender-media.png` | Saknas |
-| `media.png` | Saknas |
 
 > Nedtonad varningsrad (*"Viss prognosdata kunde inte hämtas"*) syns när prognos-API:et misslyckas. Observationer från Vassnäs fungerar ändå.
 
@@ -458,7 +476,7 @@ Firebase-projekt: **`kallsjon`**.
 | SMHI i prod | CORS blockerar direktanrop; consensus kräver proxy eller server-side fetch (Fas B i åtgärdsplan) |
 | Manuell uppdatering | Ingen refresh-knapp än; live-vind auto-uppdateras. Knappar vid behov per vy (Fas A) |
 | PWA-splash | `manifest.json` uppdaterat till ljus tema; `public/apple-splash-*.jpg` fortfarande gamla mörkgröna JPG:er |
-| Docs-skärmdumpar | `laget`, `detaljer`, `stats` i `docs/images/` — `prognos`, `media` saknas än |
+| Docs-skärmdumpar | Komplett utom `detaljer-kalender-media.png` — se `OVERSIKT.md` |
 | Detaljer-dagvyn | Dagsammanfattning och mediamarkörer i graf — planerat (Fas E) |
 | Media-auth | Delad uppladdningskod hårdkodad i klienten – ska ersättas med Firebase Auth + roller (Fas C) |
 | Bundle-storlek | `KallsurfHome`-chunk >500 kB – ev. code-splitting |
