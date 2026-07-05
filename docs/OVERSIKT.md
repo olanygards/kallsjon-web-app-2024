@@ -180,7 +180,13 @@ I lokal dev kan båda modellerna jämföras via consensus; i produktion används
 
 ### 3. Aggregerad statistik (Firebase `dailyStats`)
 
-Förkalculerade dagsvärden (max/medel/by m.m.). Genereras av `scripts/aggregateDailyStats.ts` (`npm run aggregate:historical`).
+Förkalculerade dagsvärden (max/medel/by m.m.).
+
+| Källa | När |
+|-------|-----|
+| **Schemalagd Cloud Function** *(planerad — se [planer/PLAN-DAGLIG-STATS.md](planer/PLAN-DAGLIG-STATS.md))* | Varje natt 00:20 — senaste 3 dygnen, idempotent |
+| `scripts/aggregateDailyStats.ts` (`npm run aggregate:historical`) | Manuell backfill av längre luckor |
+| Klienten (`useDailyStats`) | Dagens datum live från `wind` |
 
 **Användning:** Stats-fliken (`StatsView` → `useDailyStats`) och kalenderfärgläggning för historiska månader (`useMonthlyStats`). Ger betydligt färre Firestore-läsningar än att aggregera rå `wind`-data i klienten.
 
