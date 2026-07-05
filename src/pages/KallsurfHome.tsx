@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Wind, History, TrendingUp, Zap, Image as ImageIcon, X, Layers } from 'lucide-react';
 import { useKallsurfTimeline } from '../hooks/useKallsurfTimeline';
 import { HeroStats } from '../components/kallsurf/HeroStats';
@@ -22,22 +22,28 @@ export default function KallsurfHome() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [viewDate, setViewDate] = useState(new Date());
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
   const [forecastFocusDay, setForecastFocusDay] = useState<string | null>(null);
 
   const { timeline, hourlyBuckets, dailySummary, currentWind, loading, error, warning } = useKallsurfTimeline(viewDate, selectedDate);
+
+  /** Scrollen bor i <main> (app-skalet är en flex-kolumn utan sidscroll) */
+  const scrollToTop = () => {
+    mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleDayClick = (date: Date) => {
     setSelectedDate(date);
     setViewDate(date);
     setActiveTab('history');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToTop();
   };
 
   /** Öppna Prognos med en dag förvald (från dagvyns "Jämför modeller") */
   const handleCompareModels = (date: Date) => {
     setForecastFocusDay(format(date, 'yyyy-MM-dd'));
     setActiveTab('forecast');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToTop();
   };
 
   /** Läget ska alltid visa nu — rensa dagval från Detaljer/Nästa surfchans */
@@ -45,7 +51,7 @@ export default function KallsurfHome() {
     setSelectedDate(null);
     setViewDate(new Date());
     setActiveTab('overview');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToTop();
   };
 
   const showPotentialInfo = useMemo(() => {
@@ -85,9 +91,9 @@ export default function KallsurfHome() {
   );
 
   return (
-    <div className="min-h-screen bg-app-bg text-app-text font-sans selection:bg-app-accent selection:text-white">
+    <div className="h-full flex flex-col bg-app-bg text-app-text font-sans selection:bg-app-accent selection:text-white">
       <header
-        className="fixed top-0 left-0 right-0 z-20 bg-app-bg/95 backdrop-blur-md border-b border-app-border px-4 py-3"
+        className="flex-shrink-0 z-20 bg-app-bg border-b border-app-border px-4 pb-3"
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}
       >
         <div className="max-w-md mx-auto flex justify-between items-center">
@@ -122,9 +128,10 @@ export default function KallsurfHome() {
       </header>
 
       <main
-        className="px-4 pb-28 max-w-md mx-auto min-h-screen"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 88px)' }}
+        ref={mainRef}
+        className="flex-1 overflow-y-auto overscroll-y-contain px-4 pt-4 pb-8 w-full [scrollbar-width:none]"
       >
+        <div className="max-w-md mx-auto">
         {loading ? (
           <div className="flex h-[60vh] items-center justify-center text-app-muted">
             <div className="flex flex-col items-center gap-4">
@@ -197,6 +204,7 @@ export default function KallsurfHome() {
             )}
           </>
         )}
+        </div>
       </main>
 
       {showUploadModal && (
@@ -215,15 +223,14 @@ export default function KallsurfHome() {
         </div>
       )}
 
+      {/* Bottennav: vanligt flex-barn i app-skalet — ingen fixed/transform.
+          Safe area (hemindikatorn) hanteras med max(): i Safari blir det
+          8 px, som installerad PWA exakt indikatorns höjd. */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-20 bg-app-nav-bg backdrop-blur-xl border-t border-black/20"
-        style={{
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 6px)',
-          WebkitTransform: 'translateZ(0)',
-          transform: 'translateZ(0)',
-        }}
+        className="flex-shrink-0 z-20 bg-app-nav-bg border-t border-black/20"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)' }}
       >
-        <div className="max-w-md mx-auto flex justify-around items-center px-1 pt-2 pb-0">
+        <div className="max-w-md mx-auto flex justify-around items-center px-1 pt-1.5 pb-1">
           {([
             { id: 'overview' as TabId, label: 'Läget', Icon: Wind },
             { id: 'history' as TabId, label: 'Detaljer', Icon: History },
@@ -234,8 +241,8 @@ export default function KallsurfHome() {
             <button
               key={id}
               onClick={() => (id === 'overview' ? goToOverview() : setActiveTab(id))}
-              className={`flex flex-col items-center gap-1 py-3 px-1 rounded-2xl transition-all duration-300 w-16 ${activeTab === id
-                ? 'bg-app-nav-active text-white shadow-lg scale-105'
+              className={`flex flex-col items-center gap-1 py-2 px-1 rounded-xl transition-all duration-300 w-16 ${activeTab === id
+                ? 'bg-app-nav-active text-white shadow-lg'
                 : 'text-app-nav-muted hover:text-white bg-transparent'
                 }`}
             >
