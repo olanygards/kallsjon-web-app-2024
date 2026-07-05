@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -10,15 +10,23 @@ import { GUST_SURFABLE_MS } from '../../config/windScale';
 
 interface ForecastViewProps {
   onDayDetailsClick?: (date: Date) => void;
+  /** Dag (yyyy-MM-dd) att förvälja — t.ex. från dagvyns "Jämför modeller" */
+  focusDayKey?: string | null;
 }
 
 /**
  * Prognos-fliken: modelljämförelse en dag i taget (BESLUT 03 i docs/ux/BESLUT.md).
  * Dagremsa väljer dag; gridden visar 8 tidsluckor × modellrader.
  */
-export function ForecastView({ onDayDetailsClick }: ForecastViewProps) {
+export function ForecastView({ onDayDetailsClick, focusDayKey }: ForecastViewProps) {
   const { days, dayBests, selectedDayKey, setSelectedDayKey, rows, loading } = useForecastMatrix();
   const [legendOpen, setLegendOpen] = useState(false);
+
+  useEffect(() => {
+    if (focusDayKey && days.some(d => d.dateKey === focusDayKey)) {
+      setSelectedDayKey(focusDayKey);
+    }
+  }, [focusDayKey, days, setSelectedDayKey]);
 
   const selectedDay = days.find(d => d.dateKey === selectedDayKey);
   const legend = getScaleLegend();
