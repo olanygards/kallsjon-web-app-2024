@@ -209,23 +209,29 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
     lon: KALLSJON.lon,
     startDate: startOfHour(now), // Stable start time (updates hourly) to prevent re-fetching every 30s
     endDate: forecastEnd,
-    // SMHI does not allow direct browser CORS in production; use MET Norway in PROD.
+    // MET + Open-Meteo (ECMWF/ICON) fungerar direkt i webbläsaren och ger
+    // consensus även i prod. SMHI blockeras av CORS i prod (Fas B: proxy).
     enabledModels: import.meta.env.PROD
-      ? [ForecastModel.MET_NORWAY]
-      : [ForecastModel.SMHI, ForecastModel.MET_NORWAY]
+      ? [ForecastModel.MET_NORWAY, ForecastModel.ECMWF, ForecastModel.ICON]
+      : [ForecastModel.SMHI, ForecastModel.MET_NORWAY, ForecastModel.ECMWF, ForecastModel.ICON]
   });
 
   // Konvertera prognosdata till WindData format
   const forecastDataRaw = useMemo(() => {
-    const consensus = dataByModel[ForecastModel.CONSENSUS] || [];
-    if (consensus.length > 0) {
-      return windPointsToWindData(consensus);
+    // Consensus först; annars första modell med data — appen ska aldrig
+    // stå utan prognos för att en enskild källa är nere.
+    const fallbackOrder = [
+      ForecastModel.CONSENSUS,
+      ForecastModel.MET_NORWAY,
+      ForecastModel.ECMWF,
+      ForecastModel.ICON,
+      ForecastModel.SMHI,
+    ];
+    for (const model of fallbackOrder) {
+      const points = dataByModel[model] || [];
+      if (points.length > 0) return windPointsToWindData(points);
     }
-    // Fallback till MET Norway (och SMHI i dev) om consensus saknas
-    const met = dataByModel[ForecastModel.MET_NORWAY] || [];
-    if (met.length > 0) return windPointsToWindData(met);
-    const smhi = dataByModel[ForecastModel.SMHI] || [];
-    return windPointsToWindData(smhi);
+    return [];
   }, [dataByModel]);
 
   // Processa data
@@ -309,7 +315,7 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
     });
 
     return Array.from(buckets.entries())
-      .map(([_, points]) => {
+      .map(([, points]) => {
         const avg = points.reduce((sum, p) => sum + p.avg, 0) / points.length;
         const gust = Math.max(...points.map(p => p.gust));
         const dir = points[0].dir; // Ta första riktningen

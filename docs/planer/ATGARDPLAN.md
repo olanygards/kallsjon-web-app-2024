@@ -14,9 +14,9 @@ Prioriterad plan för vidare arbete i **Kallsurf Home** – appens enda vy.
 | **UX-1** | Vindskala, Jämtlandspalett, Kommande 7 dagar, Prognos-flik (PR #1) | ✅ **Live** (2026-07-03) |
 | **UX-2** | Läget enligt skiss v1.4 — nivåmätare, Nästa surfchans, grafpolish (PR #2) | ✅ **Live** (2026-07-03) |
 | **D** | Prognos – modellmatris (Open-Meteo) | ✅ **Implementerad v1** (2026-07-03) – [PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md) |
-| **E** | Detaljer-dagvyn (dagsammanfattning, mediamarkörer i graf) | 📋 **Nästa** |
+| **E** | Detaljer-dagvyn (dagsammanfattning, mediamarkörer i graf) | ✅ **Implementerad** (2026-07-04) |
 | **A** | Manuell uppdatering (refresh-knappar) | 💤 Valfritt – vid behov per vy |
-| **B** | SMHI / consensus i produktion | 📋 Öppen |
+| **B** | SMHI / consensus i produktion | 📋 **Nästa** |
 | **C** | Media-auth | 📋 Planerad (uppskjuten) |
 
 **Deploy:** [kallsjon.web.app](https://kallsjon.web.app) — `main` synkad med prod efter PR #1–#2 och bugfix `goToOverview` (2026-07-03).
@@ -108,16 +108,19 @@ SMHI-proxy (Fas B) och MET-rad kan läggas till i v1.1 utan att ändra grundlayo
 
 ---
 
-## Fas E – Detaljer-dagvyn 📋
+## Fas E – Detaljer-dagvyn ✅
 
-**Nästa större UX-bit** enligt skiss v1.4.
+**Implementerat** juli 2026 enligt skiss v1.4 (branch `cursor/detaljer-dagvy-f864`).
 
 | Del | Innehåll |
 |-----|----------|
-| Dagsammanfattning | T.ex. *"Över tröskeln 11:20–19:40"* för vald dag |
-| Mediamarkörer | Markörer i dagsgrafen när media finns för tidpunkten |
+| `DayDetail` | Dagsammanfattning (nivåbadge, max medel/by, riktningsspann, tröskelfönster, dagsljus) |
+| Dagsgraf | 00–24 med obs/prognos-split och mediamarkörer (klick scrollar till media) |
+| Media | Dagens bilder/video + uppladdning via delad `useDailyMedia`-hook |
+| Navigation | Dag-bläddring ‹ ›; *Jämför modeller ›* → Prognos med dagen förvald |
+| `HistoryTabs` | Renodlad till periodgraf 24H/3D/7D (utan dagval) |
 
-**Berörda filer:** `HistoryTabs.tsx`, `CalendarGrid.tsx`, ev. `DailyGallery.tsx`
+**Berörda filer:** `DayDetail.tsx`, `useDailyMedia.ts`, `HistoryTabs.tsx`, `DailyGallery.tsx`, `ForecastView.tsx`, `KallsurfHome.tsx`
 
 ---
 
@@ -147,7 +150,7 @@ Full specifikation: [PLAN-MEDIA-AUTH.md](./PLAN-MEDIA-AUTH.md).
 ## Rekommenderad ordning
 
 ```
-Fas 0, UX-1, UX-2, Fas D (klart) → Fas E (Detaljer) → Fas B (SMHI) → Fas C (media-auth)
+Fas 0, UX-1, UX-2, Fas D, Fas E (klart) → Fas B (SMHI) → Fas C (media-auth)
 Valfritt: splash-bilder, tröskelskuggning, code-splitting
 Fas A (refresh-knappar) – endast vid behov, per vy
 ```
@@ -159,10 +162,11 @@ Fas A (refresh-knappar) – endast vid behov, per vy
 - [x] Prognos-flik – en dag, modellgrid 8×N, dagremsa (Fas D)
 - [x] Läget – nivåmätare, Nästa surfchans, graf fönster + scrubb (UX-2)
 - [x] Återgång Läget efter dagval — NU-kort visar observation, inte 0,0 (`goToOverview`)
+- [x] Detaljer-dagvy — sammanfattning, dagsgraf, mediamarkörer, dag-bläddring, Jämför modeller (Fas E)
 - [ ] Prognosvarning vid API-fel – observation ska fungera (känd, fungerar)
 - [ ] Media-uppladdning (tills Fas C)
 - [ ] Refresh-knapp (när implementerad) – verifiera cache bypass
 
 ---
 
-*Senast uppdaterad: 2026-07-03 (UX-1/UX-2 live, Fas E nästa)*
+*Senast uppdaterad: 2026-07-04 (Fas E implementerad, Fas B nästa)*

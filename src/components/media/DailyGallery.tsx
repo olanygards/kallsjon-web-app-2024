@@ -3,32 +3,25 @@ import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/fire
 import { ref, deleteObject } from 'firebase/storage';
 import { db, storage } from '../../config/firebase';
 import { X, Play, Trash2, AlertTriangle, Wind, User } from 'lucide-react';
-
-interface MediaItem {
-    id: string;
-    url: string;
-    type: 'image' | 'video';
-    originalName: string;
-    createdAt: any;
-    storagePath: string; // Needed for deletion
-    capturedAt?: string; // HH:mm
-    description?: string;
-    uploaderName?: string;
-    windData?: {
-        avg: number;
-        gust: number;
-        direction: number;
-    };
-}
+import { DailyMediaItem as MediaItem } from '../../hooks/useDailyMedia';
 
 interface DailyGalleryProps {
     date: string; // YYYY-MM-DD
+    /** Förladdade poster (från useDailyMedia) — hoppar över intern hämtning */
+    items?: MediaItem[];
+    /** Anropas efter lyckad radering när items styrs av föräldern */
+    onDeleted?: (id: string) => void;
 }
 
-export const DailyGallery: React.FC<DailyGalleryProps> = ({ date }) => {
-    const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-    const [loading, setLoading] = useState(true);
+export const DailyGallery: React.FC<DailyGalleryProps> = ({ date, items, onDeleted }) => {
+    const controlled = items !== undefined;
+    const [mediaItems, setMediaItems] = useState<MediaItem[]>(items ?? []);
+    const [loading, setLoading] = useState(!controlled);
     const [selectedItem, setSelectedItem] = useState<MediaItem | null>(null);
+
+    useEffect(() => {
+        if (controlled) setMediaItems(items ?? []);
+    }, [controlled, items]);
 
     // Delete state
     const [isDeleting, setIsDeleting] = useState(false);
@@ -39,8 +32,9 @@ export const DailyGallery: React.FC<DailyGalleryProps> = ({ date }) => {
     const SHARED_CODE = "kallsjon2024";
 
     useEffect(() => {
-        fetchMedia();
-    }, [date]);
+        if (!controlled) fetchMedia();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [date, controlled]);
 
     const fetchMedia = async () => {
         setLoading(true);
@@ -94,6 +88,7 @@ export const DailyGallery: React.FC<DailyGalleryProps> = ({ date }) => {
 
             // 3. Update UI
             setMediaItems(prev => prev.filter(item => item.id !== selectedItem.id));
+            onDeleted?.(selectedItem.id);
             setSelectedItem(null);
             setShowDeleteConfirm(false);
             setDeleteCode('');
@@ -109,8 +104,10 @@ export const DailyGallery: React.FC<DailyGalleryProps> = ({ date }) => {
     if (mediaItems.length === 0) return null;
 
     return (
-        <div className="mt-6">
-            <h3 className="text-lg font-medium text-white mb-4">Bilder & Film från dagen</h3>
+        <div className={controlled ? 'mt-4' : 'mt-6'}>
+            {!controlled && (
+                <h3 className="text-lg font-medium text-app-text mb-4">Bilder & Film från dagen</h3>
+            )}
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {mediaItems.map((item) => (

@@ -350,7 +350,7 @@ Håller `ForecastView` tunn och testbar. Delad **dagremsa**-komponent med Läget
 | **v1.1** | MET Norway-rad (befintlig adapter) | 📋 |
 | **v1.2** | SMHI-rad när Fas B (proxy) är klar | 📋 |
 | **v1.3** | Consensus-rad + visuell markering när spread > X m/s | 📋 |
-| **Fas E** | Detaljer-dagvyn — dagsammanfattning, mediamarkörer | 📋 Nästa |
+| **Fas E** | Detaljer-dagvyn — dagsammanfattning, mediamarkörer | ✅ (2026-07-04) |
 | **Senare** | 7-dagars översiktsmatris (om behov); refresh-knapp (Fas A) | 📋 |
 
 ---
@@ -368,8 +368,8 @@ Håller `ForecastView` tunn och testbar. Delad **dagremsa**-komponent med Läget
 | 7 | *Kommande 7 dagar*: **bästa vind per dag** | 2026-07-03 |
 | 8 | Open-Meteo icke-kommersiell tier | juli 2026 |
 
-**Status:** ✅ **Implementerad (v1)** — deployad 2026-07-03 ([kallsjon.web.app](https://kallsjon.web.app)). Kvarstår: SMHI i prod (Fas B), MET/consensus-rader i prod, Detaljer-dagvyn (Fas E), uppdaterade skärmdumpar.
+**Status:** ✅ **Implementerad (v1)** — deployad 2026-07-03 ([kallsjon.web.app](https://kallsjon.web.app)). Kvarstår: SMHI i prod (Fas B), MET/consensus-rader i prod, uppdaterade skärmdumpar.
 
 ---
 
-*Senast uppdaterad: 2026-07-03 (v1 live; UX-2 Läget tight; Fas E nästa)*
+*Senast uppdaterad: 2026-07-04 (Fas E Detaljer-dagvy implementerad)*

@@ -6,12 +6,14 @@ import { NextSurfChance } from '../components/kallsurf/NextSurfChance';
 import { WindOverviewChart } from '../components/kallsurf/WindOverviewChart';
 import { DailyForecast } from '../components/kallsurf/DailyForecast';
 import { HistoryTabs } from '../components/kallsurf/HistoryTabs';
+import { DayDetail } from '../components/kallsurf/DayDetail';
 import { CalendarGrid } from '../components/kallsurf/CalendarGrid';
 import { StatsView } from '../components/kallsurf/StatsView';
 import { ForecastView } from '../components/kallsurf/ForecastView';
 import { MediaView } from '../components/media/MediaView';
 import { MediaUpload } from '../components/media/MediaUpload';
 import { APP_THEME } from '../config/windScale';
+import { format } from 'date-fns';
 
 type TabId = 'overview' | 'history' | 'forecast' | 'stats' | 'media';
 
@@ -21,6 +23,7 @@ export default function KallsurfHome() {
   const [viewDate, setViewDate] = useState(new Date());
   const [showUploadModal, setShowUploadModal] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
+  const [forecastFocusDay, setForecastFocusDay] = useState<string | null>(null);
 
   const { timeline, hourlyBuckets, dailySummary, currentWind, loading, error, warning } = useKallsurfTimeline(viewDate, selectedDate);
 
@@ -33,6 +36,13 @@ export default function KallsurfHome() {
     setSelectedDate(date);
     setViewDate(date);
     setActiveTab('history');
+    scrollToTop();
+  };
+
+  /** Öppna Prognos med en dag förvald (från dagvyns "Jämför modeller") */
+  const handleCompareModels = (date: Date) => {
+    setForecastFocusDay(format(date, 'yyyy-MM-dd'));
+    setActiveTab('forecast');
     scrollToTop();
   };
 
@@ -146,26 +156,35 @@ export default function KallsurfHome() {
 
             {activeTab === 'forecast' && (
               <div className="animate-in slide-in-from-right-8 duration-300">
-                <ForecastView onDayDetailsClick={handleDayClick} />
+                <ForecastView
+                  onDayDetailsClick={handleDayClick}
+                  focusDayKey={forecastFocusDay}
+                />
               </div>
             )}
 
             {activeTab === 'history' && (
-              <div>
-                <HistoryTabs
+              selectedDate ? (
+                <DayDetail
+                  date={selectedDate}
                   timeline={timeline}
-                  selectedDate={selectedDate}
-                  onClearSelection={() => setSelectedDate(null)}
+                  onBack={() => setSelectedDate(null)}
+                  onNavigateDay={handleDayClick}
+                  onCompareModels={handleCompareModels}
                 />
-                <div className="mt-6">
-                  <CalendarGrid
-                    dailySummary={dailySummary}
-                    onDayClick={handleDayClick}
-                    viewDate={viewDate}
-                    onViewDateChange={setViewDate}
-                  />
+              ) : (
+                <div>
+                  <HistoryTabs timeline={timeline} />
+                  <div className="mt-6">
+                    <CalendarGrid
+                      dailySummary={dailySummary}
+                      onDayClick={handleDayClick}
+                      viewDate={viewDate}
+                      onViewDateChange={setViewDate}
+                    />
+                  </div>
                 </div>
-              </div>
+              )
             )}
 
             {activeTab === 'stats' && (

@@ -45,7 +45,9 @@ export const WIND_SCALE_LEVELS: readonly WindScaleLevelConfig[] = [
     id: 'interesting',
     label: 'Intressant',
     minAvgMs: 8,
-    colors: { bg: '#00813E', bgDeep: '#005A2C', text: '#ffffff', border: '#005A2C' },
+    // Dämpad grön: under surftröskeln (10 m/s) ska färgen inte skrika.
+    // Full jämtgrön/jämtblå reserveras för nivåer som faktiskt är surfbara.
+    colors: { bg: '#8FC7A6', bgDeep: '#79B893', text: '#1c1c1c', border: '#6EAC87' },
   },
   {
     id: 'surfable',
