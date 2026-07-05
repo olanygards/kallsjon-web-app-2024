@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ComposedChart,
   Line,
@@ -75,6 +75,29 @@ const getNightZones = (data: ChartPoint[]) => {
   return zones;
 };
 
+/**
+ * Osynlig tooltip som synkar aktiv datapunkt till scrubb-avläsningen.
+ * Recharts driver tooltipen för både mus (hover) och finger (touch-drag),
+ * så detta fungerar på iPhone — till skillnad från chartens onMouseMove.
+ */
+function ScrubSync({
+  active,
+  payload,
+  onScrub,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload?: ChartPoint }>;
+  onScrub: (point: ChartPoint | null) => void;
+}) {
+  const point = active && payload && payload.length > 0 ? payload[0].payload ?? null : null;
+
+  useEffect(() => {
+    onScrub(point);
+  }, [point, onScrub]);
+
+  return null;
+}
+
 interface WindOverviewChartProps {
   timeline: TimelinePoint[];
 }
@@ -87,7 +110,14 @@ interface WindOverviewChartProps {
  */
 export function WindOverviewChart({ timeline }: WindOverviewChartProps) {
   const [windowId, setWindowId] = useState<WindowId>(loadWindow);
-  const [scrub, setScrub] = useState<ChartPoint | null>(null);
+  const [scrub, setScrubState] = useState<ChartPoint | null>(null);
+
+  // Stabil callback som bara uppdaterar när tidpunkten faktiskt ändras
+  const setScrub = useMemo(() => {
+    return (point: ChartPoint | null) => {
+      setScrubState(prev => (prev?.timeMs === point?.timeMs ? prev : point));
+    };
+  }, []);
 
   const selectWindow = (id: WindowId) => {
     setWindowId(id);
@@ -200,15 +230,16 @@ export function WindOverviewChart({ timeline }: WindOverviewChartProps) {
         ))}
       </div>
 
-      <div className="h-48 min-h-48 w-full">
+      {/* Släpp med fingret → avläsningen återgår till NU */}
+      <div
+        className="h-48 min-h-48 w-full"
+        onTouchEnd={() => setScrub(null)}
+        onTouchCancel={() => setScrub(null)}
+      >
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={180} debounce={50}>
           <ComposedChart
             data={chartData}
             margin={{ top: 12, right: 0, left: -18, bottom: 0 }}
-            onMouseMove={(state) => {
-              const active = (state as { activePayload?: Array<{ payload?: ChartPoint }> })?.activePayload;
-              setScrub(active?.[0]?.payload ?? null);
-            }}
             onMouseLeave={() => setScrub(null)}
           >
             <CartesianGrid strokeDasharray="2 3" stroke={APP_THEME.borderMuted} vertical={false} />
@@ -235,8 +266,12 @@ export function WindOverviewChart({ timeline }: WindOverviewChartProps) {
               allowDecimals={false}
               tickCount={5}
             />
-            {/* Tooltip utan innehåll — driver bara scrubb-avläsningen */}
-            <Tooltip content={() => null} cursor={{ stroke: INK, strokeWidth: 1, strokeDasharray: '2 2' }} />
+            {/* Tooltip utan synligt innehåll — driver scrubb-avläsningen (mus + touch) */}
+            <Tooltip
+              content={<ScrubSync onScrub={setScrub} />}
+              cursor={{ stroke: INK, strokeWidth: 1, strokeDasharray: '2 2' }}
+              isAnimationActive={false}
+            />
 
             {nightZones.map((zone, i) => (
               <ReferenceArea key={i} x1={zone.start} x2={zone.end} fill="#000000" fillOpacity={0.05} />

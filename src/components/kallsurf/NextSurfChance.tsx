@@ -16,6 +16,31 @@ const getPartOfDay = (hour: number): string => {
   return 'natt';
 };
 
+interface Chance {
+  bucket: HourlyBucket;
+  maxAvg: number;
+  maxGust: number;
+}
+
+/** Första prognoslucka ≥ Intressant + max inom det sammanhängande fönstret */
+function findChance(future: HourlyBucket[]): Chance | null {
+  const first = future.find(b => getEffectiveLevelIndex(b.avg, b.gust) >= INTERESTING_INDEX);
+  if (!first) return null;
+
+  let maxAvg = first.avg;
+  let maxGust = first.gust;
+  const startIdx = future.indexOf(first);
+  for (let i = startIdx + 1; i < future.length; i++) {
+    const b = future[i];
+    if (getEffectiveLevelIndex(b.avg, b.gust) < INTERESTING_INDEX) break;
+    if (b.time.getTime() - first.time.getTime() > 12 * 60 * 60 * 1000) break;
+    maxAvg = Math.max(maxAvg, b.avg);
+    maxGust = Math.max(maxGust, b.gust);
+  }
+
+  return { bucket: first, maxAvg, maxGust };
+}
+
 interface NextSurfChanceProps {
   hourlyBuckets: HourlyBucket[];
   currentWind: { avg: number; gust: number };
@@ -28,38 +53,28 @@ interface NextSurfChanceProps {
  * då är svaret "nu" och hero-kortet bär det.
  */
 export function NextSurfChance({ hourlyBuckets, currentWind, onClick }: NextSurfChanceProps) {
-  const chance = useMemo(() => {
+  const { chance, hasForecast } = useMemo(() => {
     const now = new Date();
     const future = hourlyBuckets.filter(b => b.isForecast && b.time > now);
-
-    const first = future.find(b => getEffectiveLevelIndex(b.avg, b.gust) >= INTERESTING_INDEX);
-    if (!first) return null;
-
-    // Slutet av sammanhängande fönster med samma (eller högre) nivå — för "8–9 m/s"
-    let maxAvg = first.avg;
-    let maxGust = first.gust;
-    const startIdx = future.indexOf(first);
-    for (let i = startIdx + 1; i < future.length; i++) {
-      const b = future[i];
-      if (getEffectiveLevelIndex(b.avg, b.gust) < INTERESTING_INDEX) break;
-      if (b.time.getTime() - first.time.getTime() > 12 * 60 * 60 * 1000) break;
-      maxAvg = Math.max(maxAvg, b.avg);
-      maxGust = Math.max(maxGust, b.gust);
-    }
-
-    return { bucket: first, maxAvg, maxGust };
+    return { chance: findChance(future), hasForecast: future.length > 0 };
   }, [hourlyBuckets]);
 
   const nowIndex = getEffectiveLevelIndex(currentWind.avg, currentWind.gust);
   if (nowIndex >= INTERESTING_INDEX) return null;
 
-  if (!chance) {
+  // Skilj på "lugn prognos" och "prognos saknas" — annars ljuger kortet
+  // när prognoskällorna är nere.
+  if (!hasForecast || !chance) {
     return (
       <div className="bg-app-surface-elevated border border-app-border-muted rounded-2xl p-4">
         <h3 className="text-app-muted text-[10px] uppercase tracking-wider font-bold mb-1">
           Nästa surfchans
         </h3>
-        <p className="text-sm text-app-muted">Inget i sikte inom 7 dygn — lugn prognos.</p>
+        <p className="text-sm text-app-muted">
+          {hasForecast
+            ? 'Inget i sikte inom 7 dygn — lugn prognos.'
+            : 'Prognosdata saknas just nu — kan inte bedöma kommande dagar.'}
+        </p>
       </div>
     );
   }
