@@ -118,8 +118,8 @@ export function StatsView({ onDayClick }: StatsViewProps) {
     if (error) {
         return (
             <div className="animate-in slide-in-from-right-8 duration-300">
-                <div className="bg-red-900/20 border border-red-800/50 p-4 rounded-xl text-red-200">
-                    <p className="font-bold mb-1">Error</p>
+                <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-red-800">
+                    <p className="font-bold mb-1">Fel vid hämtning</p>
                     <p className="text-sm">{error.message}</p>
                 </div>
             </div>
@@ -188,12 +188,12 @@ export function StatsView({ onDayClick }: StatsViewProps) {
             {(excludeIcePeriod || daylightOnly) && (
                 <div className="space-y-2">
                     {excludeIcePeriod && allDailyStats.length > filterSurfableDays(allDailyStats).length && (
-                        <div className="bg-blue-900/20 border border-blue-800/50 rounded-xl p-3 text-sm text-blue-200">
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900">
                             ❄️ {allDailyStats.length - filterSurfableDays(allDailyStats).length} dagar under isperiod exkluderade
                         </div>
                     )}
                     {daylightOnly && (
-                        <div className="bg-yellow-900/20 border border-yellow-800/50 rounded-xl p-3 text-sm text-yellow-200">
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-900">
                             ☀️ Dagar med vind ≥10 m/s under dagsljus
                         </div>
                     )}
