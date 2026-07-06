@@ -1,6 +1,6 @@
 # Kallifornia – appöversikt
 
-Projekt- och produktdokumentation för webbappen **Kallifornien** (`kallsjon-web-app-2024`).
+Projekt- och produktdokumentation för webbappen **Kallifornia** (`kallsjon-web-app-2024`).
 
 Relaterat: [docs/planer/](planer/) – audit-verifiering och åtgärdsplaner.
 
@@ -8,7 +8,7 @@ Relaterat: [docs/planer/](planer/) – audit-verifiering och åtgärdsplaner.
 
 ## Vad är det?
 
-**Kallifornia** (Kall-ifornien) är en mobilvänlig **PWA** för **vågsurf** i **Kallsjön**, norr om Åre i Jämtland. Appen svarar på frågan: *blåser det tillräckligt – och när?*
+**Kallifornia** är en mobilvänlig **PWA** för **vågsurf** i **Kallsjön**, norr om Åre i Jämtland. Appen svarar på frågan: *blåser det tillräckligt – och när?*
 
 ### När kan man surfa?
 

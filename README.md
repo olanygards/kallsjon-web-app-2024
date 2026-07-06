@@ -1,4 +1,4 @@
-# Kallifornien – webbapp
+# Kallifornia – webbapp
 
 Mobilvänlig PWA för vågsurf i Kallsjön. **En app, en route:** `/` → `KallsurfHome`.
 

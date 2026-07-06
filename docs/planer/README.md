@@ -1,4 +1,4 @@
-# Planer – Kallifornien webbapp
+# Planer – Kallifornia webbapp
 
 | Dokument | Innehåll |
 |----------|----------|

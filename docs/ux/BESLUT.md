@@ -1,4 +1,4 @@
-# Designbeslut – Kallifornien UX
+# Designbeslut – Kallifornia UX
 
 Logg över produkt- och UX-beslut utifrån UX-skiss v1.4 och genomgång juli 2026.
 

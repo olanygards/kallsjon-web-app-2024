@@ -99,17 +99,16 @@ export default function KallsurfHome() {
         <div className="max-w-md mx-auto flex justify-between items-center">
           <button
             onClick={goToOverview}
-            className="flex flex-col items-start bg-transparent border-none cursor-pointer p-0"
+            className="bg-transparent border-none cursor-pointer p-0"
+            aria-label="Kallifornia – till startsidan"
           >
-            <h1 className="font-bold text-base tracking-tight text-app-text uppercase">
-              Kallifornia
-            </h1>
-            <div className="flex h-0.5 w-16 mt-1 rounded-full overflow-hidden gap-px">
-              <div className="flex-1" style={{ backgroundColor: APP_THEME.accentFlag.blue }} />
-              <div className="flex-1" style={{ backgroundColor: APP_THEME.accentFlag.green }} />
-              <div className="flex-1" style={{ backgroundColor: APP_THEME.accentFlag.yellow }} />
-              <div className="flex-1" style={{ backgroundColor: APP_THEME.accentFlag.red }} />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Kallifornia"
+              className="h-8 w-auto"
+              width={178}
+              height={32}
+            />
           </button>
 
           {/* Stationsstatus: fylld punkt = färsk data (< 15 min) */}

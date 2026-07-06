@@ -104,7 +104,7 @@ Samma mönster som MET/SMHI:
 
 ### Licens
 
-Open-Meteo är gratis för **icke-kommersiell** användning. Kallifornien är **internt bruk** – OK att använda gratis-tier. Attribution (*Weather data by Open-Meteo.com*) ska ändå visas i vyfoten.
+Open-Meteo är gratis för **icke-kommersiell** användning. Kallifornia är **internt bruk** – OK att använda gratis-tier. Attribution (*Weather data by Open-Meteo.com*) ska ändå visas i vyfoten.
 
 ### Senare (v1.1 – inte i första implementationen)
 
@@ -202,7 +202,7 @@ Tom cell (saknad data): neutral bakgrund, `–` som text.
 
 ---
 
-## Design – matcha Kallifornien
+## Design – matcha Kallifornia
 
 ### Yttre skal (container)
 
