@@ -15,6 +15,7 @@ Prioriterad plan för vidare arbete i **Kallsurf Home** – appens enda vy.
 | **UX-2** | Läget enligt skiss v1.4 — nivåmätare, Nästa surfchans, grafpolish (PR #2) | ✅ **Live** (2026-07-03) |
 | **D** | Prognos – modellmatris (Open-Meteo) | ✅ **Implementerad v1** (2026-07-03) – [PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md) |
 | **E** | Detaljer-dagvyn (dagsammanfattning, mediamarkörer i graf) | ✅ **Implementerad** (2026-07-04) |
+| **UX-3** | NU-stapeldiagram i Läget (60 min obs + 30 min prog) | 📋 Planerad – [PLAN-NU-STAPELGRAF.md](./PLAN-NU-STAPELGRAF.md) |
 | **A** | Manuell uppdatering (refresh-knappar) | 💤 Valfritt – vid behov per vy |
 | **B** | SMHI / consensus i produktion | 📋 **Nästa** |
 | **C** | Media-auth | 📋 Planerad (uppskjuten) |
