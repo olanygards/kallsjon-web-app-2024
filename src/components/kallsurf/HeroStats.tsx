@@ -3,7 +3,7 @@ import { ArrowUp } from 'lucide-react';
 import { getWindLevel, getLevelBadgeStyle } from '../../utils/windColors';
 import { getEffectiveLevelIndex } from '../../config/windScale';
 import { TimelinePoint } from '../../hooks/useKallsurfTimeline';
-import { NowWindBar } from '../../utils/nowWindChartData';
+import { NowWindBar, ForecastHourPoint } from '../../utils/nowWindChartData';
 import { NowWindChart } from './NowWindChart';
 import { WindScaleMeter } from './WindScaleMeter';
 
@@ -24,6 +24,7 @@ interface HeroStatsProps {
     time: Date;
   };
   timeline: TimelinePoint[];
+  forecastHourly: ForecastHourPoint[];
   isActive: boolean;
 }
 
@@ -32,7 +33,7 @@ interface HeroStatsProps {
  * stapeldiagram, sammanfattning och sjustegsmätare.
  * Scrubb i grafen uppdaterar de tre rutorna; släpp återgår till NU.
  */
-export function HeroStats({ currentWind, timeline }: HeroStatsProps) {
+export function HeroStats({ currentWind, timeline, forecastHourly }: HeroStatsProps) {
   const { avg, gust, dir } = currentWind;
   const level = getWindLevel(avg, gust);
   const levelIndex = getEffectiveLevelIndex(avg, gust);
@@ -113,7 +114,7 @@ export function HeroStats({ currentWind, timeline }: HeroStatsProps) {
         </div>
       </div>
 
-      <NowWindChart timeline={timeline} onScrubChange={setScrubBar} />
+      <NowWindChart timeline={timeline} forecastHourly={forecastHourly} onScrubChange={setScrubBar} />
 
       <WindScaleMeter avg={avg} gust={gust} />
     </div>

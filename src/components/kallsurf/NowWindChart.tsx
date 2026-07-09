@@ -10,7 +10,7 @@ import {
   Tooltip,
 } from 'recharts';
 import { TimelinePoint } from '../../hooks/useKallsurfTimeline';
-import { buildNowWindChartData, NowWindBar } from '../../utils/nowWindChartData';
+import { buildNowWindChartData, NowWindBar, ForecastHourPoint } from '../../utils/nowWindChartData';
 import { getWindColor } from '../../utils/windColors';
 import { APP_THEME } from '../../config/windScale';
 
@@ -84,6 +84,9 @@ function WindBarShape({ x = 0, y = 0, width = 0, height = 0, payload, dataKey }:
     const stroke = isAvg && payload.avg != null
       ? getWindColor(payload.avg)
       : GUST_GRAY;
+    const fill = isAvg && payload.avg != null
+      ? getWindColor(payload.avg)
+      : GUST_GRAY;
     return (
       <g>
         {arrowEl}
@@ -92,7 +95,8 @@ function WindBarShape({ x = 0, y = 0, width = 0, height = 0, payload, dataKey }:
           y={y}
           width={w}
           height={height}
-          fill="none"
+          fill={fill}
+          fillOpacity={isAvg ? 0.18 : 0.35}
           stroke={stroke}
           strokeWidth={1.5}
           strokeDasharray="4 3"
@@ -134,11 +138,15 @@ function ScrubSync({
 
 interface NowWindChartProps {
   timeline: TimelinePoint[];
+  forecastHourly: ForecastHourPoint[];
   onScrubChange: (bar: NowWindBar | null) => void;
 }
 
-export function NowWindChart({ timeline, onScrubChange }: NowWindChartProps) {
-  const chartData = useMemo(() => buildNowWindChartData(timeline), [timeline]);
+export function NowWindChart({ timeline, forecastHourly, onScrubChange }: NowWindChartProps) {
+  const chartData = useMemo(
+    () => buildNowWindChartData(timeline, forecastHourly),
+    [timeline, forecastHourly]
+  );
   const { bars, nuLineLabel, yMax, summary, hasForecast } = chartData;
 
   if (bars.length === 0) {

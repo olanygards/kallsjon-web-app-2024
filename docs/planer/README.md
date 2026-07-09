@@ -8,7 +8,7 @@
 | [PLAN-PROGNOS-MODELLER.md](./PLAN-PROGNOS-MODELLER.md) | Modellmatris – Open-Meteo + ny Prognos-flik |
 | [PLAN-MEDIA-AUTH.md](./PLAN-MEDIA-AUTH.md) | Media-autentisering (planerad) |
 | [PLAN-DAGLIG-STATS.md](./PLAN-DAGLIG-STATS.md) | Automatisk nattlig aggregering av `dailyStats` (Cloud Function) |
-| [PLAN-NU-STAPELGRAF.md](./PLAN-NU-STAPELGRAF.md) | NU-stapeldiagram i Läget — 60 min obs + 30 min prognos (5 min) |
+| [PLAN-NU-STAPELGRAF.md](./PLAN-NU-STAPELGRAF.md) | NU-stapeldiagram i Läget — ✅ implementerad (60 min obs + 30 min prognos) |
 | [arkiv/](./arkiv/) | Historiska dokument (audit m.m.) |
 
 **Projektöversikt:** [docs/OVERSIKT.md](../OVERSIKT.md)

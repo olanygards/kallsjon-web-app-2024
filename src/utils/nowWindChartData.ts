@@ -1,6 +1,13 @@
 import { addMinutes, format } from 'date-fns';
 import { TimelinePoint } from '../hooks/useKallsurfTimeline';
 
+export interface ForecastHourPoint {
+  time: Date;
+  avg: number;
+  gust: number;
+  dir: number;
+}
+
 const FIVE_MIN_MS = 5 * 60 * 1000;
 const BUCKET_TOLERANCE_MS = 2.5 * 60 * 1000;
 const OBS_BUCKETS = 12;
@@ -58,10 +65,11 @@ function lerpAngle(a: number, b: number, t: number): number {
 }
 
 function interpolateForecast(
-  forecastPoints: TimelinePoint[],
-  target: Date
+  forecastPoints: ForecastHourPoint[],
+  target: Date,
+  bridge?: ForecastHourPoint | null
 ): { avg: number; gust: number; dir: number } | null {
-  if (forecastPoints.length === 0) return null;
+  if (forecastPoints.length === 0 && !bridge) return null;
 
   const targetMs = target.getTime();
   const sorted = [...forecastPoints].sort((a, b) => a.time.getTime() - b.time.getTime());
@@ -71,8 +79,8 @@ function interpolateForecast(
     return { avg: exact.avg, gust: exact.gust, dir: exact.dir };
   }
 
-  let before: TimelinePoint | null = null;
-  let after: TimelinePoint | null = null;
+  let before: ForecastHourPoint | null = null;
+  let after: ForecastHourPoint | null = null;
 
   for (const point of sorted) {
     const ms = point.time.getTime();
@@ -81,6 +89,10 @@ function interpolateForecast(
       after = point;
       break;
     }
+  }
+
+  if (!before && bridge && bridge.time.getTime() <= targetMs) {
+    before = bridge;
   }
 
   if (before && after && before.time.getTime() !== after.time.getTime()) {
@@ -97,6 +109,15 @@ function interpolateForecast(
   if (after) return { avg: after.avg, gust: after.gust, dir: after.dir };
 
   return null;
+}
+
+function timelineForecastToHourly(points: TimelinePoint[]): ForecastHourPoint[] {
+  return points.map((p) => ({
+    time: p.time,
+    avg: p.avg,
+    gust: p.gust,
+    dir: p.dir,
+  }));
 }
 
 function buildBar(
@@ -128,6 +149,7 @@ function buildBar(
 
 export function buildNowWindChartData(
   timeline: TimelinePoint[],
+  forecastHourly: ForecastHourPoint[] = [],
   now: Date = new Date()
 ): NowWindChartData {
   const nowSnap = snap5(now);
@@ -144,7 +166,9 @@ export function buildNowWindChartData(
   }
 
   const observed = timeline.filter((p) => !p.isForecast);
-  const forecast = timeline.filter((p) => p.isForecast);
+  const forecast = forecastHourly.length > 0
+    ? forecastHourly
+    : timelineForecastToHourly(timeline.filter((p) => p.isForecast));
 
   const obsByBucket = new Map<number, TimelinePoint>();
   observed.forEach((point) => {
@@ -155,28 +179,40 @@ export function buildNowWindChartData(
     }
   });
 
-  const bars: NowWindBar[] = bucketTimes.map(({ time, isForecast }) => {
-    if (isForecast) {
-      const interpolated = interpolateForecast(forecast, time);
-      if (!interpolated) {
-        return buildBar(time, null, null, null, true, true);
+  const bars: NowWindBar[] = [];
+
+  for (const { time, isForecast } of bucketTimes) {
+    if (!isForecast) {
+      const key = bucketKey(time);
+      const match = obsByBucket.get(key);
+      if (!match) {
+        bars.push(buildBar(time, null, null, null, false, true));
+        continue;
       }
-      return buildBar(time, interpolated.avg, interpolated.gust, interpolated.dir, true, false);
+
+      const withinTolerance = Math.abs(match.time.getTime() - time.getTime()) <= BUCKET_TOLERANCE_MS;
+      if (!withinTolerance) {
+        bars.push(buildBar(time, null, null, null, false, true));
+        continue;
+      }
+
+      bars.push(buildBar(time, match.avg, match.gust, match.dir, false, false));
+      continue;
     }
 
-    const key = bucketKey(time);
-    const match = obsByBucket.get(key);
-    if (!match) {
-      return buildBar(time, null, null, null, false, true);
+    const lastObs = [...bars].reverse().find((b) => !b.isForecast && !b.isGap && b.avg != null && b.gust != null && b.dir != null);
+    const bridge: ForecastHourPoint | null = lastObs
+      ? { time: nowSnap, avg: lastObs.avg!, gust: lastObs.gust!, dir: lastObs.dir! }
+      : null;
+
+    const interpolated = interpolateForecast(forecast, time, bridge);
+    if (!interpolated) {
+      bars.push(buildBar(time, null, null, null, true, true));
+      continue;
     }
 
-    const withinTolerance = Math.abs(match.time.getTime() - time.getTime()) <= BUCKET_TOLERANCE_MS;
-    if (!withinTolerance) {
-      return buildBar(time, null, null, null, false, true);
-    }
-
-    return buildBar(time, match.avg, match.gust, match.dir, false, false);
-  });
+    bars.push(buildBar(time, interpolated.avg, interpolated.gust, interpolated.dir, true, false));
+  }
 
   const validObs = bars.filter((b) => !b.isForecast && !b.isGap && b.avg != null && b.gust != null);
   const validGusts = bars.filter((b) => !b.isGap && b.gust != null).map((b) => b.gust!);
