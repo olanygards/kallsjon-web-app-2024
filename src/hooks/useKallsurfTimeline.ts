@@ -10,6 +10,7 @@ import { ForecastModel } from '../types/WindData';
 import { windPointsToWindData } from '../utils/windDataConverter';
 import { getSunTimes } from '../utils/sunTimes';
 import { getEffectiveLevelIndex, WIND_THRESHOLDS } from '../config/windScale';
+import { ForecastHourPoint } from '../utils/nowWindChartData';
 
 // Konfiguration
 const CONFIG = {
@@ -242,6 +243,15 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
     viewDateRange: { start: historyStart, end: forecastEnd }
   });
 
+  const forecastHourly = useMemo<ForecastHourPoint[]>(() =>
+    processedForecastData.map((data) => ({
+      time: data.time,
+      avg: data.windSpeed,
+      gust: data.windGust,
+      dir: data.windDirection,
+    })),
+  [processedForecastData]);
+
   // Kombinera och processa till timeline med 5-minuters upplösning
   const timeline = useMemo<TimelinePoint[]>(() => {
     const points: TimelinePoint[] = [];
@@ -442,6 +452,7 @@ export function useKallsurfTimeline(viewDate?: Date, selectedDate?: Date | null)
 
   return {
     timeline,
+    forecastHourly,
     hourlyBuckets,
     dailySummary,
     currentWind,

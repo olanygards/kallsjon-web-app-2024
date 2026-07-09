@@ -25,7 +25,7 @@ export default function KallsurfHome() {
   const mainRef = useRef<HTMLElement>(null);
   const [forecastFocusDay, setForecastFocusDay] = useState<string | null>(null);
 
-  const { timeline, hourlyBuckets, dailySummary, currentWind, loading, error, warning } = useKallsurfTimeline(viewDate, selectedDate);
+  const { timeline, forecastHourly, hourlyBuckets, dailySummary, currentWind, loading, error, warning } = useKallsurfTimeline(viewDate, selectedDate);
 
   /** Scrollen bor i <main> (app-skalet är en flex-kolumn utan sidscroll) */
   const scrollToTop = () => {
@@ -76,7 +76,7 @@ export default function KallsurfHome() {
         </div>
       )}
 
-      <HeroStats currentWind={currentWind} timeline={timeline} isActive />
+      <HeroStats currentWind={currentWind} timeline={timeline} forecastHourly={forecastHourly} isActive />
 
       <NextSurfChance
         hourlyBuckets={hourlyBuckets}
