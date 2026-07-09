@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   ComposedChart,
   Bar,
@@ -7,6 +7,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   ReferenceLine,
+  Tooltip,
 } from 'recharts';
 import { TimelinePoint } from '../../hooks/useKallsurfTimeline';
 import { buildNowWindChartData, NowWindBar } from '../../utils/nowWindChartData';
@@ -15,6 +16,7 @@ import { APP_THEME } from '../../config/windScale';
 
 const GUST_GRAY = '#D4D4D4';
 const GAP_COLOR = '#E8E8E6';
+const INK = APP_THEME.text;
 
 const formatMs = (n: number) => n.toFixed(1).replace('.', ',');
 
@@ -35,23 +37,46 @@ interface BarShapeProps {
   dataKey?: string;
 }
 
+function WindArrow({ x, y, dir, isForecast }: { x: number; y: number; dir: number; isForecast: boolean }) {
+  const color = isForecast ? APP_THEME.textSubtle : INK;
+  return (
+    <g
+      transform={`translate(${x}, ${y}) rotate(${dir + 180})`}
+      opacity={isForecast ? 0.5 : 1}
+    >
+      <path
+        d="M0,-6 L0,2 M0,-6 L-3,-2 M0,-6 L3,-2"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </g>
+  );
+}
+
 function WindBarShape({ x = 0, y = 0, width = 0, height = 0, payload, dataKey }: BarShapeProps) {
   if (!payload || height <= 0) return null;
 
   const isAvg = dataKey === 'avgBar';
   const w = Math.max(width - 1, 1);
+  const cx = x + w / 2 + 0.5;
+
+  // Pil ovanför stapeln — på gust-segmentet, eller avg om ingen by-topp
+  const showArrow = !payload.isGap && payload.dir != null && (
+    (!isAvg && (payload.gustDeltaBar ?? 0) > 0) ||
+    (isAvg && (payload.gustDeltaBar ?? 0) === 0)
+  );
+
+  const arrowEl = showArrow ? (
+    <WindArrow x={cx} y={y - 12} dir={payload.dir!} isForecast={payload.isForecast} />
+  ) : null;
 
   if (payload.isGap) {
     if (!isAvg) return null;
     return (
-      <rect
-        x={x + 0.5}
-        y={y + height - 2}
-        width={w}
-        height={2}
-        fill={GAP_COLOR}
-        rx={0.5}
-      />
+      <rect x={x + 0.5} y={y + height - 2} width={w} height={2} fill={GAP_COLOR} rx={0.5} />
     );
   }
 
@@ -60,17 +85,20 @@ function WindBarShape({ x = 0, y = 0, width = 0, height = 0, payload, dataKey }:
       ? getWindColor(payload.avg)
       : GUST_GRAY;
     return (
-      <rect
-        x={x + 0.5}
-        y={y}
-        width={w}
-        height={height}
-        fill="none"
-        stroke={stroke}
-        strokeWidth={1.5}
-        strokeDasharray="4 3"
-        rx={1}
-      />
+      <g>
+        {arrowEl}
+        <rect
+          x={x + 0.5}
+          y={y}
+          width={w}
+          height={height}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={1.5}
+          strokeDasharray="4 3"
+          rx={1}
+        />
+      </g>
     );
   }
 
@@ -79,22 +107,37 @@ function WindBarShape({ x = 0, y = 0, width = 0, height = 0, payload, dataKey }:
     : GUST_GRAY;
 
   return (
-    <rect
-      x={x + 0.5}
-      y={y}
-      width={w}
-      height={height}
-      fill={fill}
-      rx={1}
-    />
+    <g>
+      {arrowEl}
+      <rect x={x + 0.5} y={y} width={w} height={height} fill={fill} rx={1} />
+    </g>
   );
+}
+
+function ScrubSync({
+  active,
+  payload,
+  onScrub,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload?: NowWindBar }>;
+  onScrub: (point: NowWindBar | null) => void;
+}) {
+  const point = active && payload && payload.length > 0 ? payload[0].payload ?? null : null;
+
+  useEffect(() => {
+    onScrub(point);
+  }, [point, onScrub]);
+
+  return null;
 }
 
 interface NowWindChartProps {
   timeline: TimelinePoint[];
+  onScrubChange: (bar: NowWindBar | null) => void;
 }
 
-export function NowWindChart({ timeline }: NowWindChartProps) {
+export function NowWindChart({ timeline, onScrubChange }: NowWindChartProps) {
   const chartData = useMemo(() => buildNowWindChartData(timeline), [timeline]);
   const { bars, nuLineLabel, yMax, summary, hasForecast } = chartData;
 
@@ -111,76 +154,94 @@ export function NowWindChart({ timeline }: NowWindChartProps) {
   return (
     <div>
       <div className="flex text-[9px] uppercase tracking-wider text-app-subtle font-bold mb-1">
-        <span className="flex-[12] text-left">← senaste timmen</span>
-        <span className="w-8 text-center text-app-text">NU</span>
-        <span className="flex-[6] text-right">nästa 30 min →</span>
+        <span className="flex-1 text-left">senaste timmen</span>
+        <span className="flex-1 text-right">nästa 30 min</span>
       </div>
 
-      <div className="h-40 w-full">
+      <div
+        className="h-44 w-full"
+        onTouchEnd={() => onScrubChange(null)}
+        onTouchCancel={() => onScrubChange(null)}
+      >
         <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
-            <ComposedChart
-              data={bars}
-              margin={{ top: 14, right: 2, left: -22, bottom: 0 }}
-              barCategoryGap="8%"
-              barGap={0}
-            >
-              <CartesianGrid strokeDasharray="2 3" stroke={APP_THEME.borderMuted} vertical={false} />
-              <XAxis
-                dataKey="timeStr"
-                stroke={APP_THEME.textSubtle}
-                fontSize={8}
-                tickLine={false}
-                axisLine={false}
-                ticks={xTicks}
-                interval={0}
-              />
-              <YAxis
-                orientation="left"
-                tick={{ fontSize: 8, fill: APP_THEME.textSubtle, fontFamily: 'monospace' }}
-                tickLine={false}
-                axisLine={false}
-                domain={[0, yMax]}
-                allowDecimals={false}
-                tickCount={5}
-                width={28}
-                label={{
-                  value: 'm/s',
-                  angle: -90,
-                  position: 'insideLeft',
-                  offset: 12,
-                  style: { fontSize: 8, fill: APP_THEME.textSubtle },
-                }}
-              />
+          <ComposedChart
+            data={bars}
+            margin={{ top: 30, right: 2, left: -22, bottom: 0 }}
+            barCategoryGap="8%"
+            barGap={0}
+            onMouseLeave={() => onScrubChange(null)}
+          >
+            <CartesianGrid strokeDasharray="2 3" stroke={APP_THEME.borderMuted} vertical={false} />
+            <XAxis
+              dataKey="timeStr"
+              stroke={APP_THEME.textSubtle}
+              fontSize={8}
+              tickLine={false}
+              axisLine={false}
+              ticks={xTicks}
+              interval={0}
+            />
+            <YAxis
+              orientation="left"
+              tick={{ fontSize: 8, fill: APP_THEME.textSubtle, fontFamily: 'monospace' }}
+              tickLine={false}
+              axisLine={false}
+              domain={[0, yMax]}
+              allowDecimals={false}
+              tickCount={5}
+              width={28}
+              label={{
+                value: 'm/s',
+                angle: -90,
+                position: 'insideLeft',
+                offset: 12,
+                style: { fontSize: 8, fill: APP_THEME.textSubtle },
+              }}
+            />
 
-              <ReferenceLine
-                x={nuLineLabel}
-                stroke={APP_THEME.text}
-                strokeWidth={1.2}
-                label={{
-                  value: 'NU',
-                  position: 'insideTop',
-                  fill: APP_THEME.text,
-                  fontSize: 8,
-                  fontWeight: 700,
-                  offset: 2,
-                }}
-              />
+            <Tooltip
+              content={<ScrubSync onScrub={onScrubChange} />}
+              cursor={{ stroke: INK, strokeWidth: 1, strokeDasharray: '2 2' }}
+              isAnimationActive={false}
+            />
 
-              <Bar
-                dataKey="avgBar"
-                stackId="wind"
-                minPointSize={2}
-                shape={renderAvgBar}
-                isAnimationActive={false}
-              />
-              <Bar
-                dataKey="gustDeltaBar"
-                stackId="wind"
-                shape={renderGustBar}
-                isAnimationActive={false}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
+            <ReferenceLine
+              x={nuLineLabel}
+              stroke={INK}
+              strokeWidth={1.2}
+              label={({ viewBox }) => {
+                if (!viewBox || !('x' in viewBox)) return <g />;
+                const { x, y } = viewBox as { x: number; y: number };
+                return (
+                  <text
+                    x={x}
+                    y={y - 8}
+                    textAnchor="middle"
+                    fill={INK}
+                    fontSize={8}
+                    fontWeight={700}
+                  >
+                    NU
+                  </text>
+                );
+              }}
+            />
+
+            <Bar
+              dataKey="avgBar"
+              stackId="wind"
+              minPointSize={2}
+              shape={renderAvgBar}
+              isAnimationActive={false}
+            />
+            <Bar
+              dataKey="gustDeltaBar"
+              stackId="wind"
+              shape={renderGustBar}
+              isAnimationActive={false}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px]">
