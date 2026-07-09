@@ -76,7 +76,7 @@ export default function KallsurfHome() {
         </div>
       )}
 
-      <HeroStats currentWind={currentWind} isActive />
+      <HeroStats currentWind={currentWind} timeline={timeline} isActive />
 
       <NextSurfChance
         hourlyBuckets={hourlyBuckets}

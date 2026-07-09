@@ -1,21 +1,13 @@
 import { ArrowUp } from 'lucide-react';
 import { getWindLevel, getLevelBadgeStyle } from '../../utils/windColors';
 import { getEffectiveLevelIndex } from '../../config/windScale';
+import { TimelinePoint } from '../../hooks/useKallsurfTimeline';
+import { NowWindChart } from './NowWindChart';
 import { WindScaleMeter } from './WindScaleMeter';
 
-const WindDirectionArrow = ({ degrees, size = 14 }: { degrees: number; size?: number }) => (
-  <span
-    className="inline-flex items-center justify-center transition-transform duration-500"
-    style={{ transform: `rotate(${degrees + 180}deg)` }}
-  >
-    <ArrowUp size={size} strokeWidth={2.5} />
-  </span>
-);
-
-/** Kortriktning: "SV" i stället för "Sydväst" — tight layout enligt skiss */
-const getShortDirection = (degrees: number): string => {
+const getCardinalDirection = (degrees: number): string => {
   if (degrees === 0) return 'Växlande';
-  const dirs = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSV', 'SV', 'VSV', 'V', 'VNV', 'NV', 'NNV'];
+  const dirs = ['Norr', 'Nordnordost', 'Nordost', 'Ostnordost', 'Ost', 'Ostsydost', 'Sydost', 'Sydsydost', 'Syd', 'Sydsydväst', 'Sydväst', 'Västsydväst', 'Väst', 'Västnordväst', 'Nordväst', 'Nordnordväst'];
   return dirs[Math.round(degrees / 22.5) % 16];
 };
 
@@ -27,59 +19,74 @@ interface HeroStatsProps {
     isDaylight: boolean;
     time: Date;
   };
+  timeline: TimelinePoint[];
   isActive: boolean;
 }
 
 /**
- * NU-kortet enligt UX-skiss v1.4 (3a): rubrik, stora tal, nivåbadge,
- * riktningsrad och sjustegsmätare. Stationsstatus bor i headern,
- * dagsljus i grafens fotnot — inget dubbleras här.
+ * NU-kortet enligt UX-skiss: nivåbadge, tre informationskolumner,
+ * stapeldiagram, sammanfattning och sjustegsmätare.
  */
-export function HeroStats({ currentWind }: HeroStatsProps) {
+export function HeroStats({ currentWind, timeline }: HeroStatsProps) {
   const { avg, gust, dir } = currentWind;
   const level = getWindLevel(avg, gust);
   const levelIndex = getEffectiveLevelIndex(avg, gust);
 
-  // Under Intressant: outlined badge (vit bakgrund, ink-kant) enligt skissen.
-  // Från Intressant och uppåt: fylld med nivåfärgen.
   const badgeStyle = levelIndex >= 2
     ? getLevelBadgeStyle(avg, gust)
     : { backgroundColor: '#ffffff', color: '#1c1c1c', borderColor: '#1c1c1c' };
 
   return (
     <div className="bg-app-surface border border-app-border rounded-2xl p-5 shadow-sm">
-      <div className="flex justify-between items-start mb-3">
-        <h2 className="text-app-muted text-[10px] uppercase tracking-wider font-bold">
-          Nu · observation · m/s
-        </h2>
+      <div className="mb-3">
         <span
-          className="text-[11px] font-bold px-2.5 py-1 rounded-lg border-[1.5px] uppercase tracking-wide"
+          className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border-[1.5px] uppercase tracking-wide"
           style={badgeStyle}
         >
+          {levelIndex >= 3 && (
+            <span
+              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: levelIndex >= 2 ? badgeStyle.color : '#1c1c1c' }}
+            />
+          )}
           {level.label}
         </span>
       </div>
 
-      <div className="flex items-end gap-5 mb-1">
-        <div className="flex items-baseline">
-          <span className="text-6xl font-extrabold tracking-tighter text-app-text leading-none">
+      <div className="grid grid-cols-3 border border-app-border rounded-xl overflow-hidden mb-4">
+        <div className="px-3 py-3 border-r border-app-border">
+          <p className="text-5xl font-extrabold tracking-tighter text-app-text leading-none">
             {avg.toFixed(1).replace('.', ',')}
-          </span>
-          <span className="text-sm text-app-muted ml-1.5">medel</span>
+          </p>
+          <p className="text-[11px] text-app-muted mt-1.5 leading-tight">medelvind</p>
+          <p className="text-[10px] text-app-subtle leading-tight">m/s</p>
         </div>
-        <div className="flex items-baseline pb-0.5">
-          <span className="text-3xl font-bold tracking-tight text-app-text leading-none">
+
+        <div className="px-3 py-3 border-r border-app-border">
+          <p className="text-5xl font-extrabold tracking-tighter text-app-text leading-none">
             {gust.toFixed(1).replace('.', ',')}
+          </p>
+          <p className="text-[11px] text-app-muted mt-1.5 leading-tight">byvind</p>
+          <p className="text-[10px] text-app-subtle leading-tight">m/s</p>
+        </div>
+
+        <div className="px-2 py-2 flex flex-col items-center justify-center text-center min-h-[88px]">
+          <span
+            className="inline-flex items-center justify-center text-app-text transition-transform duration-500 -my-1"
+            style={{ transform: `rotate(${dir + 180}deg)` }}
+          >
+            <ArrowUp size={40} strokeWidth={3} />
           </span>
-          <span className="text-sm text-app-muted ml-1.5">by</span>
+          <p className="text-sm font-bold text-app-text leading-tight mt-0.5">
+            {Math.round(dir)}°
+          </p>
+          <p className="text-[11px] text-app-muted leading-tight">
+            {getCardinalDirection(dir)}
+          </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-1 text-sm text-app-text mb-4">
-        <WindDirectionArrow degrees={dir} />
-        <span className="font-medium">{getShortDirection(dir)}</span>
-        <span className="text-app-subtle text-xs">{Math.round(dir)}°</span>
-      </div>
+      <NowWindChart timeline={timeline} />
 
       <WindScaleMeter avg={avg} gust={gust} />
     </div>
