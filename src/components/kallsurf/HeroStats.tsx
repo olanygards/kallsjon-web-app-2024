@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { ArrowUp } from 'lucide-react';
 import { getWindLevel, getLevelBadgeStyle } from '../../utils/windColors';
 import { getEffectiveLevelIndex } from '../../config/windScale';
@@ -44,6 +45,9 @@ export function HeroStats({ currentWind, timeline, forecastHourly }: HeroStatsPr
   const displayAvg = scrubBar?.isGap ? null : (scrubBar?.avg ?? avg);
   const displayGust = scrubBar?.isGap ? null : (scrubBar?.gust ?? gust);
   const displayDir = scrubBar?.isGap ? null : (scrubBar?.dir ?? dir);
+  const displayTimeLabel = scrubBar
+    ? `${scrubBar.timeStr} · ${scrubBar.isForecast ? 'PROG' : 'OBS'}${scrubBar.isGap ? ' · saknas' : ''}`
+    : `${format(currentWind.time, 'HH:mm')} · OBS`;
 
   const badgeStyle = levelIndex >= 2
     ? getLevelBadgeStyle(avg, gust)
@@ -64,15 +68,9 @@ export function HeroStats({ currentWind, timeline, forecastHourly }: HeroStatsPr
           )}
           {level.label}
         </span>
-        {scrubBar && (
-          <span
-            className={`absolute right-0 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-app-subtle transition-opacity duration-150 ${isScrubbing ? 'opacity-100' : 'opacity-0'}`}
-            aria-hidden={!isScrubbing}
-          >
-            {scrubBar.timeStr} · {scrubBar.isForecast ? 'PROG' : 'OBS'}
-            {scrubBar.isGap && ' · saknas'}
-          </span>
-        )}
+        <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-app-subtle">
+          {displayTimeLabel}
+        </span>
       </div>
 
       <div className={`grid grid-cols-3 border border-app-border rounded-xl overflow-hidden mb-4 transition-opacity duration-200 ${isScrubbing ? 'opacity-90' : ''}`}>
