@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { STATS_DATA_START_YEAR } from '../config/constants';
 import { startOfDay, format } from 'date-fns';
+import {
+    aggregateWindIntervals,
+    type WindInterval,
+} from '../utils/dailyStatsAggregation';
 
 export interface DailyStats {
     date: string;
@@ -17,20 +22,69 @@ export interface DailyStats {
     dataPointsCount: number;
     hasStrongWind: boolean;
     hasGaleForce: boolean;
-    hasDaylightWind10Plus?: boolean; // NEW: true if wind >= 10 m/s during daylight
+    hasDaylightWind10Plus?: boolean;
+    isSurfableDay: boolean;
+    surfableMinutes?: number;
+    surfableMinutesDaylight?: number;
+    peakLevelIndex?: number;
+    peakLevelIndexDaylight?: number;
+    windowFrom?: Date | null;
+    windowTo?: Date | null;
 }
 
 interface UseDailyStatsOptions {
-    startYear: number;
+    startYear?: number;
     endYear: number;
-    minForce?: number;
+}
+
+function mapFirestoreDailyStats(data: Record<string, unknown>): DailyStats {
+    const toDate = (value: unknown, fallback: string): Date => {
+        if (value && typeof value === 'object' && 'toDate' in value) {
+            return (value as { toDate: () => Date }).toDate();
+        }
+        return new Date(fallback);
+    };
+
+    return {
+        date: data.date as string,
+        year: data.year as number,
+        month: data.month as number,
+        maxForce: data.maxForce as number,
+        maxForceTime: toDate(data.maxForceTime, data.date as string),
+        avgForce: data.avgForce as number,
+        minForce: data.minForce as number,
+        maxForceDirection: data.maxForceDirection as number,
+        maxGust: data.maxGust as number,
+        maxGustTime: toDate(data.maxGustTime, data.date as string),
+        dataPointsCount: data.dataPointsCount as number,
+        hasStrongWind: data.hasStrongWind as boolean,
+        hasGaleForce: data.hasGaleForce as boolean,
+        hasDaylightWind10Plus: data.hasDaylightWind10Plus as boolean | undefined,
+        isSurfableDay: (data.isSurfableDay as boolean | undefined) ?? (data.hasStrongWind as boolean),
+        surfableMinutes: data.surfableMinutes as number | undefined,
+        surfableMinutesDaylight: data.surfableMinutesDaylight as number | undefined,
+        peakLevelIndex: data.peakLevelIndex as number | undefined,
+        peakLevelIndexDaylight: data.peakLevelIndexDaylight as number | undefined,
+        windowFrom: data.windowFrom ? toDate(data.windowFrom, data.date as string) : null,
+        windowTo: data.windowTo ? toDate(data.windowTo, data.date as string) : null,
+    };
+}
+
+function aggregationToDailyStats(aggregated: ReturnType<typeof aggregateWindIntervals>): DailyStats {
+    return {
+        ...aggregated,
+        hasDaylightWind10Plus: aggregated.hasDaylightWind10Plus,
+    };
 }
 
 /**
- * Fetch daily aggregated wind stats from Firestore
- * Much more efficient than fetching 5-minute raw data
+ * Fetch daily aggregated wind stats from Firestore.
+ * Query uses isSurfableDay (Beslut 06.3) — includes gust-driven surf days.
  */
-export function useDailyStats({ startYear, endYear, minForce = 10 }: UseDailyStatsOptions) {
+export function useDailyStats({
+    startYear = STATS_DATA_START_YEAR,
+    endYear,
+}: UseDailyStatsOptions) {
     const [data, setData] = useState<DailyStats[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
@@ -44,24 +98,24 @@ export function useDailyStats({ startYear, endYear, minForce = 10 }: UseDailySta
                 setError(null);
 
                 const dailyStatsRef = collection(db, 'dailyStats');
-
-                // Simple date-range query - much more efficient!
                 const startDate = `${startYear}-01-01`;
                 const endDate = `${endYear}-12-31`;
 
                 const q = query(
                     dailyStatsRef,
-                    where('hasStrongWind', '==', true),  // Equality filter MUST come first
+                    where('isSurfableDay', '==', true),
                     where('date', '>=', startDate),
                     where('date', '<=', endDate),
                     orderBy('date', 'desc')
                 );
 
-                // Fetch historical stats and current day's live data in parallel
                 const currentYear = new Date().getFullYear();
                 const shouldFetchLive = endYear >= currentYear;
 
-                const promises: [Promise<any>, Promise<any>] = [getDocs(q), Promise.resolve(null)];
+                const promises: [Promise<Awaited<ReturnType<typeof getDocs>>>, Promise<Awaited<ReturnType<typeof getDocs>> | null>] = [
+                    getDocs(q),
+                    Promise.resolve(null),
+                ];
 
                 if (shouldFetchLive) {
                     const todayStart = startOfDay(new Date());
@@ -78,126 +132,47 @@ export function useDailyStats({ startYear, endYear, minForce = 10 }: UseDailySta
 
                 if (!mounted) return;
 
-                const stats: DailyStats[] = statsSnapshot.docs.map((doc: any) => {
-                    const data = doc.data();
-                    return {
-                        date: data.date,
-                        year: data.year,
-                        month: data.month,
-                        maxForce: data.maxForce,
-                        maxForceTime: data.maxForceTime?.toDate() || new Date(data.date),
-                        avgForce: data.avgForce,
-                        minForce: data.minForce,
-                        maxForceDirection: data.maxForceDirection,
-                        maxGust: data.maxGust,
-                        maxGustTime: data.maxGustTime?.toDate() || new Date(data.date),
-                        dataPointsCount: data.dataPointsCount,
-                        hasStrongWind: data.hasStrongWind,
-                        hasGaleForce: data.hasGaleForce,
-                        hasDaylightWind10Plus: data.hasDaylightWind10Plus ?? undefined
-                    };
-                });
+                const stats: DailyStats[] = statsSnapshot.docs.map((doc) =>
+                    mapFirestoreDailyStats(doc.data() as Record<string, unknown>)
+                );
 
-                // Process live data if available
                 if (liveSnapshot && !liveSnapshot.empty) {
-                    let maxForce = 0;
-                    let maxGust = 0;
-                    let totalForce = 0;
-                    let minForceVal = 999;
-                    let maxForceDir = 0;
-                    let maxForceTime = new Date();
-                    let maxGustTime = new Date();
-
-
-                    const todayPoints = liveSnapshot.docs.map((doc: any) => {
-                        const d = doc.data();
+                    const todayPoints: WindInterval[] = liveSnapshot.docs.map((doc) => {
+                        const d = doc.data() as {
+                            force?: number;
+                            forceMax?: number;
+                            direction?: number;
+                            time?: { toDate: () => Date };
+                        };
+                        const force = d.force || 0;
                         return {
-                            force: d.force || 0,
-                            max: d.forceMax || d.force || 0,
-                            dir: d.direction || 0,
-                            time: d.time?.toDate() || new Date()
+                            force,
+                            forceMax: d.forceMax ?? force,
+                            direction: d.direction || 0,
+                            time: d.time?.toDate() || new Date(),
                         };
                     });
 
                     if (todayPoints.length > 0) {
-                        todayPoints.forEach((p: any) => {
-                            if (p.force > maxForce) {
-                                maxForce = p.force;
-                                maxForceDir = p.dir;
-                                maxForceTime = p.time;
-                            }
-                            if (p.max > maxGust) {
-                                maxGust = p.max;
-                                maxGustTime = p.time;
-                            }
-                            if (p.force < minForceVal) minForceVal = p.force;
-                            totalForce += p.force;
-
-                            // Check daylight condition (approximate for live data or use utils logic if available)
-                            // For simplicity here, we assume if it's windy it counts, 
-                            // or we can import isMaxWindDuringDaylight if needed. 
-                            // The user originally had a field for this.
-                            // Let's assume true for now if it's high enough, as daylight calc is complex to inline.
-                            // Or better, let's reuse the simple logic: if hour is between 8 and 18 approx?
-                            // Actually the main filter in StatsView does the robust check. 
-                            // We just need to populate the flag if we want it pre-calculated.
-                            // But for live data, StatsView might re-calculate or we omit and let it fallback?
-                            // StatsView lines 50-57: checks `hasDaylightWind10Plus`. If undefined, checks `isMaxWindDuringDaylight(day.maxForceTime)`.
-                            // So we can leave it undefined or try to calculate. 
-                            // Let's leave undefined to rely on client-side fallback in StatsView which is robust.
-                        });
-
-                        const avgForce = Number((totalForce / todayPoints.length).toFixed(1));
                         const todayDateStr = format(new Date(), 'yyyy-MM-dd');
+                        const todayStat = aggregationToDailyStats(
+                            aggregateWindIntervals(todayPoints, todayDateStr)
+                        );
 
-                        // Construct today's stat object
-                        const todayStat: DailyStats = {
-                            date: todayDateStr,
-                            year: currentYear,
-                            month: new Date().getMonth() + 1, // 1-indexed
-                            maxForce,
-                            maxForceTime,
-                            avgForce,
-                            minForce: minForceVal === 999 ? 0 : minForceVal,
-                            maxForceDirection: maxForceDir,
-                            maxGust,
-                            maxGustTime,
-                            dataPointsCount: todayPoints.length,
-                            hasStrongWind: maxForce >= 10, // Assuming 10 is the threshold for "StrongWind"
-                            hasGaleForce: maxForce >= 14,
-                            hasDaylightWind10Plus: undefined // Let StatsView calculate this dynamically
-                        };
+                        const filteredHistory = stats.filter((s) => s.date !== todayDateStr);
 
-                        // Merge logic: check if today is already in stats (from historical fetch)
-                        // If so, replace it. If not, add it.
-                        // Filter out any existing entry for today first
-                        const filteredHistory = stats.filter(s => s.date !== todayDateStr);
-
-                        // Add live stat ONLY if it meets criteria (hasStrongWind)
-                        // The historical query only fetches hasStrongWind == true.
-                        // So we should respect that consistency.
-                        if (todayStat.hasStrongWind) {
-                            filteredHistory.unshift(todayStat); // Add to beginning (desc order)
+                        if (todayStat.isSurfableDay) {
+                            filteredHistory.unshift(todayStat);
                         }
 
-                        // Re-assign to stats to filter later
-                        // We must MUTATE the `stats` variable or creating a new one
-                        // Let's just use filteredHistory as the new base
                         stats.length = 0;
                         stats.push(...filteredHistory);
-
-                        // Sort again to be sure (descending dates)
                         stats.sort((a, b) => b.date.localeCompare(a.date));
                     }
                 }
 
-                // Filter client-side if minForce is specified (optional additional filter)
-                const filteredStats = minForce
-                    ? stats.filter(s => s.maxForce >= minForce)
-                    : stats;
-
-                setData(filteredStats);
-                console.log(`✓ Loaded ${filteredStats.length} daily stats (inc. live data)`);
+                setData(stats);
+                console.log(`✓ Loaded ${stats.length} surfable daily stats (inc. live data)`);
             } catch (err) {
                 console.error('Error fetching daily stats:', err);
                 if (mounted) {
@@ -215,7 +190,7 @@ export function useDailyStats({ startYear, endYear, minForce = 10 }: UseDailySta
         return () => {
             mounted = false;
         };
-    }, [startYear, endYear, minForce]);
+    }, [startYear, endYear]);
 
     return { data, loading, error };
 }

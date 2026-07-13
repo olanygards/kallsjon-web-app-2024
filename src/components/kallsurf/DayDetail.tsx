@@ -25,6 +25,8 @@ import {
   getEffectiveLevelIndex,
 } from '../../config/windScale';
 import { getSunTimes, formatDecimalTime } from '../../utils/sunTimes';
+import { aggregateWindIntervals } from '../../utils/dailyStatsAggregation';
+import { formatSurfableHours } from '../../utils/statsFilters';
 
 const INK = APP_THEME.text;
 const SURFABLE_INDEX = WIND_SCALE_LEVELS.findIndex(l => l.id === 'surfable');
@@ -107,6 +109,21 @@ export function DayDetail({ date, timeline, onBack, onNavigateDay, onCompareMode
       ? { from: format(surfable[0].time, 'HH:mm'), to: format(surfable[surfable.length - 1].time, 'HH:mm') }
       : null;
 
+    const observedPoints = dayPoints.filter(p => !p.isForecast);
+    let surfableMinutes = 0;
+    if (observedPoints.length > 0) {
+      const aggregated = aggregateWindIntervals(
+        observedPoints.map((p) => ({
+          force: p.avg,
+          forceMax: p.gust,
+          direction: p.dir,
+          time: p.time,
+        })),
+        dateKey
+      );
+      surfableMinutes = aggregated.surfableMinutes;
+    }
+
     const isForecast = dayPoints.every(p => p.isForecast);
     const hasForecast = dayPoints.some(p => p.isForecast);
 
@@ -116,10 +133,11 @@ export function DayDetail({ date, timeline, onBack, onNavigateDay, onCompareMode
       level: WIND_SCALE_LEVELS[bestLevelIndex],
       directionSpan: getDirectionSpan(dayPoints, maxAvg),
       thresholdWindow,
+      surfableMinutes,
       isForecast,
       hasForecast,
     };
-  }, [dayPoints]);
+  }, [dayPoints, dateKey]);
 
   const chartData = useMemo<ChartPoint[]>(() => {
     let lastObservedIndex = -1;
@@ -233,6 +251,9 @@ export function DayDetail({ date, timeline, onBack, onNavigateDay, onCompareMode
                 <>
                   {summary.directionSpan && ' · '}
                   över tröskeln <b className="text-app-text">{summary.thresholdWindow.from}–{summary.thresholdWindow.to}</b>
+                  {summary.surfableMinutes > 0 && (
+                    <> · <b className="text-app-text">{formatSurfableHours(summary.surfableMinutes)}</b> effektivt</>
+                  )}
                 </>
               )}
               {!summary.thresholdWindow && summary.directionSpan && ' · under tröskeln hela dagen'}

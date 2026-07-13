@@ -89,4 +89,7 @@ export const FETCH_CONFIG = {
   TIMEOUT_MS: 6000,
   MAX_RETRIES: 1,
   CACHE_DURATION_MS: 15 * 60 * 1000  // 15 min
-}; 
+};
+
+/** Äldsta år med komplett dailyStats — uppdateras efter backfill (Beslut 06.8) */
+export const STATS_DATA_START_YEAR = 2020; 

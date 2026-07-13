@@ -88,6 +88,18 @@ Implementation sker stegvis vid tema-/skala-refaktorering; emerald tas bort när
 
 ---
 
+## Beslut 06 · Stats = Översikt + Topplista
+
+**Status:** Godkänt (2026-07-13)
+
+**Beslut:** Stats-fliken delas i **Översikt** (makro) och **Topplista** (mikro), med gemensamma filter (pills + bottom sheet). Surfbar dag definieras via `getEffectiveLevelIndex` — samma logik som övriga vyer.
+
+Full spec: [BESLUT-06-STATS.md](./BESLUT-06-STATS.md) (06.1–06.10).
+
+**06.10 · Isperiod:** Klientfilter via `src/config/iceConfig.ts` — aldrig i `dailyStats`-aggregatet. Default 15 feb–15 apr; januaridagar före isläggning räknas som surfbara. Configändringar slår igenom retroaktivt utan backfill.
+
+---
+
 ## Öppna beslut
 
 | # | Fråga |
