@@ -47,10 +47,6 @@ function snap5(date: Date): Date {
   return new Date(Math.floor(date.getTime() / FIVE_MIN_MS) * FIVE_MIN_MS);
 }
 
-function bucketKey(time: Date): number {
-  return Math.floor(time.getTime() / FIVE_MIN_MS);
-}
-
 function gustDelta(avg: number, gust: number): number {
   return Math.max(0, gust - avg);
 }
@@ -163,6 +159,37 @@ function timelineForecastToHourly(points: TimelinePoint[]): ForecastHourPoint[] 
   }));
 }
 
+/** Map each observation to the nearest chart bucket within tolerance. */
+function assignObsToNearestBuckets(
+  observed: TimelinePoint[],
+  obsBucketTimes: Date[]
+): Map<number, TimelinePoint> {
+  const obsByBucket = new Map<number, TimelinePoint>();
+
+  for (const point of observed) {
+    const pointMs = point.time.getTime();
+    let nearestBucketMs: number | null = null;
+    let nearestDist = BUCKET_TOLERANCE_MS + 1;
+
+    for (const bucketTime of obsBucketTimes) {
+      const dist = Math.abs(pointMs - bucketTime.getTime());
+      if (dist <= BUCKET_TOLERANCE_MS && dist < nearestDist) {
+        nearestDist = dist;
+        nearestBucketMs = bucketTime.getTime();
+      }
+    }
+
+    if (nearestBucketMs === null) continue;
+
+    const existing = obsByBucket.get(nearestBucketMs);
+    if (!existing || pointMs > existing.time.getTime()) {
+      obsByBucket.set(nearestBucketMs, point);
+    }
+  }
+
+  return obsByBucket;
+}
+
 function buildBar(
   time: Date,
   avg: number | null,
@@ -213,28 +240,15 @@ export function buildNowWindChartData(
     ? forecastHourly
     : timelineForecastToHourly(timeline.filter((p) => p.isForecast));
 
-  const obsByBucket = new Map<number, TimelinePoint>();
-  observed.forEach((point) => {
-    const key = bucketKey(point.time);
-    const existing = obsByBucket.get(key);
-    if (!existing || point.time.getTime() > existing.time.getTime()) {
-      obsByBucket.set(key, point);
-    }
-  });
+  const obsBucketTimes = bucketTimes.filter((b) => !b.isForecast).map((b) => b.time);
+  const obsByBucket = assignObsToNearestBuckets(observed, obsBucketTimes);
 
   const bars: NowWindBar[] = [];
 
   for (const { time, isForecast } of bucketTimes) {
     if (!isForecast) {
-      const key = bucketKey(time);
-      const match = obsByBucket.get(key);
+      const match = obsByBucket.get(time.getTime());
       if (!match) {
-        bars.push(buildBar(time, null, null, null, false, true));
-        continue;
-      }
-
-      const withinTolerance = Math.abs(match.time.getTime() - time.getTime()) <= BUCKET_TOLERANCE_MS;
-      if (!withinTolerance) {
         bars.push(buildBar(time, null, null, null, false, true));
         continue;
       }
