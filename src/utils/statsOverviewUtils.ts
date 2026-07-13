@@ -22,6 +22,19 @@ function ytdCutoff(year: number, reference = new Date()): string {
   return format(reference, 'yyyy-MM-dd');
 }
 
+/** Hela säsonger enligt Beslut 06.7 — innevarande år räknas inte som komplett. */
+export function isCompleteSeasonYear(year: number, reference = new Date()): boolean {
+  return year < reference.getFullYear();
+}
+
+export function completeSeasonYears(
+  years: number[],
+  excludeYear: number,
+  reference = new Date()
+): number[] {
+  return years.filter((y) => y !== excludeYear && isCompleteSeasonYear(y, reference));
+}
+
 export function countSurfableDaysYtd(days: DailyStats[], year: number, reference = new Date()): number {
   const cutoff = ytdCutoff(year, reference);
   return days.filter((d) => d.year === year && d.date <= cutoff).length;
@@ -38,8 +51,12 @@ export function averageYtdAcrossYears(
   return Math.round((counts.reduce((a, b) => a + b, 0) / counts.length) * 10) / 10;
 }
 
-export function buildAverageSeasonLabel(years: number[], excludeYear: number): string {
-  const seasons = years.filter((y) => y !== excludeYear).sort((a, b) => a - b);
+export function buildAverageSeasonLabel(
+  years: number[],
+  excludeYear: number,
+  reference = new Date()
+): string {
+  const seasons = completeSeasonYears(years, excludeYear, reference).sort((a, b) => a - b);
   if (seasons.length === 0) return '';
   if (seasons.length === 1) return String(seasons[0]);
   return `${seasons[0]}–${seasons[seasons.length - 1]}`;
@@ -47,10 +64,12 @@ export function buildAverageSeasonLabel(years: number[], excludeYear: number): s
 
 export function buildMonthlyBars(
   days: DailyStats[],
-  targetYear: number
+  targetYear: number,
+  reference = new Date()
 ): MonthlyBarDatum[] {
   const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'];
-  const otherYears = [...new Set(days.map((d) => d.year))].filter((y) => y !== targetYear);
+  const allYears = [...new Set(days.map((d) => d.year))];
+  const otherYears = completeSeasonYears(allYears, targetYear, reference);
 
   return monthLabels.map((label, index) => {
     const month = index + 1;
