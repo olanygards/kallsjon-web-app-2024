@@ -1,4 +1,4 @@
-import { addMinutes, format } from 'date-fns';
+import { addHours, addMinutes, format, startOfHour } from 'date-fns';
 import { TimelinePoint } from '../hooks/useKallsurfTimeline';
 
 export interface ForecastHourPoint {
@@ -64,17 +64,64 @@ function lerpAngle(a: number, b: number, t: number): number {
   return (a + diff * t + 360) % 360;
 }
 
+function buildForecastAnchors(
+  forecastPoints: ForecastHourPoint[],
+  nowSnap: Date,
+  bridge: ForecastHourPoint | null
+): ForecastHourPoint[] {
+  const nowSnapMs = nowSnap.getTime();
+  const anchors: ForecastHourPoint[] = [];
+
+  if (bridge) {
+    anchors.push(bridge);
+  }
+
+  const sorted = [...forecastPoints].sort((a, b) => a.time.getTime() - b.time.getTime());
+  const futurePoints = sorted.filter((point) => point.time.getTime() > nowSnapMs);
+
+  for (const point of futurePoints) {
+    anchors.push(point);
+  }
+
+  // Saknas framtida timme: använd aktuell timmes prognos som mål vid nästa heltimme
+  if (bridge && futurePoints.length === 0) {
+    const hourStartMs = startOfHour(nowSnap).getTime();
+    const matches = sorted.filter(
+      (point) => point.time.getTime() >= hourStartMs && point.time.getTime() <= nowSnapMs
+    );
+    const currentHourForecast = matches.length > 0 ? matches[matches.length - 1] : undefined;
+
+    if (currentHourForecast) {
+      const nextHour = addHours(startOfHour(nowSnap), 1);
+      if (nextHour.getTime() > nowSnapMs) {
+        anchors.push({
+          time: nextHour,
+          avg: currentHourForecast.avg,
+          gust: currentHourForecast.gust,
+          dir: currentHourForecast.dir,
+        });
+      }
+    }
+  }
+
+  return anchors;
+}
+
 function interpolateForecast(
   forecastPoints: ForecastHourPoint[],
   target: Date,
-  bridge?: ForecastHourPoint | null
+  bridge?: ForecastHourPoint | null,
+  nowSnap?: Date
 ): { avg: number; gust: number; dir: number } | null {
   if (forecastPoints.length === 0 && !bridge) return null;
 
   const targetMs = target.getTime();
-  const sorted = [...forecastPoints].sort((a, b) => a.time.getTime() - b.time.getTime());
+  const anchorTime = nowSnap ?? bridge?.time ?? target;
+  const anchors = buildForecastAnchors(forecastPoints, anchorTime, bridge ?? null);
 
-  const exact = sorted.find((p) => p.time.getTime() === targetMs);
+  if (anchors.length === 0) return null;
+
+  const exact = anchors.find((p) => p.time.getTime() === targetMs);
   if (exact) {
     return { avg: exact.avg, gust: exact.gust, dir: exact.dir };
   }
@@ -82,17 +129,13 @@ function interpolateForecast(
   let before: ForecastHourPoint | null = null;
   let after: ForecastHourPoint | null = null;
 
-  for (const point of sorted) {
+  for (const point of anchors) {
     const ms = point.time.getTime();
     if (ms <= targetMs) before = point;
     if (ms >= targetMs && !after) {
       after = point;
       break;
     }
-  }
-
-  if (!before && bridge && bridge.time.getTime() <= targetMs) {
-    before = bridge;
   }
 
   if (before && after && before.time.getTime() !== after.time.getTime()) {
@@ -205,7 +248,7 @@ export function buildNowWindChartData(
       ? { time: nowSnap, avg: lastObs.avg!, gust: lastObs.gust!, dir: lastObs.dir! }
       : null;
 
-    const interpolated = interpolateForecast(forecast, time, bridge);
+    const interpolated = interpolateForecast(forecast, time, bridge, nowSnap);
     if (!interpolated) {
       bars.push(buildBar(time, null, null, null, true, true));
       continue;
