@@ -1,5 +1,5 @@
-import {readFileSync} from "node:fs";
-import {resolve} from "node:path";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   initializeApp,
   cert,
@@ -7,10 +7,13 @@ import {
   getApps,
   type ServiceAccount,
 } from "firebase-admin/app";
-import {getFirestore, Timestamp, type Firestore} from "firebase-admin/firestore";
-import {format, startOfMonth, endOfMonth, parseISO} from "date-fns";
+import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestore";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import * as dotenv from "dotenv";
-import SunCalc from "suncalc";
+import {
+  aggregateWindIntervals,
+  type WindInterval,
+} from "../src/utils/dailyStatsAggregation.ts";
 
 dotenv.config();
 
@@ -48,14 +51,6 @@ function initFirestore(): Firestore {
 
 const db = initFirestore();
 
-const KALLSJON_LAT = 63.637993;
-const KALLSJON_LON = 13.033151;
-
-function isDaylightAtKallsjon(date: Date): boolean {
-  const times = SunCalc.getTimes(date, KALLSJON_LAT, KALLSJON_LON);
-  return date >= times.sunrise && date <= times.sunset;
-}
-
 interface WindDocument {
   force: number;
   forceMax: number;
@@ -63,77 +58,54 @@ interface WindDocument {
   time: Timestamp;
 }
 
-interface DailyStats {
-  date: string;
-  year: number;
-  month: number;
-  maxForce: number;
-  maxForceTime: Timestamp;
-  avgForce: number;
-  minForce: number;
-  maxForceDirection: number;
-  maxGust: number;
-  maxGustTime: Timestamp;
-  dataPointsCount: number;
-  hasStrongWind: boolean;
-  hasGaleForce: boolean;
-  hasDaylightWind10Plus: boolean;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+const migrationStats = {
+  gustOnlySurfableDays: 0,
+  oldestCompleteDate: null as string | null,
+  gapExampleDays: [] as Array<{ date: string; surfableMinutes: number; spanMinutes: number }>,
+};
+
+function toWindIntervals(dayData: WindDocument[]): WindInterval[] {
+  return dayData.map((doc) => ({
+    force: doc.force || 0,
+    forceMax: doc.forceMax,
+    direction: doc.direction || 0,
+    time: doc.time.toDate(),
+  }));
 }
 
-function aggregateDayData(dayData: WindDocument[], dateStr: string): DailyStats {
-  let maxForce = 0;
-  let maxForceTime: Timestamp = dayData[0].time;
-  let maxForceDirection = 0;
-  let maxGust = 0;
-  let maxGustTime: Timestamp = dayData[0].time;
-  let sumForce = 0;
-  let minForce = Infinity;
-  let hasDaylightWind10Plus = false;
+function aggregateDayData(dayData: WindDocument[], dateStr: string) {
+  const stats = aggregateWindIntervals(toWindIntervals(dayData), dateStr);
 
-  dayData.forEach((doc) => {
-    const force = doc.force || 0;
-    const gust = doc.forceMax || force;
-    const measurementTime = doc.time.toDate();
+  if (stats.isSurfableDay && !stats.hasStrongWind) {
+    migrationStats.gustOnlySurfableDays++;
+  }
 
-    if (force > maxForce) {
-      maxForce = force;
-      maxForceTime = doc.time;
-      maxForceDirection = doc.direction || 0;
+  if (
+    !migrationStats.oldestCompleteDate ||
+    dateStr < migrationStats.oldestCompleteDate
+  ) {
+    migrationStats.oldestCompleteDate = dateStr;
+  }
+
+    if (stats.isSurfableDay && stats.windowFrom && stats.windowTo) {
+    const spanMinutes = Math.round(
+      (stats.windowTo.getTime() - stats.windowFrom.getTime()) / (1000 * 60) + 5
+    );
+    if (stats.surfableMinutes < spanMinutes && migrationStats.gapExampleDays.length < 3) {
+      migrationStats.gapExampleDays.push({
+        date: dateStr,
+        surfableMinutes: stats.surfableMinutes,
+        spanMinutes,
+      });
     }
-
-    if (gust > maxGust) {
-      maxGust = gust;
-      maxGustTime = doc.time;
-    }
-
-    if (force >= 10 && isDaylightAtKallsjon(measurementTime)) {
-      hasDaylightWind10Plus = true;
-    }
-
-    if (force < minForce) minForce = force;
-    sumForce += force;
-  });
-
-  const avgForce = dayData.length > 0 ? sumForce / dayData.length : 0;
-  const parsedDate = parseISO(dateStr);
+  }
 
   return {
-    date: dateStr,
-    year: parsedDate.getFullYear(),
-    month: parsedDate.getMonth() + 1,
-    maxForce: Math.round(maxForce * 10) / 10,
-    maxForceTime,
-    avgForce: Math.round(avgForce * 10) / 10,
-    minForce: Math.round((minForce === Infinity ? 0 : minForce) * 10) / 10,
-    maxForceDirection,
-    maxGust: Math.round(maxGust * 10) / 10,
-    maxGustTime,
-    dataPointsCount: dayData.length,
-    hasStrongWind: maxForce >= 10,
-    hasGaleForce: maxForce >= 15,
-    hasDaylightWind10Plus,
+    ...stats,
+    maxForceTime: Timestamp.fromDate(stats.maxForceTime),
+    maxGustTime: Timestamp.fromDate(stats.maxGustTime),
+    windowFrom: stats.windowFrom ? Timestamp.fromDate(stats.windowFrom) : null,
+    windowTo: stats.windowTo ? Timestamp.fromDate(stats.windowTo) : null,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   };
@@ -188,10 +160,36 @@ async function processMonth(year: number, month: number): Promise<number> {
   return writeCount;
 }
 
+async function verifyOldestWindDocument() {
+  try {
+    const snapshot = await db.collection("wind").orderBy("time", "asc").limit(1).get();
+    if (snapshot.empty) {
+      console.log("  Äldsta wind-dokument: inget hittat");
+      return;
+    }
+    const oldest = snapshot.docs[0].data().time.toDate() as Date;
+    const year = oldest.getFullYear();
+    console.log(`  Äldsta wind-dokument: ${oldest.toISOString()} (år ${year})`);
+    if (year < 2020) {
+      console.log(
+        `  ⚠ ${year}-fragment finns före 2020 — aggregeras inte in i snitt/copy ("Data sedan 2020")`
+      );
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(`  ⚠ Kunde inte verifiera äldsta wind-dokument: ${message}`);
+    console.log("  (Fortsätter backfill — kör npm run verify:wind-start separat vid behov.)");
+  }
+}
+
 async function migrateHistoricalData() {
   console.log("=".repeat(60));
   console.log("Daily Stats Migration Script (Admin SDK)");
   console.log("=".repeat(60));
+  console.log("");
+
+  console.log("Verifierar äldsta wind-dokument...");
+  await verifyOldestWindDocument();
   console.log("");
 
   const startYear = Number(process.env.AGGREGATE_START_YEAR ?? 2020);
@@ -203,10 +201,9 @@ async function migrateHistoricalData() {
 
   try {
     for (let year = startYear; year <= endYear; year++) {
-      const startMonth = 1;
       const lastMonth = year === endYear ? endMonth : 12;
 
-      for (let month = startMonth; month <= lastMonth; month++) {
+      for (let month = 1; month <= lastMonth; month++) {
         const daysProcessed = await processMonth(year, month);
         totalDays += daysProcessed;
 
@@ -214,10 +211,32 @@ async function migrateHistoricalData() {
       }
     }
 
+    const oldestYear = migrationStats.oldestCompleteDate
+      ? migrationStats.oldestCompleteDate.slice(0, 4)
+      : "—";
+
     console.log("");
     console.log("=".repeat(60));
     console.log("✓ Migration Complete!");
-    console.log(`  Total daily stats created: ${totalDays}`);
+    console.log(`  Total daily stats written: ${totalDays}`);
+    console.log("");
+    console.log("── Backfill-kvitto (Paket 1 / 1b) ──");
+    console.log(
+      `  Gust-drivna surfardagar (isSurfableDay && !hasStrongWind): ${migrationStats.gustOnlySurfableDays}`
+    );
+    console.log(
+      `  Äldsta dag med komplett aggregat: ${migrationStats.oldestCompleteDate ?? "—"} (år ${oldestYear})`
+    );
+    if (migrationStats.gapExampleDays.length > 0) {
+      console.log("  Exempel: surfableMinutes < spann (hål i fönstret):");
+      migrationStats.gapExampleDays.forEach((example) => {
+        console.log(
+          `    ${example.date}: ${example.surfableMinutes} min effektivt, ${example.spanMinutes} min spann`
+        );
+      });
+    } else {
+      console.log("  (Inga hål-exempel hittades i urvalet — OK om datan är sammanhängande)");
+    }
     console.log("=".repeat(60));
   } catch (error) {
     console.error("");

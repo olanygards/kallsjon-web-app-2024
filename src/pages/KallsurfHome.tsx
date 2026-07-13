@@ -32,6 +32,13 @@ export default function KallsurfHome() {
     mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleMonthClick = (monthDate: Date) => {
+    setSelectedDate(null);
+    setViewDate(monthDate);
+    setActiveTab('history');
+    scrollToTop();
+  };
+
   const handleDayClick = (date: Date) => {
     setSelectedDate(date);
     setViewDate(date);
@@ -188,7 +195,7 @@ export default function KallsurfHome() {
 
             {activeTab === 'stats' && (
               <div className="animate-in slide-in-from-right-8 duration-300">
-                <StatsView onDayClick={handleDayClick} />
+                <StatsView onDayClick={handleDayClick} onMonthClick={handleMonthClick} />
               </div>
             )}
 
