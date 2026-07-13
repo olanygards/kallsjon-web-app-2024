@@ -22,7 +22,7 @@ Relaterat: [OVERSIKT.md – Nyckelkomponenter](../OVERSIKT.md#nyckelkomponenter)
 ### Layout enligt skiss (med avvikelser)
 
 - **Tre informationskolumner** ovanför grafen: medelvind, byvind, stor riktningspil (grader + kortriktning)
-- **Nivåbadge** överst; vid scrubb visas tidsstämpel + `OBS`/`PROG` till höger
+- **Nivåbadge** överst; **tidsstämpel + `OBS`/`PROG` alltid synlig** till höger (uppdateras vid scrubb)
 - **Stapeldiagram:** 60 min observation (fyllda) + 30 min prognos (streckad kant + lätt fyllnad)
 - **Vindpilar** ovanför varje stapel (nedtonade vid prognos)
 - **Vindskala** (`WindScaleMeter`) under sammanfattningsraden
@@ -42,6 +42,14 @@ Relaterat: [OVERSIKT.md – Nyckelkomponenter](../OVERSIKT.md#nyckelkomponenter)
 1. `useKallsurfTimeline` exponerar `forecastHourly` från `processedForecastData` (rå timprognos, ej deduplicerad)
 2. `buildNowWindChartData(timeline, forecastHourly)` interpolerar prognos från timdata direkt
 3. Brygga från **senaste observation** till första timprognos för mjuk övergång i nästa 30 min
+
+### Polish (2026-07-13, live på Firebase)
+
+| Fix | Beskrivning |
+|-----|-------------|
+| **Varierande prognosstaplar** | Interpolation ankars alltid vid senaste obs (`nowSnap`) → nästa timprognos; ignorerar timstart före NU som gav identiska staplar |
+| **Tidsstämpel alltid synlig** | `HH:mm · OBS` som standard i NU-kortet; byts vid scrubb till vald stapel (`PROG` / `OBS · saknas`) |
+| **Ingen fokusram vid touch** | Recharts fick browser-outline (blå ram) vid scrub — borttagen via global CSS + wrapper på `NowWindChart` |
 
 ---
 
@@ -244,7 +252,7 @@ Vid scrubb uppdateras pilen från aktiv stapel; annars från `currentWind` (aktu
 | Data äldre än 15 min | Header visar ofylld punkt (befintligt); graf visar senaste tillgängliga obs |
 | `gust < avg` | Klampa `gustDelta` till 0 (stationsfel) |
 | Mycket smal skärm | Tunna staplar, liten `barCategoryGap`; ingen horisontell scroll |
-| Touch/scrubb | Uppdaterar tre kolumner + tidsstämpel; släpp återgår till NU |
+| Touch/scrubb | Uppdaterar tre kolumner + tidsstämpel; släpp återgår till NU; ingen browser-fokusram |
 
 ---
 
@@ -262,6 +270,7 @@ Vid scrubb uppdateras pilen från aktiv stapel; annars från `currentWind` (aktu
 | **8** | Kantfall: saknad prognos, luckor, gammal data | ✅ |
 | **9** | Touch-scrubb + vindpilar per stapel | ✅ |
 | **10** | Prognosfix: `forecastHourly` i stället för deduplicerad timeline | ✅ PR #7 |
+| **11** | Polish: obs-ankrad interpolation, permanent tidsstämpel, borttagen fokusram | ✅ 2026-07-13 |
 
 ---
 
@@ -278,6 +287,9 @@ Vid scrubb uppdateras pilen från aktiv stapel; annars från `currentWind` (aktu
 - [x] Mobilbredd ~375 px — alla 18 staplar syns utan scroll
 - [x] Varning vid saknad prognos — obs-delen fungerar ändå (`Prognos saknas`)
 - [x] Touch-scrubb uppdaterar tre kolumner
+- [x] Tidsstämpel (`HH:mm · OBS`/`PROG`) alltid synlig i NU-kortet
+- [x] Prognosstaplar varierar stegvis (obs-brygga → nästa timme)
+- [x] Ingen blå fokusram vid touch/scrub i stapelgrafen
 
 ---
 

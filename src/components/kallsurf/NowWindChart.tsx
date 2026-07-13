@@ -167,7 +167,7 @@ export function NowWindChart({ timeline, forecastHourly, onScrubChange }: NowWin
       </div>
 
       <div
-        className="h-44 w-full"
+        className="h-44 w-full outline-none select-none [-webkit-tap-highlight-color:transparent]"
         onTouchEnd={() => onScrubChange(null)}
         onTouchCancel={() => onScrubChange(null)}
       >
